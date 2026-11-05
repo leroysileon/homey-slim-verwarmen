@@ -124,6 +124,8 @@
     #sv input[type=checkbox] { all: revert; width: 24px; height: 24px; accent-color: var(--warm); flex: none; }
     #sv label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
     #sv label:first-child { margin-top: 0; }
+    /* Homey zet labels standaard in hoofdletters; hier niet. */
+    #sv label, #sv label *, #sv small, #sv h1, #sv h2, #sv h3 { text-transform: none !important; letter-spacing: normal !important; }
     #sv .fstep { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 52px; padding: 0 6px; border-radius: 12px; background: var(--card-2); }
     #sv .fstep output { flex: 1; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
     #sv .fstep button { width: 40px; min-height: 40px; padding: 0; font-size: 22px; flex: none; }
