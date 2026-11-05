@@ -2,7 +2,8 @@
 <html lang="nl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
   <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
   <style>
     /* Alles hangt onder #sv: een ID wint van de standaardopmaak die Homey over knoppen en velden legt. */
@@ -21,8 +22,10 @@
         --tile-heat: linear-gradient(160deg, #6b4210, #4a2c08); --tile-idle: linear-gradient(160deg, #163b3f, #0e2a2e);
         --tile-text-heat: #f6b45a; --tile-text-idle: #5fd0c6; --pill: rgba(255,255,255,.12); --press: #333438; }
     }
-    html, body { margin: 0; padding: 0; background: #000; }
-    @media (prefers-color-scheme: light) { html, body { background: #f2f1ef; } }
+    /* Achtergrond tot in de onderrand (ook de ruimte die iOS vrijhoudt en bij doorscrollen). */
+    html, body { margin: 0; padding: 0; background: #000 !important; min-height: 100%; }
+    @media (prefers-color-scheme: light) { html, body { background: #f2f1ef !important; } }
+    #sv { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
     #sv * { box-sizing: border-box; }
     #sv h1 { all: unset; display: block; font-size: 32px; font-weight: 700; letter-spacing: -.01em; margin: 0 4px 16px; }
     #sv h2 { all: unset; display: block; font-size: 22px; font-weight: 700; margin: 30px 4px 12px; }
