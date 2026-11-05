@@ -9,7 +9,7 @@ module.exports = {
   },
   async postAction({ homey, body }) {
     const c = homey.app.controller;
-    if (body && body.action === 'setTemp') await c.setManual(Math.round(Number(body.temp) * 2) / 2);
+    if (body && body.action === 'setTemp') await c.setManual(Math.round(Number(body.temp) * 2) / 2, body.duration);
     else await homey.app.runAction(body);
     return { status: c.status, schedule: c.schedule };
   },

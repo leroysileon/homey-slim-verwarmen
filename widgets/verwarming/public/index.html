@@ -56,6 +56,16 @@
     #w button.busy { opacity: .7; pointer-events: none; animation: w-pulse 1s ease-in-out infinite; }
     @keyframes w-pulse { 50% { opacity: .45; } }
     #w .right { display: inline-flex; align-items: center; gap: 6px; }
+    /* Hoe lang geldt de handmatige stand? Neemt precies de plek van regel + dagbalk in. */
+    #w button.sub { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 14px; height: 20px; flex: none;
+      white-space: nowrap; overflow: hidden; cursor: pointer; color: inherit; }
+    #w button.sub .chev { width: 15px; height: 15px; opacity: .7; }
+    #w .dur { height: 60px; flex: none; display: flex; flex-direction: column; gap: 6px; animation: w-in .25s ease-out; }
+    #w .dur .q { display: flex; align-items: center; justify-content: space-between; height: 20px; font-size: 14px; }
+    #w .dur .q button { width: 26px; height: 22px; font-size: 13px; background: none; opacity: .7; }
+    #w .dur .opts { display: flex; gap: 5px; height: 32px; }
+    #w .dur .opts button { flex: 1 1 auto; min-width: 0; height: 32px; padding: 0 6px; font-size: 13px; white-space: nowrap; }
+    #w .dur .opts button.on { background: var(--solid); color: var(--solid-text); }
     /* Skeleton: zelfde opbouw en maten als de echte widget, zodat er bij het laden niets verspringt. */
     #w .sk { display: block; border-radius: 999px; background: var(--pill); position: relative; overflow: hidden; }
     #w .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
@@ -92,10 +102,13 @@ const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'H
 const ICON = {
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
+  chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
   flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg>',
 };
 
-let H; let data = null; let loaded = false; let prevKey = null; let pending = null; let sendTimer = null;
+let H; let data = null; let loaded = false;
+// Keuzerij 'hoe lang?': open/dicht, en een keuze die nog met de temperatuur mee moet.
+let durOpen = false; let durTimer = null; let chosenDur = null; let prevKey = null; let pending = null; let sendTimer = null;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1)}°`);
 const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
@@ -148,6 +161,26 @@ function timeOf(ms) {
   return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', ...(same ? {} : { weekday: 'short' }) });
 }
 
+/** Keuzes voor de duur; de eerste noemt de tijd van het volgende blok, zoals tado 'tot de volgende wijziging'. */
+function durOptions(s) {
+  const nextAt = s.nextBlock && s.nextBlock.at ? s.nextBlock.at.slice(3) : '';
+  return [['next', nextAt ? `Tot ${nextAt}` : 'Schema'], [60, '1 uur'], [120, '2 uur'], [240, '4 uur'], ['manual', 'Blijvend']];
+}
+function openDur() {
+  durOpen = true;
+  clearTimeout(durTimer);
+  durTimer = setTimeout(closeDur, 8000); // niets gekozen: standaardduur laten staan
+}
+function closeDur() { clearTimeout(durTimer); durOpen = false; render(); }
+function durPanel(s, target) {
+  const cur = String(chosenDur != null ? chosenDur
+    : (s.mode === 'manual' && s.override ? s.override.duration || 'next' : s.overrideDefault || 'next'));
+  return `<div class="dur">
+      <div class="q"><span>Hoe lang geldt ${fmt(target)}?</span><button data-durclose aria-label="Sluiten">✕</button></div>
+      <div class="opts" role="group" aria-label="Hoe lang">${durOptions(s).map(([d, l]) => `<button data-dur="${d}" class="${String(d) === cur ? 'on' : ''}" aria-pressed="${String(d) === cur}">${esc(l)}</button>`).join('')}</div>
+    </div>`;
+}
+
 function render() {
   const w = document.getElementById('w');
   if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
@@ -169,8 +202,11 @@ function render() {
   const key = JSON.stringify([s.mode, s.thermostatTarget, s.indoor, s.override && s.override.until]);
   if (prevKey !== null && key !== prevKey && pending == null) { w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
   prevKey = key;
+  const manual = s.mode === 'manual' && s.override;
+  if (durOpen && !manual && pending == null) durOpen = false; // inmiddels terug naar het schema
   let sub;
-  if (s.mode === 'manual' && s.override) sub = `${ICON.hand}<span>Handmatig tot ${esc(timeOf(s.override.until))}</span>`;
+  if (manual && s.override.until == null) sub = `${ICON.hand}<span>Handmatig, tot je het schema hervat</span>${ICON.chev}`;
+  else if (manual) sub = `${ICON.hand}<span>Handmatig tot ${esc(timeOf(s.override.until))}</span>${ICON.chev}`;
   else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(s.nextBlock ? s.nextBlock.at.slice(3) : '')}</span>`;
   else if (s.nextBlock) sub = `<span>Straks ${esc(s.nextBlock.at.slice(3))} → ${fmt(s.nextBlock.temp)}</span>`;
   else sub = '';
@@ -187,8 +223,9 @@ function render() {
         <button data-d="0.5" aria-label="Warmer">+</button>
       </div>
     </div>
-    <div class="sub">${sub}</div>
-    ${todayBar(data.schedule || {})}`;
+    ${durOpen ? durPanel(s, target)
+    : `${manual ? `<button class="sub" data-duropen aria-label="Hoe lang geldt deze temperatuur?">${sub}</button>` : `<div class="sub">${sub}</div>`}
+    ${todayBar(data.schedule || {})}`}`;
   setTimeout(fitHeight, 0);
 }
 
@@ -209,19 +246,39 @@ async function load() {
   render();
 }
 
+async function sendTemp() {
+  clearTimeout(sendTimer); sendTimer = null;
+  const temp = pending; const duration = chosenDur;
+  try {
+    data = await H.api('POST', '/action', duration != null ? { action: 'setTemp', temp, duration } : { action: 'setTemp', temp });
+  } catch (err) { console.error(err); }
+  pending = null; chosenDur = null; render(); refreshSoon();
+}
+
 document.addEventListener('click', async (e) => {
+  if (e.target.closest('[data-duropen]')) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); openDur(); render(); return; }
+  if (e.target.closest('[data-durclose]')) { closeDur(); return; }
+  const dur = e.target.closest('[data-dur]');
+  if (dur && data && data.status) {
+    if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    const d = /^\d+$/.test(dur.dataset.dur) ? Number(dur.dataset.dur) : dur.dataset.dur;
+    chosenDur = d;
+    render();
+    setTimeout(closeDur, 350); // keuze even laten zien
+    if (pending != null) { sendTemp(); return; } // temperatuur en duur in één keer
+    try { data = await H.api('POST', '/action', { action: 'setDuration', duration: d }); } catch (err) { console.error(err); }
+    chosenDur = null; render(); refreshSoon();
+    return;
+  }
   const step = e.target.closest('[data-d]');
   if (step && data && data.status) {
     const base = pending != null ? pending : data.status.thermostatTarget;
     pending = Math.min(28, Math.max(5, Math.round((base + Number(step.dataset.d)) * 2) / 2));
+    openDur(); // net als tado: meteen vragen hoe lang, maar zonder keuze geldt de standaard
     render();
     // Even wachten zodat meerdere tikken één wijziging worden.
     clearTimeout(sendTimer);
-    sendTimer = setTimeout(async () => {
-      const temp = pending;
-      try { data = await H.api('POST', '/action', { action: 'setTemp', temp }); } catch (err) { console.error(err); }
-      pending = null; render(); refreshSoon();
-    }, 1200);
+    sendTimer = setTimeout(sendTemp, 1200);
     return;
   }
   const act = e.target.closest('[data-act]');

@@ -19,11 +19,15 @@ const store = {
 };
 let mode = 'schedule';
 let manualTemp = 21;
+let manualDur = 'next';
+const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 530 * 60000 : Date.now() + d * 60000);
+let manualUntil = untilOf('next');
 const now = Date.now();
 const status = () => ({
   updatedAt: Date.now(), mode, thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, outdoor: 3.5,
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
-  override: mode === 'manual' ? { temp: manualTemp, since: now, until: now + 3 * 3600000 } : null,
+  override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
+  overrideDefault: store.config.overrideDefault || 'next',
   away: mode === 'away', enabled: mode !== 'paused',
   learned: { samples: 3, rate: 1.35, deadTime: 14, heatingNow: false, recent: [
     { at: now - 86400000, from: 15.2, to: 18, rate: 1.4, deadTime: 12, outdoor: 4 },
@@ -80,7 +84,10 @@ http.createServer((req, res) => {
     }
     if (url === '/__widget/action') {
       const b = JSON.parse(data || '{}');
-      if (b.action === 'setTemp') { mode = 'manual'; manualTemp = b.temp; } else if (b.action === 'resume') mode = 'schedule';
+      if (b.action === 'setTemp') {
+        if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
+        mode = 'manual'; manualTemp = b.temp;
+      } else if (b.action === 'setDuration') { manualDur = b.duration; manualUntil = untilOf(b.duration); } else if (b.action === 'resume') mode = 'schedule';
       return send(200, { status: status(), schedule: store.schedule });
     }
     if (url.startsWith('/__api/setting/')) {
@@ -91,7 +98,8 @@ http.createServer((req, res) => {
     if (url === '/__api/status') return send(200, status());
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/action') {
-      const { action } = JSON.parse(data || '{}');
+      const { action, duration } = JSON.parse(data || '{}');
+      if (action === 'setDuration') { manualDur = duration; manualUntil = untilOf(duration); return send(200, status()); }
       mode = { resume: 'schedule', away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule' }[action] || mode;
       return send(200, status());
     }

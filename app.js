@@ -154,10 +154,11 @@ class SlimVerwarmenApp extends Homey.App {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async runAction({ action } = {}) {
+  async runAction({ action, duration } = {}) {
     const c = this.controller;
     switch (action) {
       case 'resume': await c.clearOverride(); break;
+      case 'setDuration': await c.setOverrideDuration(duration); break;
       case 'away': await c.setAway(true); break;
       case 'home': await c.setAway(false); break;
       case 'pause': await c.setEnabled(false); break;
@@ -177,6 +178,7 @@ class SlimVerwarmenApp extends Homey.App {
     flow.getActionCard('set_presence').registerRunListener(({ mode }) => c.setAway(mode === 'away'));
     flow.getActionCard('resume_schedule').registerRunListener(() => c.clearOverride());
     flow.getActionCard('set_temporary').registerRunListener(({ temp, hours }) => c.setOverride(temp, hours));
+    flow.getActionCard('set_manual').registerRunListener(({ temp, duration }) => c.setManual(temp, duration));
     flow.getActionCard('set_enabled').registerRunListener(({ state }) => c.setEnabled(state === 'on'));
 
     flow.getConditionCard('is_manual').registerRunListener(() => !!c.state.override);
@@ -207,7 +209,7 @@ class SlimVerwarmenApp extends Homey.App {
     const card = this.triggers && this.triggers[event];
     if (!card) return;
     if (event === 'override_started') {
-      await card.trigger({ temp: data.temp, until: this.formatTime(data.until) });
+      await card.trigger({ temp: data.temp, until: data.until == null ? 'schema hervat' : this.formatTime(data.until) });
     } else if (event === 'setpoint_changed') {
       await card.trigger({ temp: data.temp, reason: REASONS[data.reason] || data.reason });
     } else if (event === 'learned') {

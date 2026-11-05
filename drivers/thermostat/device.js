@@ -5,7 +5,7 @@ const Homey = require('homey');
 /**
  * Laat het schema zien in het Klimaat-overzicht van Homey.
  * De temperatuur hier verzetten werkt als draaien aan de thermostaat:
- * die stand blijft staan tot het volgende blok in het schema.
+ * die stand geldt zo lang als ingesteld bij 'Handmatige stand geldt' (standaard tot het volgende blok).
  */
 class SlimVerwarmenDevice extends Homey.Device {
   async onInit() {

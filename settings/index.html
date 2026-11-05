@@ -74,6 +74,10 @@
     #sv .tile .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; opacity: .85; }
     #sv .tile .meta b { font-weight: 600; }
     #sv .tile .note { margin-top: 10px; font-size: 14px; opacity: .85; }
+    #sv .tile .durs { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    #sv .tile .durs button { flex: 1 1 auto; min-height: 34px; padding: 0 8px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+    #sv .tile .durs button.on { background: currentColor; }
+    #sv .tile .durs button.on span { color: var(--card); }
     #sv .tile .actions { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     #sv .tile .actions button { min-height: 42px; padding: 0 10px; font-size: 15px; gap: 6px; white-space: nowrap; }
     #sv .tile .actions button svg { width: 19px; height: 19px; }
@@ -195,6 +199,16 @@
       <output id="ecoTempOut"></output>
       <button data-cfg="ecoTemp" data-d="0.5" aria-label="Warmer">+</button>
     </div>
+
+    <label for="overrideDefault">Als je zelf de temperatuur verandert, geldt die</label>
+    <select id="overrideDefault">
+      <option value="next">tot het volgende moment in het schema</option>
+      <option value="60">1 uur</option>
+      <option value="120">2 uur</option>
+      <option value="180">3 uur</option>
+      <option value="240">4 uur</option>
+      <option value="manual">tot je het schema hervat</option>
+    </select>
 
     <label class="toggle" for="preheat">
       <span class="tt"><b>Op tijd warm</b><small>Begint vanzelf eerder met verwarmen, zodat het op het ingestelde tijdstip al warm is. Uit: de verwarming begint pas op dat tijdstip.</small></span>
@@ -422,6 +436,22 @@ async function loadStatus() {
   schedulePoll();
 }
 let prevKey = null; let lastStatus = null;
+/** Hoe lang de handmatige stand geldt, zoals in de tado-app. */
+function durOptions(s) {
+  const nextAt = s.nextBlock && s.nextBlock.at ? s.nextBlock.at.slice(3) : '';
+  return [['next', nextAt ? `Tot ${nextAt}` : 'Tot schema'], [60, '1 uur'], [120, '2 uur'], [240, '4 uur'], ['manual', 'Blijvend']];
+}
+function durChips(s) {
+  const cur = String(s.override.duration || 'next');
+  return `<div class="durs" role="group" aria-label="Hoe lang">${durOptions(s).map(([d, l]) => `<button data-dur="${d}" class="${String(d) === cur ? 'on' : ''}" aria-pressed="${String(d) === cur}"><span>${esc(l)}</span></button>`).join('')}</div>`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-dur]'); if (!b || b.classList.contains('on')) return;
+  b.parentNode.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === b); });
+  const d = b.dataset.dur;
+  await call('api', 'POST', '/action', { action: 'setDuration', duration: /^\d+$/.test(d) ? Number(d) : d })
+    .then(renderStatus).catch((err) => H.alert(err.message || err));
+});
 function renderStatus(s) {
   if (s && s.updatedAt) lastStatus = s;
   if (s && s.updatedAt) {
@@ -448,7 +478,8 @@ function renderStatus(s) {
   else sub = `<span>${heating ? 'Verwarm naar' : 'Ingesteld op'} <b>${fmt(s.thermostatTarget)}</b></span>`;
 
   let note = '';
-  if (s.override) note = `Handmatig tot ${esc(timeOf(s.override.until))}, daarna weer het schema.`;
+  if (s.override && s.override.until == null) note = 'Handmatig, tot je het schema hervat.';
+  else if (s.override) note = `Handmatig tot ${esc(timeOf(s.override.until))}, daarna weer het schema.`;
   else if (s.nextBlock) note = `Straks: ${esc(s.nextBlock.at)} → ${fmt(s.nextBlock.temp)}${s.preheatMinutes ? ` (${s.preheatMinutes} min eerder beginnen)` : ''}`;
 
   const actions = [];
@@ -463,6 +494,7 @@ function renderStatus(s) {
       <div class="room">Woonkamer</div>
       <div class="sub${cls(1)}">${sub}</div>
       ${note ? `<div class="note${cls(4) || cls(7)}">${note}</div>` : ''}
+      ${s.override ? durChips(s) : ''}
       ${s.error ? `<div class="err">${esc(s.error)}</div>` : ''}
       <div class="actions">${actions.join('')}</div>`;
   if (changed) { tile.classList.remove('flash'); void tile.offsetWidth; tile.classList.add('flash'); }
@@ -533,6 +565,8 @@ function renderConfig() {
   cfgVals.ecoTemp = config.ecoTemp != null ? Number(config.ecoTemp) : 16;
   cfgVals.maxPreheat = config.maxPreheat != null ? Number(config.maxPreheat) : 180;
   renderCfgVals();
+  $('overrideDefault').value = String(config.overrideDefault || 'next');
+  if (!$('overrideDefault').value) $('overrideDefault').value = 'next';
   $('preheat').checked = config.preheat !== false;
   $('preWrap').hidden = !$('preheat').checked;
 }
@@ -547,6 +581,7 @@ $('saveConfig').addEventListener('click', async () => {
     ecoTemp: cfgVals.ecoTemp,
     maxPreheat: cfgVals.maxPreheat,
     preheat: $('preheat').checked,
+    overrideDefault: /^\d+$/.test($('overrideDefault').value) ? Number($('overrideDefault').value) : $('overrideDefault').value,
   };
   try {
     await call('set', 'config', config);

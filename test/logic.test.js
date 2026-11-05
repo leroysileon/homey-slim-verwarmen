@@ -187,3 +187,62 @@ test('nogmaals "thuis" melden laat de handmatige stand staan', async () => {
   assert.equal(c.status.mode, 'manual');
   assert.equal(sim.target, 22);
 });
+
+test('handmatig met een vaste duur, daarna weer het schema', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setManual(22, 90);
+  assert.equal(c.status.override.duration, 90);
+  assert.match(c.status.modeLabel, /^Handmatig tot 13:30$/);
+  sim.now = at('13:29');
+  await c.tick();
+  assert.equal(sim.target, 22);
+  sim.now = at('13:30');
+  await c.tick();
+  assert.equal(sim.target, 20);
+  assert.equal(c.status.mode, 'schedule');
+});
+
+test('handmatig zonder eindtijd blijft staan tot je het schema hervat', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setManual(19, 'manual');
+  assert.equal(c.status.override.until, null);
+  assert.equal(c.status.modeLabel, 'Handmatig, tot je het schema hervat');
+  sim.now = at('23:00', 5);
+  await c.tick();
+  assert.equal(sim.target, 19, 'schemablokken overschrijven de stand niet');
+  await c.clearOverride();
+  assert.equal(sim.target, 16);
+});
+
+test('duur van een lopende handmatige stand aanpassen', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setManual(22);
+  assert.match(c.status.modeLabel, /tot 22:30$/);
+  sim.now = at('12:10');
+  await c.setOverrideDuration(60);
+  assert.match(c.status.modeLabel, /tot 13:10$/);
+  assert.equal(sim.target, 22);
+  // Nog eens + drukken houdt de gekozen eindtijd vast.
+  await c.setManual(22.5);
+  assert.match(c.status.modeLabel, /tot 13:10$/);
+  await c.setOverrideDuration('next');
+  assert.match(c.status.modeLabel, /tot 22:30$/);
+});
+
+test('standaardduur uit de instellingen geldt ook voor draaien aan de knop', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, config: { overrideDefault: 120 } });
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20, store });
+  await c.tick();
+  sim.target = 21; // iemand draait aan de knop
+  sim.now = at('12:01');
+  await c.tick();
+  assert.match(c.status.modeLabel, /^Handmatig tot 14:01$/);
+  await c.setManual(21.5); // via widget, loopt al: zelfde eindtijd
+  assert.match(c.status.modeLabel, /tot 14:01$/);
+  await c.clearOverride();
+  await c.setManual(22); // nieuwe stand: standaard 2 uur
+  assert.match(c.status.modeLabel, /tot 14:01$/);
+});

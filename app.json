@@ -195,6 +195,54 @@
       },
       {
         "title": {
+          "en": "Set temperature until…",
+          "nl": "Zet temperatuur tot…"
+        },
+        "titleFormatted": {
+          "en": "Set [[temp]]° [[duration]]",
+          "nl": "Zet [[temp]]° [[duration]]"
+        },
+        "hint": {
+          "en": "Overrides the schedule like the tado app does. For a fixed number of hours, use 'Set temporary temperature'.",
+          "nl": "Overschrijft het schema, zoals in de tado-app. Voor een vast aantal uur: gebruik 'Tijdelijke temperatuur'."
+        },
+        "args": [
+          {
+            "type": "number",
+            "name": "temp",
+            "min": 5,
+            "max": 28,
+            "step": 0.5,
+            "placeholder": {
+              "en": "20",
+              "nl": "20"
+            }
+          },
+          {
+            "type": "dropdown",
+            "name": "duration",
+            "values": [
+              {
+                "id": "next",
+                "title": {
+                  "en": "until the next schedule change",
+                  "nl": "tot het volgende moment in het schema"
+                }
+              },
+              {
+                "id": "manual",
+                "title": {
+                  "en": "until the schedule is resumed",
+                  "nl": "tot het schema wordt hervat"
+                }
+              }
+            ]
+          }
+        ],
+        "id": "set_manual"
+      },
+      {
+        "title": {
           "en": "Set home / away",
           "nl": "Zet thuis / afwezig"
         },
