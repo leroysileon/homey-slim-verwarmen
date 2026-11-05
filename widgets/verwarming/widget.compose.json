@@ -3,7 +3,7 @@
     "en": "Heating",
     "nl": "Verwarming"
   },
-  "height": 204,
+  "height": 192,
   "settings": [],
   "api": {
     "getStatus": {

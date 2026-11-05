@@ -10,7 +10,7 @@
       font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
       display: flex; flex-direction: column; gap: 8px; -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    #w { position: relative; isolation: isolate; overflow: hidden; transition: color .9s ease; }
+    #w { box-sizing: border-box; position: relative; isolation: isolate; overflow: hidden; transition: color .9s ease; }
     #w::before { content: ''; position: absolute; inset: 0; z-index: -2; background: var(--heat); opacity: 0; transition: opacity .9s ease; }
     #w.heat::before { opacity: 1; }
     #w.heat { color: var(--t-heat); }
@@ -56,10 +56,35 @@
     #w button.busy { opacity: .7; pointer-events: none; animation: w-pulse 1s ease-in-out infinite; }
     @keyframes w-pulse { 50% { opacity: .45; } }
     #w .right { display: inline-flex; align-items: center; gap: 6px; }
+    /* Skeleton: zelfde opbouw en maten als de echte widget, zodat er bij het laden niets verspringt. */
+    #w .sk { display: block; border-radius: 999px; background: var(--pill); position: relative; overflow: hidden; }
+    #w .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: w-shimmer 1.4s ease-in-out infinite; }
+    @media (prefers-color-scheme: dark) { #w .sk::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); } }
+    @keyframes w-shimmer { 100% { transform: translateX(100%); } }
+    #w .sk.chip { width: 118px; } #w .sk.chip.s { width: 92px; }
+    #w .sk.big { width: 96px; height: 52px; border-radius: 12px; }
+    #w .sk.btn { width: 40px; height: 40px; }
+    #w .sk.out { width: 56px; height: 22px; }
+    #w .sk.line { width: 150px; height: 14px; }
+    #w .bar.sk { border-radius: 5px; }
+    #w .ticks.sk-t { opacity: .35; }
+    #w.in > * { animation: w-in .35s ease-out; }
+    @keyframes w-in { from { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { #w .sk::after, #w.in > * { animation: none; } }
   </style>
 </head>
 <body>
-<div id="w"><div class="err">Laden…</div></div>
+<div id="w" class="loading" aria-busy="true" aria-label="Laden…">
+  <div class="top"><span class="sk chip"></span><span class="sk chip s"></span></div>
+  <div class="mid">
+    <span class="sk big"></span>
+    <div class="ctrl"><span class="sk btn"></span><span class="sk out"></span><span class="sk btn"></span></div>
+  </div>
+  <div class="sub"><span class="sk line"></span></div>
+  <div class="barwrap"><div class="bar sk"></div></div>
+  <div class="ticks sk-t"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+</div>
 
 <script>
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -70,7 +95,7 @@ const ICON = {
   flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg>',
 };
 
-let H; let data = null; let prevKey = null; let pending = null; let sendTimer = null;
+let H; let data = null; let loaded = false; let prevKey = null; let pending = null; let sendTimer = null;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1)}°`);
 const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
@@ -125,10 +150,18 @@ function timeOf(ms) {
 
 function render() {
   const w = document.getElementById('w');
+  if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
+  const first = w.classList.contains('loading');
+  w.removeAttribute('aria-busy'); w.removeAttribute('aria-label');
   if (!data || !data.status || !data.status.updatedAt) {
-    w.className = ''; w.innerHTML = `<div class="err">${esc((data && data.status && data.status.error) || 'Nog geen gegevens van Slim verwarmen.')}</div>`;
+    // Melding in een kaart van dezelfde hoogte, zodat de widget niet krimpt.
+    w.className = first ? 'in' : ''; if (first) setTimeout(() => w.classList.remove('in'), 400);
+    w.style.minHeight = `${lastHeight}px`;
+    w.innerHTML = `<div class="err">${esc((data && data.status && data.status.error) || 'Nog geen gegevens van Slim verwarmen.')}</div>`;
     return;
   }
+  w.style.minHeight = '';
+  if (first) { w.className = 'in'; setTimeout(() => w.classList.remove('in'), 400); }
   const s = data.status;
   const target = pending != null ? pending : s.thermostatTarget;
   const heating = target != null && s.indoor != null && target > s.indoor + 0.2;
@@ -160,7 +193,7 @@ function render() {
 }
 
 // Widgethoogte = gemeten inhoud, zodat er niets wordt afgesneden en er niets te scrollen valt.
-let lastHeight = 204;
+let lastHeight = 192;
 function fitHeight() {
   const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height);
   if (!H || !h) return;
@@ -172,6 +205,7 @@ function fitHeight() {
 function refreshSoon() { setTimeout(load, 4000); setTimeout(load, 12000); }
 async function load() {
   try { data = await H.api('GET', '/status'); } catch (e) { /* volgende poging */ }
+  loaded = true;
   render();
 }
 
@@ -209,7 +243,9 @@ document.addEventListener('click', async (e) => {
 
 function onHomeyReady(Homey) {
   H = Homey;
-  Homey.ready({ height: 204 });
+  // Meteen de hoogte van de skeleton doorgeven: die is gelijk aan de geladen widget.
+  lastHeight = Math.ceil(document.getElementById('w').getBoundingClientRect().height) || lastHeight;
+  Homey.ready({ height: lastHeight });
   load();
   if (typeof Homey.on === 'function') Homey.on('status', (st) => { if (data) { data.status = st; if (pending == null) render(); } else load(); });
   setInterval(load, 10000);
