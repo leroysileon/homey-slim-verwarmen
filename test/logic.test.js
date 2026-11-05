@@ -165,3 +165,15 @@ test('temperatuur zetten via Homey = handmatig tot volgende blok', async () => {
   assert.equal(sim.target, 16);
   assert.equal(c.status.modeLabel, 'Volgens schema');
 });
+
+test('na eigen wijziging toont de status meteen de nieuwe waarde', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  // thermostaat die de nieuwe waarde nog niet bevestigt
+  const realWrite = c.io.writeTarget;
+  c.io.writeTarget = async () => {};
+  await c.setManual(21);
+  assert.equal(sim.target, 20);
+  assert.equal(c.status.thermostatTarget, 21);
+  c.io.writeTarget = realWrite;
+});

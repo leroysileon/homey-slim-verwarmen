@@ -145,6 +145,8 @@ function fitHeight() {
   const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height);
   if (H && typeof H.setHeight === 'function' && h) H.setHeight(h);
 }
+// Na een actie nog twee keer kijken: de thermostaat bevestigt een wijziging pas na een paar seconden.
+function refreshSoon() { setTimeout(load, 4000); setTimeout(load, 12000); }
 async function load() {
   try { data = await H.api('GET', '/status'); } catch (e) { /* volgende poging */ }
   render();
@@ -161,14 +163,14 @@ document.addEventListener('click', async (e) => {
     sendTimer = setTimeout(async () => {
       const temp = pending;
       try { data = await H.api('POST', '/action', { action: 'setTemp', temp }); } catch (err) { console.error(err); }
-      pending = null; render();
+      pending = null; render(); refreshSoon();
     }, 1200);
     return;
   }
   const act = e.target.closest('[data-act]');
   if (act) {
     try { data = await H.api('POST', '/action', { action: act.dataset.act }); } catch (err) { console.error(err); }
-    render();
+    render(); refreshSoon();
   }
 });
 
@@ -177,7 +179,8 @@ function onHomeyReady(Homey) {
   Homey.ready({ height: 184 });
   load().then(fitHeight);
   if (typeof Homey.on === 'function') Homey.on('status', (st) => { if (data) { data.status = st; if (pending == null) render(); } else load(); });
-  setInterval(load, 30000);
+  setInterval(load, 10000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
   setInterval(render, 60000); // nu-streepje laten meeschuiven
 }
 </script>
