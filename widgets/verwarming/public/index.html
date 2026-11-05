@@ -71,7 +71,7 @@ const ICON = {
 
 let H; let data = null; let prevKey = null; let pending = null; let sendTimer = null;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const fmt = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1).replace('.', ',')}°`);
+const fmt = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1)}°`);
 const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 
 function bigTemp(v) {

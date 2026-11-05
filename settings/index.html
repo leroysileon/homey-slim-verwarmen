@@ -249,7 +249,7 @@ let copyOpen = null;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const call = (name, ...args) => new Promise((res, rej) => H[name](...args, (err, val) => (err ? rej(err) : res(val))));
-const fmt = (v, unit = '°') => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1).replace('.', ',')}${unit}`);
+const fmt = (v, unit = '°') => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1)}${unit}`);
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 
