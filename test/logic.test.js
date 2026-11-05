@@ -177,3 +177,13 @@ test('na eigen wijziging toont de status meteen de nieuwe waarde', async () => {
   assert.equal(c.status.thermostatTarget, 21);
   c.io.writeTarget = realWrite;
 });
+
+test('nogmaals "thuis" melden laat de handmatige stand staan', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setManual(22);
+  sim.now = at('12:05');
+  await c.setAway(false); // was al thuis
+  assert.equal(c.status.mode, 'manual');
+  assert.equal(sim.target, 22);
+});
