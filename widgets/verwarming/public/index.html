@@ -35,7 +35,7 @@
     #w .temp .i { font-size: 58px; }
     #w .temp .r { display: flex; flex-direction: column; justify-content: space-between; height: 52px; margin-left: 2px; }
     #w .temp .deg { font-size: 26px; line-height: 1; }
-    #w .temp .d { font-size: 23px; line-height: 1; }
+    #w .temp .d { font-size: 23px; line-height: 1; margin-left: -4px; }
     #w .ctrl { display: flex; align-items: center; gap: 6px; }
     #w button { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       border-radius: 999px; background: var(--pill); color: inherit; font: inherit; font-weight: 600; transition: transform .06s; }
@@ -77,7 +77,7 @@ const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h
 function bigTemp(v) {
   if (v == null) return '<span class="temp"><span class="i">–</span></span>';
   const [i, d] = Number(v).toFixed(1).split('.');
-  return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d">,${d}</span></span></span>`;
+  return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d">.${d}</span></span></span>`;
 }
 function segColor(t) {
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;

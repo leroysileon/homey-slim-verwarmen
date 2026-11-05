@@ -65,7 +65,7 @@
     #sv .temp .i { font-size: 76px; }
     #sv .temp .r { display: flex; flex-direction: column; justify-content: space-between; height: 68px; margin-left: 2px; }
     #sv .temp .deg { font-size: 34px; line-height: 1; }
-    #sv .temp .d { font-size: 30px; line-height: 1; }
+    #sv .temp .d { font-size: 30px; line-height: 1; margin-left: -5px; }
     #sv .tile .bigrow { margin: 18px 0 6px; }
     #sv .tile .room { font-size: 22px; font-weight: 600; }
     #sv .tile .sub { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 17px; }
@@ -257,7 +257,7 @@ const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h
 function bigTemp(v) {
   if (v == null || Number.isNaN(Number(v))) return '<span class="temp"><span class="i">–</span></span>';
   const [i, d] = Number(v).toFixed(1).split('.');
-  return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d">,${d}</span></span></span>`;
+  return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d">.${d}</span></span></span>`;
 }
 
 function toast(msg) {
