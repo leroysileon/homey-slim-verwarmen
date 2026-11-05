@@ -1,0 +1,7 @@
+{
+  "title": { "en": "Schedule changed the temperature", "nl": "Schema heeft temperatuur aangepast" },
+  "tokens": [
+    { "name": "temp", "type": "number", "title": { "en": "Temperature", "nl": "Temperatuur" }, "example": 20 },
+    { "name": "reason", "type": "string", "title": { "en": "Reason", "nl": "Reden" }, "example": "voorverwarmen" }
+  ]
+}

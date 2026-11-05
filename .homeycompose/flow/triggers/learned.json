@@ -1,0 +1,7 @@
+{
+  "title": { "en": "Learned from a heat-up", "nl": "Geleerd van een opwarmmoment" },
+  "tokens": [
+    { "name": "rate", "type": "number", "title": { "en": "°C per hour", "nl": "°C per uur" }, "example": 1.4 },
+    { "name": "dead_time", "type": "number", "title": { "en": "Start delay (min)", "nl": "Opstarttijd (min)" }, "example": 15 }
+  ]
+}

@@ -1,0 +1,373 @@
+{
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
+  "id": "nl.leroysileon.slimverwarmen",
+  "version": "1.0.0",
+  "compatibility": ">=12.1.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "Smart Heating",
+    "nl": "Slim verwarmen"
+  },
+  "description": {
+    "en": "Weekly heating schedule that learns how fast your home warms up and respects manual changes on the thermostat.",
+    "nl": "Weekschema voor je verwarming dat leert hoe snel je huis opwarmt en handmatig verstellen op de thermostaat respecteert."
+  },
+  "category": [
+    "climate"
+  ],
+  "permissions": [
+    "homey:manager:api"
+  ],
+  "brandColor": "#D9532B",
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Leroy Sileon",
+    "email": "6094387+leroysileon@users.noreply.github.com"
+  },
+  "api": {
+    "getDevices": {
+      "method": "GET",
+      "path": "/devices"
+    },
+    "getStatus": {
+      "method": "GET",
+      "path": "/status"
+    },
+    "postAction": {
+      "method": "POST",
+      "path": "/action"
+    }
+  },
+  "flow": {
+    "triggers": [
+      {
+        "title": {
+          "en": "Learned from a heat-up",
+          "nl": "Geleerd van een opwarmmoment"
+        },
+        "tokens": [
+          {
+            "name": "rate",
+            "type": "number",
+            "title": {
+              "en": "°C per hour",
+              "nl": "°C per uur"
+            },
+            "example": 1.4
+          },
+          {
+            "name": "dead_time",
+            "type": "number",
+            "title": {
+              "en": "Start delay (min)",
+              "nl": "Opstarttijd (min)"
+            },
+            "example": 15
+          }
+        ],
+        "id": "learned"
+      },
+      {
+        "title": {
+          "en": "Back to the schedule",
+          "nl": "Terug naar het schema"
+        },
+        "id": "override_ended"
+      },
+      {
+        "title": {
+          "en": "Thermostat was changed manually",
+          "nl": "Thermostaat is handmatig versteld"
+        },
+        "tokens": [
+          {
+            "name": "temp",
+            "type": "number",
+            "title": {
+              "en": "Temperature",
+              "nl": "Temperatuur"
+            },
+            "example": 21
+          },
+          {
+            "name": "until",
+            "type": "string",
+            "title": {
+              "en": "Until",
+              "nl": "Tot"
+            },
+            "example": "22:30"
+          }
+        ],
+        "id": "override_started"
+      },
+      {
+        "title": {
+          "en": "Schedule changed the temperature",
+          "nl": "Schema heeft temperatuur aangepast"
+        },
+        "tokens": [
+          {
+            "name": "temp",
+            "type": "number",
+            "title": {
+              "en": "Temperature",
+              "nl": "Temperatuur"
+            },
+            "example": 20
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "title": {
+              "en": "Reason",
+              "nl": "Reden"
+            },
+            "example": "voorverwarmen"
+          }
+        ],
+        "id": "setpoint_changed"
+      }
+    ],
+    "conditions": [
+      {
+        "title": {
+          "en": "Manual setting !{{is|is not}} active",
+          "nl": "Handmatige stand !{{is|is niet}} actief"
+        },
+        "id": "is_manual"
+      },
+      {
+        "title": {
+          "en": "!{{Is|Is not}} preheating",
+          "nl": "!{{Is|Is niet}} aan het voorverwarmen"
+        },
+        "id": "is_preheating"
+      }
+    ],
+    "actions": [
+      {
+        "title": {
+          "en": "Resume schedule (clear manual setting)",
+          "nl": "Hervat schema (wis handmatige stand)"
+        },
+        "id": "resume_schedule"
+      },
+      {
+        "title": {
+          "en": "Turn smart heating on/off",
+          "nl": "Slim verwarmen aan/uit"
+        },
+        "titleFormatted": {
+          "en": "Turn smart heating [[state]]",
+          "nl": "Zet slim verwarmen [[state]]"
+        },
+        "args": [
+          {
+            "type": "dropdown",
+            "name": "state",
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "on",
+                  "nl": "aan"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "off (pause)",
+                  "nl": "uit (pauze)"
+                }
+              }
+            ]
+          }
+        ],
+        "id": "set_enabled"
+      },
+      {
+        "title": {
+          "en": "Set home / away",
+          "nl": "Zet thuis / afwezig"
+        },
+        "titleFormatted": {
+          "en": "Everyone is [[mode]]",
+          "nl": "Iedereen is [[mode]]"
+        },
+        "hint": {
+          "en": "Away uses the eco temperature. Both clear a manual setting.",
+          "nl": "Afwezig gebruikt de eco-temperatuur. Beide wissen een handmatige stand."
+        },
+        "args": [
+          {
+            "type": "dropdown",
+            "name": "mode",
+            "values": [
+              {
+                "id": "home",
+                "title": {
+                  "en": "home",
+                  "nl": "thuis"
+                }
+              },
+              {
+                "id": "away",
+                "title": {
+                  "en": "away",
+                  "nl": "afwezig"
+                }
+              }
+            ]
+          }
+        ],
+        "id": "set_presence"
+      },
+      {
+        "title": {
+          "en": "Set temporary temperature",
+          "nl": "Tijdelijke temperatuur"
+        },
+        "titleFormatted": {
+          "en": "Set [[temp]]° for [[hours]] hours",
+          "nl": "Zet [[temp]]° voor [[hours]] uur"
+        },
+        "args": [
+          {
+            "type": "number",
+            "name": "temp",
+            "min": 5,
+            "max": 28,
+            "step": 0.5,
+            "placeholder": {
+              "en": "20",
+              "nl": "20"
+            }
+          },
+          {
+            "type": "number",
+            "name": "hours",
+            "min": 0.5,
+            "max": 48,
+            "step": 0.5,
+            "placeholder": {
+              "en": "2",
+              "nl": "2"
+            }
+          }
+        ],
+        "id": "set_temporary"
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "Smart heating",
+        "nl": "Slim verwarmen"
+      },
+      "class": "thermostat",
+      "capabilities": [
+        "target_temperature",
+        "measure_temperature",
+        "sv_mode",
+        "sv_next",
+        "sv_resume"
+      ],
+      "capabilitiesOptions": {
+        "target_temperature": {
+          "min": 5,
+          "max": 28,
+          "step": 0.5
+        }
+      },
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [],
+      "images": {
+        "small": "/drivers/thermostat/assets/images/small.png",
+        "large": "/drivers/thermostat/assets/images/large.png",
+        "xlarge": "/drivers/thermostat/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
+      "id": "thermostat"
+    }
+  ],
+  "widgets": {
+    "verwarming": {
+      "name": {
+        "en": "Heating",
+        "nl": "Verwarming"
+      },
+      "height": 184,
+      "settings": [],
+      "api": {
+        "getStatus": {
+          "method": "GET",
+          "path": "/status"
+        },
+        "postAction": {
+          "method": "POST",
+          "path": "/action"
+        }
+      },
+      "transparent": true,
+      "id": "verwarming"
+    }
+  },
+  "capabilities": {
+    "sv_mode": {
+      "type": "string",
+      "title": {
+        "en": "Mode",
+        "nl": "Stand"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/icon.svg"
+    },
+    "sv_next": {
+      "type": "string",
+      "title": {
+        "en": "Next",
+        "nl": "Straks"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/icon.svg"
+    },
+    "sv_resume": {
+      "type": "boolean",
+      "title": {
+        "en": "Resume schedule",
+        "nl": "Schema hervatten"
+      },
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "uiQuickAction": false
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": {
+    "en": "Heating",
+    "nl": "Verwarming"
+  },
+  "height": 184,
+  "settings": [],
+  "api": {
+    "getStatus": {
+      "method": "GET",
+      "path": "/status"
+    },
+    "postAction": {
+      "method": "POST",
+      "path": "/action"
+    }
+  },
+  "transparent": true
+}

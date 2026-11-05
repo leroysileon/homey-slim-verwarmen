@@ -1,0 +1,12 @@
+{
+  "name": "nl.leroysileon.slimverwarmen",
+  "version": "1.0.0",
+  "private": true,
+  "main": "app.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "homey-api": "^3.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "title": { "en": "Set home / away", "nl": "Zet thuis / afwezig" },
+  "titleFormatted": { "en": "Everyone is [[mode]]", "nl": "Iedereen is [[mode]]" },
+  "hint": { "en": "Away uses the eco temperature. Both clear a manual setting.", "nl": "Afwezig gebruikt de eco-temperatuur. Beide wissen een handmatige stand." },
+  "args": [
+    { "type": "dropdown", "name": "mode", "values": [
+      { "id": "home", "title": { "en": "home", "nl": "thuis" } },
+      { "id": "away", "title": { "en": "away", "nl": "afwezig" } }
+    ] }
+  ]
+}

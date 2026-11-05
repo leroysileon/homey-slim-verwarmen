@@ -1,0 +1,47 @@
+{
+  "id": "nl.leroysileon.slimverwarmen",
+  "version": "1.0.0",
+  "compatibility": ">=12.1.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "Smart Heating",
+    "nl": "Slim verwarmen"
+  },
+  "description": {
+    "en": "Weekly heating schedule that learns how fast your home warms up and respects manual changes on the thermostat.",
+    "nl": "Weekschema voor je verwarming dat leert hoe snel je huis opwarmt en handmatig verstellen op de thermostaat respecteert."
+  },
+  "category": [
+    "climate"
+  ],
+  "permissions": [
+    "homey:manager:api"
+  ],
+  "brandColor": "#D9532B",
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Leroy Sileon",
+    "email": "6094387+leroysileon@users.noreply.github.com"
+  },
+  "api": {
+    "getDevices": {
+      "method": "GET",
+      "path": "/devices"
+    },
+    "getStatus": {
+      "method": "GET",
+      "path": "/status"
+    },
+    "postAction": {
+      "method": "POST",
+      "path": "/action"
+    }
+  }
+}

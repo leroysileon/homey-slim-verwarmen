@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+  <style>
+    /* Alles hangt onder #sv: een ID wint van de standaardopmaak die Homey over knoppen en velden legt. */
+    #sv {
+      --bg: #f2f1ef; --card: #ffffff; --card-2: #f4f3f1; --text: #17171a; --muted: #6c6c72; --line: #e2e0dc;
+      --link: #1f6fe5; --warm: #e8892b; --warm-text: #b45f12; --cold-bg: #d6ecea; --cold-text: #1f6f69;
+      --tile-heat: linear-gradient(160deg, #f3b25f, #e58a2c); --tile-idle: linear-gradient(160deg, #cfe3e4, #b7d3d6);
+      --tile-text-heat: #3a1f02; --tile-text-idle: #0f3a3d; --pill: rgba(0,0,0,.08); --press: #ebeae7;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px 12px 110px; overflow-x: hidden;
+      font: 400 17px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    }
+    @media (prefers-color-scheme: dark) {
+      #sv { --bg: #000; --card: #242528; --card-2: #2e2f33; --text: #f5f5f5; --muted: #9a9aa0; --line: #3a3b40;
+        --link: #3d8bff; --warm: #f2a23a; --warm-text: #f6b45a; --cold-bg: #23484b; --cold-text: #5fd0c6;
+        --tile-heat: linear-gradient(160deg, #6b4210, #4a2c08); --tile-idle: linear-gradient(160deg, #163b3f, #0e2a2e);
+        --tile-text-heat: #f6b45a; --tile-text-idle: #5fd0c6; --pill: rgba(255,255,255,.12); --press: #333438; }
+    }
+    html, body { margin: 0; padding: 0; background: #000; }
+    @media (prefers-color-scheme: light) { html, body { background: #f2f1ef; } }
+    #sv * { box-sizing: border-box; }
+    #sv h1 { all: unset; display: block; font-size: 32px; font-weight: 700; letter-spacing: -.01em; margin: 0 4px 16px; }
+    #sv h2 { all: unset; display: block; font-size: 22px; font-weight: 700; margin: 30px 4px 12px; }
+    #sv .muted { color: var(--muted); }
+    #sv small { font-size: 14px; color: var(--muted); }
+
+    /* Knoppen */
+    #sv button { all: unset; box-sizing: border-box; cursor: pointer; font: inherit; font-weight: 500; text-align: center;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 20px;
+      border-radius: 999px; background: var(--pill); color: inherit; transition: background .12s, transform .06s; }
+    #sv button:active { transform: scale(.97); }
+    #sv button:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+    #sv button.link { background: none; padding: 0 4px; color: var(--link); min-height: 40px; }
+    #sv button.solid { background: var(--warm); color: #1d1203; }
+    #sv svg { width: 22px; height: 22px; flex: none; }
+
+    /* Kamertegel (zoals tado) */
+    /* Kleuren vloeiend laten overlopen: de warme laag fade in/uit, tekstkleur schuift mee. */
+    #sv .tile { position: relative; isolation: isolate; overflow: hidden; border-radius: 22px; padding: 16px 16px 18px;
+      background: var(--tile-idle); color: var(--tile-text-idle); transition: color .9s ease; }
+    #sv .tile::before { content: ''; position: absolute; inset: 0; z-index: -2; background: var(--tile-heat); opacity: 0; transition: opacity .9s ease; }
+    #sv .tile.heat::before { opacity: 1; }
+    #sv .tile.heat { color: var(--tile-text-heat); }
+    /* Korte gloed als er nieuwe gegevens binnenkomen. */
+    #sv .tile::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+      background: radial-gradient(120% 90% at 20% 30%, rgba(255,255,255,.28), transparent 70%); }
+    #sv .tile.flash::after { animation: sv-flash 1.2s ease-out; }
+    @keyframes sv-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+    #sv .tile .chg { animation: sv-fade .6s ease; }
+    @keyframes sv-fade { from { opacity: .25; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { #sv .tile, #sv .tile::before { transition: none; } #sv .tile.flash::after, #sv .tile .chg { animation: none; } }
+    #sv .tile .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    #sv .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: var(--pill); font-weight: 600; font-size: 14px; }
+    #sv .temp { display: inline-flex; align-items: flex-start; font-weight: 600; line-height: .9; letter-spacing: -.03em; }
+    #sv .temp .i { font-size: 76px; }
+    #sv .temp .r { display: flex; flex-direction: column; justify-content: space-between; height: 68px; margin-left: 2px; }
+    #sv .temp .deg { font-size: 34px; line-height: 1; }
+    #sv .temp .d { font-size: 30px; line-height: 1; }
+    #sv .tile .bigrow { margin: 18px 0 6px; }
+    #sv .tile .room { font-size: 22px; font-weight: 600; }
+    #sv .tile .sub { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 17px; }
+    #sv .tile .sub b { font-weight: 600; }
+    #sv .tile .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; opacity: .85; }
+    #sv .tile .meta b { font-weight: 600; }
+    #sv .tile .note { margin-top: 10px; font-size: 14px; opacity: .85; }
+    #sv .tile .actions { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #sv .tile .actions button { min-height: 42px; padding: 0 10px; font-size: 15px; gap: 6px; white-space: nowrap; }
+    #sv .tile .actions button svg { width: 19px; height: 19px; }
+    #sv .tile .actions button.solid { grid-column: 1 / -1; min-height: 46px; font-size: 16px; }
+    #sv .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    #sv .err { margin-top: 12px; font-weight: 600; }
+
+    /* Dagkaarten (zoals tado-schema) */
+    #sv .daycard { background: var(--card); border-radius: 20px; padding: 16px 14px 10px; margin-bottom: 12px; }
+    #sv .daycard .head { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer; min-height: 32px; }
+    #sv .daycard .head .t { font-size: 22px; font-weight: 500; }
+    #sv .daycard .head .today { font-size: 15px; font-weight: 600; color: var(--warm-text); margin-left: 8px; }
+    #sv .daycard .chev { transition: transform .2s; color: var(--muted); }
+    #sv .daycard.open .chev { transform: rotate(180deg); }
+    #sv .bar { display: flex; height: 40px; margin-top: 14px; border-radius: 8px; overflow: hidden; gap: 2px; }
+    #sv .bar i { display: flex; align-items: center; height: 100%; padding: 0 8px; font-style: normal; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; }
+    #sv .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+    #sv .foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 6px; }
+    #sv .copybtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--link); font-weight: 500; min-height: 40px; }
+    #sv .copymenu { display: none; flex-wrap: wrap; gap: 8px; padding: 6px 0 10px; }
+    #sv .copymenu.show { display: flex; }
+    #sv .copymenu button { min-height: 38px; padding: 0 14px; font-size: 15px; }
+
+    /* Tijdsblokken bewerken */
+    #sv .edit { display: none; margin-top: 14px; }
+    #sv .daycard.open .edit { display: block; }
+    #sv .block { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 8px 6px 8px 18px; position: relative;
+      background: var(--card-2); border-radius: 14px; margin-bottom: 8px; }
+    #sv .block::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 4px; border-radius: 2px; background: var(--c); }
+    #sv .block .from small { display: block; text-align: center; font-size: 13px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+    #sv .stepper { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
+    #sv .stepper output { min-width: 50px; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .stepper button { width: 36px; min-height: 36px; padding: 0; font-size: 20px; flex: none; }
+    #sv .del { width: 34px; min-height: 36px; padding: 0; background: none; color: var(--muted); }
+    #sv .empty { padding: 14px; border-radius: 14px; background: var(--card-2); color: var(--muted); text-align: center; margin-bottom: 8px; }
+
+    /* Velden */
+    #sv .card { background: var(--card); border-radius: 20px; padding: 16px 14px 18px; }
+    #sv input, #sv select { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 48px; padding: 0 14px;
+      border-radius: 12px; background: var(--card-2); color: var(--text); font: inherit; font-weight: 500; }
+    #sv select { appearance: none; -webkit-appearance: none; height: 48px; line-height: 48px; padding: 0 42px 0 14px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a9aa0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center; background-size: 20px; }
+    #sv input[type=time]::-webkit-calendar-picker-indicator { display: none; }
+    #sv input[type=time]::-webkit-date-and-time-value { text-align: center; margin: 0; }
+    #sv input[type=time]::-webkit-datetime-edit { display: flex; justify-content: center; }
+    #sv input[type=time] { width: 80px; min-height: 40px; font-size: 19px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; padding: 0 10px; background: var(--card); }
+    #sv input[type=checkbox] { all: revert; width: 24px; height: 24px; accent-color: var(--warm); flex: none; }
+    #sv label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
+    #sv label:first-child { margin-top: 0; }
+    #sv .fstep { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 52px; padding: 0 6px; border-radius: 12px; background: var(--card-2); }
+    #sv .fstep output { flex: 1; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .fstep button { width: 40px; min-height: 40px; padding: 0; font-size: 22px; flex: none; }
+    #sv label.toggle { display: flex; align-items: center; gap: 14px; margin: 22px 0 0; padding: 14px; border-radius: 14px; background: var(--card-2); cursor: pointer; color: var(--text); }
+    #sv .toggle .tt { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    #sv .toggle .tt b { font-size: 17px; font-weight: 600; }
+    #sv .toggle .tt small { font-size: 14px; line-height: 1.35; font-weight: 500; }
+    #sv .toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    #sv .toggle .knob { flex: none; position: relative; width: 52px; height: 32px; border-radius: 999px; background: var(--line); transition: background .15s; }
+    #sv .toggle .knob::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
+    #sv .toggle input:checked + .knob { background: var(--warm); }
+    #sv .toggle input:checked + .knob::after { transform: translateX(20px); }
+    #sv .toggle input:focus-visible + .knob { outline: 3px solid var(--link); outline-offset: 2px; }
+    #sv .fresh { display: flex; align-items: center; gap: 8px; margin: 6px 4px 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    #sv .fresh #fresh { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #sv .fresh button.link { min-height: 32px; font-size: 14px; white-space: nowrap; flex: none; padding: 0 2px; }
+    #sv .fresh .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .6; transition: background .3s; }
+    #sv .fresh .dot.live { background: var(--warm); opacity: 1; }
+    #sv .fresh .dot.ping { animation: sv-ping 1s ease-out; }
+    @keyframes sv-ping { 0% { box-shadow: 0 0 0 0 rgba(242,162,58,.7); } 100% { box-shadow: 0 0 0 9px rgba(242,162,58,0); } }
+    #sv .switch { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+    #sv .switch label { margin: 0; color: var(--text); font-size: 16px; }
+    #sv .card .actions { margin-top: 18px; }
+
+    #sv .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+    #sv .stats span { display: block; font-size: 14px; font-weight: 500; color: var(--muted); }
+    #sv .stats b { font-size: 20px; font-weight: 600; }
+    #sv .rows { margin-top: 16px; }
+    #sv .rows .r span:last-child { white-space: nowrap; text-align: right; }
+    #sv .rows .r { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; font-weight: 500; }
+
+    /* Opslaan-balk */
+    #sv .savebar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line);
+      transform: translateY(110%); transition: transform .2s; z-index: 5; }
+    #sv .savebar.show { transform: none; }
+    #sv .savebar span { flex: 1; font-weight: 600; }
+    #sv .toast { position: fixed; left: 16px; right: 16px; bottom: 90px; background: var(--text); color: var(--bg); font-weight: 600;
+      padding: 14px 16px; border-radius: 16px; text-align: center; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 6; }
+    #sv .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<div id="sv">
+  <h1>Verwarming</h1>
+  <div id="status"><div class="tile" id="tile"><span class="muted">Laden…</span></div></div>
+  <div class="fresh"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh">Laden…</span><button class="link" id="refresh">Nu ophalen</button></div>
+
+  <h2>Weekschema</h2>
+  <div id="week"></div>
+
+  <h2>Wat de app heeft geleerd</h2>
+  <div class="card" id="learned"><span class="muted">Laden…</span></div>
+
+  <h2>Instellingen</h2>
+  <div class="card">
+    <label for="thermostat">Thermostaat</label>
+    <select id="thermostat"></select>
+
+    <label for="outdoor">Buitentemperatuur (om te leren hoeveel kou het opwarmen vertraagt)</label>
+    <select id="outdoor"></select>
+
+    <label id="ecoLbl">Temperatuur als niemand thuis is</label>
+    <div class="fstep" role="group" aria-labelledby="ecoLbl">
+      <button data-cfg="ecoTemp" data-d="-0.5" aria-label="Kouder">−</button>
+      <output id="ecoTempOut"></output>
+      <button data-cfg="ecoTemp" data-d="0.5" aria-label="Warmer">+</button>
+    </div>
+
+    <label class="toggle" for="preheat">
+      <span class="tt"><b>Op tijd warm</b><small>Begint vanzelf eerder met verwarmen, zodat het op het ingestelde tijdstip al warm is. Uit: de verwarming begint pas op dat tijdstip.</small></span>
+      <input id="preheat" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
+    </label>
+
+    <div id="preWrap">
+      <label id="preLbl">Hoogstens zo vroeg beginnen</label>
+      <div class="fstep" role="group" aria-labelledby="preLbl">
+        <button data-cfg="maxPreheat" data-d="-15" aria-label="Korter">−</button>
+        <output id="maxPreheatOut"></output>
+        <button data-cfg="maxPreheat" data-d="15" aria-label="Langer">+</button>
+      </div>
+    </div>
+
+    <div class="actions"><button class="solid" id="saveConfig">Instellingen opslaan</button></div>
+  </div>
+
+  <div class="savebar" id="savebar" role="region" aria-live="polite">
+    <span>Schema gewijzigd</span>
+    <button id="undo">Annuleren</button>
+    <button class="solid" id="saveSchedule">Opslaan</button>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAY_LONG = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
+const DEFAULT_BLOCKS = [{ time: '06:30', temp: 20 }, { time: '22:30', temp: 16 }];
+const MODES = {
+  schedule: 'Volgens schema', preheat: 'Aan het voorverwarmen', manual: 'Handmatig',
+  away: 'Niemand thuis', paused: 'Gepauzeerd',
+};
+const ICON = {
+  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
+  away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8"/><path d="m9 21 3-6 3 2v4m-6-9 2-3 4 1 2 3m-8-1-3 1"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7M5 10v10h14V10"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>',
+};
+
+let H; let schedule = {}; let saved = '{}'; let config = {}; let devices = [];
+const todayKey = DAY_KEYS[(new Date().getDay() + 6) % 7];
+const open = new Set([todayKey]);
+let copyOpen = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const call = (name, ...args) => new Promise((res, rej) => H[name](...args, (err, val) => (err ? rej(err) : res(val))));
+const fmt = (v, unit = '°') => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1).replace('.', ',')}${unit}`);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+
+/** Grote temperatuur in tado-stijl: 17 groot, ° en ,6 klein ernaast. */
+function bigTemp(v) {
+  if (v == null || Number.isNaN(Number(v))) return '<span class="temp"><span class="i">–</span></span>';
+  const [i, d] = Number(v).toFixed(1).split('.');
+  return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d">,${d}</span></span></span>`;
+}
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/** Kleuren per temperatuur: koel = petrol (zoals tado), warmer = amber/oranje. */
+function tempStyle(t) {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  if (t == null) return dark ? 'background:#2e2f33;color:#9a9aa0' : 'background:#e7e5e1;color:#6c6c72';
+  if (t < 16) return dark ? 'background:#23484b;color:#5fd0c6' : 'background:#d6ecea;color:#1f6f69';
+  if (t < 18) return dark ? 'background:#5a4413;color:#f3c55a' : 'background:#fbe7b8;color:#7a5408';
+  if (t < 20) return dark ? 'background:#6b3d12;color:#f6a54a' : 'background:#f9cf9c;color:#8a4508';
+  return dark ? 'background:#74290f;color:#ff8a5c' : 'background:#f6b090;color:#8f2d0a';
+}
+const tempColor = (t) => (t < 16 ? '#3fa69c' : t < 18 ? '#e3b23c' : t < 20 ? '#e8892b' : '#e0562a');
+
+/** Segmenten 0:00–24:00 voor een dag, met de temperatuur die van de vorige dag doorloopt. */
+function segments(key) {
+  const idx = DAY_KEYS.indexOf(key);
+  let carry = null;
+  for (let s = 1; s <= 7 && carry === null; s++) {
+    const prev = schedule[DAY_KEYS[(idx - s + 7) % 7]] || [];
+    if (prev.length) carry = Number(prev[prev.length - 1].temp);
+  }
+  const blocks = (schedule[key] || []).filter((b) => /^\d{2}:\d{2}$/.test(b.time)).slice().sort((a, b) => a.time.localeCompare(b.time));
+  const segs = []; let start = 0; let temp = carry;
+  for (const b of blocks) {
+    const m = toMin(b.time);
+    if (m > start) segs.push({ from: start, to: m, temp });
+    start = m; temp = Number(b.temp);
+  }
+  segs.push({ from: start, to: 1440, temp });
+  return segs.filter((s) => s.to > s.from);
+}
+
+// ---------- Weekschema ----------
+function dirty() { return JSON.stringify(schedule) !== saved; }
+
+function dayCard(key, i) {
+  const blocks = schedule[key] || [];
+  const bar = segments(key).map((s) => {
+    const w = (s.to - s.from) / 14.4;
+    return `<i style="flex:${(s.to - s.from)} 0 0;${tempStyle(s.temp)}">${w >= 11 && s.temp != null ? `${Number(s.temp).toFixed(1)}°` : ''}</i>`;
+  }).join('');
+  const rows = blocks.length ? blocks.map((b, n) => `
+      <div class="block" style="--c:${tempColor(Number(b.temp))}">
+        <div class="from"><small>vanaf</small><input type="time" value="${esc(b.time)}" data-day="${key}" data-i="${n}" aria-label="Tijd"></div>
+        <div class="stepper">
+          <button data-step="-0.5" data-day="${key}" data-i="${n}" aria-label="Kouder">−</button>
+          <output>${Number(b.temp).toFixed(1)}°</output>
+          <button data-step="0.5" data-day="${key}" data-i="${n}" aria-label="Warmer">+</button>
+        </div>
+        <button class="del" data-del="${n}" data-day="${key}" aria-label="Verwijder tijdsblok">${ICON.trash}</button>
+      </div>`).join('')
+    : '<div class="empty">Geen tijdsblokken: de temperatuur van de dag ervoor loopt door.</div>';
+  return `
+    <section class="daycard ${open.has(key) ? 'open' : ''}" data-card="${key}">
+      <button class="head" data-toggle="${key}" aria-expanded="${open.has(key)}">
+        <span><span class="t">${DAY_LONG[i]}</span>${key === todayKey ? '<span class="today">vandaag</span>' : ''}</span>${ICON.chev}
+      </button>
+      <div class="bar" data-toggle="${key}">${bar}</div>
+      <div class="ticks"><span>0:00</span><span>8:00</span><span>16:00</span><span>24:00</span></div>
+      <div class="edit">${rows}</div>
+      <div class="foot">
+        <button class="copybtn" data-copyopen="${key}">${ICON.copy}Kopiëren</button>
+        <button class="link" data-add="${key}">Tijdsblok toevoegen</button>
+      </div>
+      <div class="copymenu ${copyOpen === key ? 'show' : ''}">
+        <small style="flex-basis:100%">${DAY_LONG[i]} ook gebruiken op:</small>
+        <button data-copy="work" data-day="${key}">Werkdagen</button>
+        <button data-copy="weekend" data-day="${key}">Weekend</button>
+        <button data-copy="all" data-day="${key}">Alle dagen</button>
+      </div>
+    </section>`;
+}
+
+function renderWeek() {
+  $('week').innerHTML = DAY_KEYS.map(dayCard).join('');
+  $('savebar').classList.toggle('show', dirty());
+}
+
+$('week').addEventListener('click', (e) => {
+  const t = (sel) => e.target.closest(sel);
+  let el;
+  if ((el = t('[data-toggle]'))) {
+    const k = el.dataset.toggle; open.has(k) ? open.delete(k) : open.add(k); renderWeek(); return;
+  }
+  if ((el = t('[data-step]'))) {
+    const b = schedule[el.dataset.day][el.dataset.i];
+    b.temp = Math.min(28, Math.max(5, Math.round((Number(b.temp) + Number(el.dataset.step)) * 2) / 2));
+    renderWeek(); return;
+  }
+  if ((el = t('[data-del]'))) { schedule[el.dataset.day].splice(Number(el.dataset.del), 1); renderWeek(); return; }
+  if ((el = t('[data-add]'))) {
+    const k = el.dataset.add; const list = schedule[k] = schedule[k] || [];
+    const last = list[list.length - 1];
+    const m = last ? Math.min(toMin(last.time) + 60, 23 * 60 + 30) : 7 * 60;
+    list.push({ time: `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`, temp: last ? Number(last.temp) : 19 });
+    open.add(k); renderWeek(); return;
+  }
+  if ((el = t('[data-copyopen]'))) { copyOpen = copyOpen === el.dataset.copyopen ? null : el.dataset.copyopen; renderWeek(); return; }
+  if ((el = t('[data-copy]'))) {
+    const src = el.dataset.day;
+    const targets = { work: DAY_KEYS.slice(0, 5), weekend: ['sat', 'sun'], all: DAY_KEYS }[el.dataset.copy];
+    targets.forEach((k) => { schedule[k] = clone(schedule[src] || []); });
+    copyOpen = null; renderWeek();
+    toast(`Gekopieerd naar ${el.textContent.toLowerCase()}. Tik op Opslaan.`);
+  }
+});
+$('week').addEventListener('change', (e) => {
+  if (e.target.type !== 'time') return;
+  const list = schedule[e.target.dataset.day];
+  list[e.target.dataset.i].time = e.target.value;
+  list.sort((a, b) => a.time.localeCompare(b.time));
+  renderWeek();
+});
+$('undo').addEventListener('click', () => { schedule = JSON.parse(saved); renderWeek(); });
+$('saveSchedule').addEventListener('click', async () => {
+  for (const k of DAY_KEYS) {
+    schedule[k] = (schedule[k] || []).filter((b) => /^\d{2}:\d{2}$/.test(b.time) && Number.isFinite(Number(b.temp)))
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }
+  try {
+    await call('set', 'schedule', schedule);
+    saved = JSON.stringify(schedule);
+    renderWeek(); toast('Schema opgeslagen');
+    setTimeout(loadStatus, 1500);
+  } catch (err) { H.alert(`Opslaan mislukt: ${err.message || err}`); }
+});
+
+// ---------- Status ----------
+function timeOf(ms) {
+  const d = new Date(ms);
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', ...(sameDay ? {} : { weekday: 'long' }) });
+}
+// ---------- Verversen + countdown ----------
+const POLL_MS = 15000;
+let pollTimer = null; let pollAt = 0; let lastAt = null; let lastVia = '';
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  pollAt = Date.now() + POLL_MS;
+  pollTimer = setTimeout(loadStatus, POLL_MS);
+}
+function tickFresh() {
+  const el = $('fresh'); if (!el) return;
+  const left = Math.max(0, Math.ceil((pollAt - Date.now()) / 1000));
+  if (!lastAt) { el.textContent = `Ophalen over ${left} s`; return; }
+  const sec = Math.max(0, Math.round((Date.now() - lastAt) / 1000));
+  const ago = sec < 5 ? 'zojuist' : sec < 60 ? `${sec} s geleden` : `${Math.floor(sec / 60)} min geleden`;
+  el.textContent = `Bijgewerkt ${ago} · nog ${left} s`;
+  el.title = `Laatst bijgewerkt om ${new Date(lastAt).toLocaleTimeString('nl-NL')}${lastVia === 'live' ? ' (live)' : ''}`;
+  $('dot').classList.toggle('live', lastVia === 'live');
+}
+async function loadStatus() {
+  const s = await call('api', 'GET', '/status', null).catch(() => null);
+  lastVia = 'opgehaald';
+  renderStatus(s);
+  schedulePoll();
+}
+let prevKey = null;
+function renderStatus(s) {
+  if (s && s.updatedAt) {
+    lastAt = Date.now();
+    const dot = $('dot'); dot.classList.remove('ping'); void dot.offsetWidth; dot.classList.add('ping');
+  }
+  tickFresh();
+  const tile = $('tile');
+  if (!s || !s.updatedAt) {
+    tile.classList.remove('heat');
+    tile.innerHTML = `<b>${esc((s && s.error) || 'Nog geen gegevens.')}</b>`;
+    return;
+  }
+  // Wat is er veranderd t.o.v. de vorige keer? Alleen dan gloeien/infaden.
+  const key = JSON.stringify([s.mode, s.thermostatTarget, s.indoor, s.outdoor, s.override && s.override.until, s.away, s.enabled, s.nextBlock && s.nextBlock.at]);
+  const changed = prevKey !== null && key !== prevKey;
+  const prev = prevKey ? JSON.parse(prevKey) : [];
+  prevKey = key;
+  const cls = (i) => (changed && prev[i] !== JSON.parse(key)[i] ? ' chg' : '');
+  const heating = s.thermostatTarget != null && s.indoor != null && s.thermostatTarget > s.indoor + 0.2;
+  let sub;
+  if (s.mode === 'manual') sub = `${ICON.hand}<span>${heating ? 'Verwarm naar' : 'Ingesteld op'} <b>${fmt(s.thermostatTarget)}</b></span>`;
+  else if (s.mode === 'preheat') sub = `<span>Voorverwarmen naar <b>${fmt(s.thermostatTarget)}</b></span>`;
+  else sub = `<span>${heating ? 'Verwarm naar' : 'Ingesteld op'} <b>${fmt(s.thermostatTarget)}</b></span>`;
+
+  let note = '';
+  if (s.override) note = `Handmatig tot ${esc(timeOf(s.override.until))}, daarna weer het schema.`;
+  else if (s.nextBlock) note = `Straks: ${esc(s.nextBlock.at)} → ${fmt(s.nextBlock.temp)}${s.preheatMinutes ? ` (${s.preheatMinutes} min eerder beginnen)` : ''}`;
+
+  const actions = [];
+  if (s.mode === 'manual') actions.push(`<button class="solid" data-act="resume">${ICON.cal}Schema hervatten</button>`);
+  actions.push(s.away ? `<button data-act="home">${ICON.home}Zet op thuis</button>` : `<button data-act="away">${ICON.away}Zet op afwezig</button>`);
+  actions.push(s.enabled ? `<button data-act="pause">${ICON.pause}Pauzeer schema</button>` : `<button class="solid" data-act="enable">${ICON.play}Start schema</button>`);
+
+  tile.classList.toggle('heat', heating);
+  tile.innerHTML = `
+      <div class="top"><span class="chip${cls(0)}">${esc(MODES[s.mode] || s.mode)}</span><span class="chip${cls(3)}">${fmt(s.outdoor)} buiten</span></div>
+      <div class="bigrow${cls(2)}">${bigTemp(s.indoor)}</div>
+      <div class="room">Woonkamer</div>
+      <div class="sub${cls(1)}">${sub}</div>
+      ${note ? `<div class="note${cls(4) || cls(7)}">${note}</div>` : ''}
+      ${s.error ? `<div class="err">${esc(s.error)}</div>` : ''}
+      <div class="actions">${actions.join('')}</div>`;
+  if (changed) { tile.classList.remove('flash'); void tile.offsetWidth; tile.classList.add('flash'); }
+
+  const l = s.learned;
+  const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r"><span>${new Date(r.at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} · ${fmt(r.from)} → ${fmt(r.to)}${r.outdoor != null ? ` <small>(buiten ${fmt(r.outdoor)})</small>` : ''}</span><span>${fmt(r.rate, '°/u')} · ${r.deadTime} min</span></div>`).join('');
+  $('learned').innerHTML = `
+    <div class="stats">
+      <div><span>Opwarmen</span><b>${fmt(l.rate, '°')}</b> <small>per uur</small></div>
+      <div><span>Opstarttijd cv</span><b>${l.deadTime}</b> <small>min</small></div>
+      <div><span>Metingen</span><b>${l.samples}</b> ${l.samples < 3 ? '<small>nog aan het leren</small>' : ''}</div>
+      <div><span>Nu aan het meten</span><b>${l.heatingNow ? 'ja' : 'nee'}</b></div>
+    </div>
+    ${rows ? `<div class="rows">${rows}</div>` : ''}
+    <div class="actions" style="margin-top:12px"><button class="link" data-act="resetLearning">Opnieuw leren</button></div>`;
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'resetLearning') {
+    const ok = await call('confirm', 'Alle metingen wissen en opnieuw leren?', 'warning').catch(() => false);
+    if (!ok) return;
+  }
+  await call('api', 'POST', '/action', { action: act }).catch((err) => H.alert(err.message || err));
+  loadStatus();
+});
+
+// ---------- Instellingen ----------
+const cfgVals = { ecoTemp: 16, maxPreheat: 180 };
+const CFG_RANGE = { ecoTemp: [5, 25], maxPreheat: [0, 360] };
+function duration(min) {
+  if (min === 0) return '0 min';
+  const h = Math.floor(min / 60); const m = min % 60;
+  if (!h) return `${m} min`;
+  return m ? `${h} u ${m} min` : `${h} uur`;
+}
+function renderCfgVals() {
+  $('ecoTempOut').textContent = fmt(cfgVals.ecoTemp);
+  $('maxPreheatOut').textContent = duration(cfgVals.maxPreheat);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cfg]'); if (!b) return;
+  const k = b.dataset.cfg; const [lo, hi] = CFG_RANGE[k];
+  cfgVals[k] = Math.min(hi, Math.max(lo, Math.round((cfgVals[k] + Number(b.dataset.d)) * 2) / 2));
+  renderCfgVals();
+});
+
+function renderConfig() {
+  const therm = devices.filter((d) => d.thermostat);
+  $('thermostat').innerHTML = '<option value="">– kies –</option>' + therm.map((d) => `<option value="${d.id}" ${d.id === config.thermostatId ? 'selected' : ''}>${esc(d.name)}${d.zone ? ` (${esc(d.zone)})` : ''}</option>`).join('');
+  const outOpts = [];
+  devices.forEach((d) => d.tempCaps.forEach((c) => {
+    const v = `${d.id}|${c.id}`;
+    const sel = d.id === config.outdoorDeviceId && c.id === config.outdoorCapability ? 'selected' : '';
+    outOpts.push(`<option value="${v}" ${sel}>${esc(d.name)} – ${esc(c.title)}</option>`);
+  }));
+  $('outdoor').innerHTML = '<option value="">Geen (niet meenemen)</option>' + outOpts.join('');
+  cfgVals.ecoTemp = config.ecoTemp != null ? Number(config.ecoTemp) : 16;
+  cfgVals.maxPreheat = config.maxPreheat != null ? Number(config.maxPreheat) : 180;
+  renderCfgVals();
+  $('preheat').checked = config.preheat !== false;
+  $('preWrap').hidden = !$('preheat').checked;
+}
+$('preheat').addEventListener('change', () => { $('preWrap').hidden = !$('preheat').checked; });
+$('saveConfig').addEventListener('click', async () => {
+  const [outId, outCap] = ($('outdoor').value || '|').split('|');
+  config = {
+    ...config,
+    thermostatId: $('thermostat').value || null,
+    outdoorDeviceId: outId || null,
+    outdoorCapability: outCap || null,
+    ecoTemp: cfgVals.ecoTemp,
+    maxPreheat: cfgVals.maxPreheat,
+    preheat: $('preheat').checked,
+  };
+  try {
+    await call('set', 'config', config);
+    toast('Instellingen opgeslagen');
+    setTimeout(loadStatus, 1500);
+  } catch (err) { H.alert(`Opslaan mislukt: ${err.message || err}`); }
+});
+
+async function onHomeyReady(Homey) {
+  H = Homey;
+  schedule = (await call('get', 'schedule').catch(() => null)) || {};
+  if (!DAY_KEYS.some((k) => (schedule[k] || []).length)) {
+    DAY_KEYS.forEach((k) => { schedule[k] = clone(DEFAULT_BLOCKS); });
+  }
+  DAY_KEYS.forEach((k) => { schedule[k] = schedule[k] || []; });
+  saved = JSON.stringify(schedule);
+  config = (await call('get', 'config').catch(() => null)) || {};
+  renderWeek();
+  Homey.ready();
+  loadStatus();
+  devices = await call('api', 'GET', '/devices', null).catch(() => []);
+  renderConfig();
+  // Live: de app stuurt na elke wijziging de nieuwe stand. Ophalen elke 15 s blijft als vangnet.
+  if (typeof Homey.on === 'function') Homey.on('status', (st) => { lastVia = 'live'; renderStatus(st); schedulePoll(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });
+  $('refresh').addEventListener('click', () => { $('fresh').textContent = 'Ophalen…'; loadStatus(); });
+  setInterval(tickFresh, 1000);
+}
+</script>
+</body>
+</html>

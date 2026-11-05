@@ -1,0 +1,8 @@
+{
+  "title": { "en": "Set temporary temperature", "nl": "Tijdelijke temperatuur" },
+  "titleFormatted": { "en": "Set [[temp]]° for [[hours]] hours", "nl": "Zet [[temp]]° voor [[hours]] uur" },
+  "args": [
+    { "type": "number", "name": "temp", "min": 5, "max": 28, "step": 0.5, "placeholder": { "en": "20", "nl": "20" } },
+    { "type": "number", "name": "hours", "min": 0.5, "max": 48, "step": 0.5, "placeholder": { "en": "2", "nl": "2" } }
+  ]
+}

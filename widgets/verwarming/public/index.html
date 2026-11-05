@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <style>
+    #w {
+      --heat: linear-gradient(160deg, #f3b25f, #e58a2c); --idle: linear-gradient(160deg, #cfe3e4, #b7d3d6);
+      --t-heat: #3a1f02; --t-idle: #0f3a3d; --pill: rgba(0,0,0,.09); --solid: #3a1f02; --solid-text: #f6c27a;
+      border-radius: 12px; padding: 14px 16px 14px; background: var(--idle); color: var(--t-idle);
+      font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
+      display: flex; flex-direction: column; gap: 8px; -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    #w { position: relative; isolation: isolate; overflow: hidden; transition: color .9s ease; }
+    #w::before { content: ''; position: absolute; inset: 0; z-index: -2; background: var(--heat); opacity: 0; transition: opacity .9s ease; }
+    #w.heat::before { opacity: 1; }
+    #w.heat { color: var(--t-heat); }
+    #w::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+      background: radial-gradient(120% 90% at 20% 30%, rgba(255,255,255,.28), transparent 70%); }
+    #w.flash::after { animation: w-flash 1.2s ease-out; }
+    @keyframes w-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { #w, #w::before { transition: none; } #w.flash::after { animation: none; } }
+    @media (prefers-color-scheme: dark) {
+      #w { --heat: linear-gradient(160deg, #6b4210, #4a2c08); --idle: linear-gradient(160deg, #163b3f, #0e2a2e);
+        --t-heat: #f6b45a; --t-idle: #5fd0c6; --pill: rgba(255,255,255,.12); --solid: #f2a23a; --solid-text: #1d1203; }
+    }
+    /* Niet scrollen of 'meeveren' als je de widget met je vinger versleept. */
+    html, body { margin: 0; padding: 0; height: 100%; background: transparent; overflow: hidden; overscroll-behavior: none; }
+    body { position: fixed; inset: 0; touch-action: manipulation; -webkit-user-select: none; }
+    #w * { box-sizing: border-box; }
+    #w .top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    #w .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: var(--pill); font-size: 13px; font-weight: 600; white-space: nowrap; }
+    #w .chip svg { width: 15px; height: 15px; }
+    #w .mid { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #w .temp { display: inline-flex; align-items: flex-start; font-weight: 600; line-height: .9; letter-spacing: -.03em; }
+    #w .temp .i { font-size: 58px; }
+    #w .temp .r { display: flex; flex-direction: column; justify-content: space-between; height: 52px; margin-left: 2px; }
+    #w .temp .deg { font-size: 26px; line-height: 1; }
+    #w .temp .d { font-size: 23px; line-height: 1; }
+    #w .ctrl { display: flex; align-items: center; gap: 6px; }
+    #w button { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border-radius: 999px; background: var(--pill); color: inherit; font: inherit; font-weight: 600; transition: transform .06s; }
+    #w button:active { transform: scale(.94); }
+    #w .ctrl button { width: 40px; height: 40px; font-size: 22px; }
+    #w .ctrl output { min-width: 56px; text-align: center; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #w .sub { display: flex; align-items: center; gap: 6px; font-size: 14px; min-height: 18px; }
+    #w .sub svg { width: 17px; height: 17px; flex: none; }
+    #w .bar { position: relative; display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 1px; margin-top: 2px; }
+    #w .bar i { display: block; height: 100%; }
+    #w .barwrap { position: relative; }
+    #w .now { position: absolute; top: -3px; width: 3px; height: 16px; border-radius: 2px; background: currentColor; transform: translateX(-1px); }
+    #w .ticks { display: flex; justify-content: space-between; font-size: 11px; opacity: .7; margin-top: 3px; }
+    #w .resume { height: 38px; padding: 0 14px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
+    #w .resume svg { width: 18px; height: 18px; }
+    #w .err { font-size: 13px; }
+    #w .right { display: inline-flex; align-items: center; gap: 6px; }
+  </style>
+</head>
+<body>
+<div id="w"><div class="err">Laden…</div></div>
+
+<script>
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd' };
+const ICON = {
+  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg>',
+};
+
+let H; let data = null; let prevKey = null; let pending = null; let sendTimer = null;
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1).replace('.', ',')}°`);
+const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+
+function bigTemp(v) {
+  if (v == null) return '<span class="temp"><span class="i">–</span></span>';
+  const [i, d] = Number(v).toFixed(1).split('.');
+  return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d">,${d}</span></span></span>`;
+}
+function segColor(t) {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  if (t == null) return 'rgba(127,127,127,.3)';
+  if (t < 16) return dark ? '#2f6e70' : '#4fa39b';
+  if (t < 18) return dark ? '#b8862a' : '#e3b23c';
+  if (t < 20) return dark ? '#d07a25' : '#e8892b';
+  return dark ? '#d9532b' : '#e0562a';
+}
+function todayBar(schedule) {
+  const idx = new Date().getDay();
+  let carry = null;
+  for (let s = 1; s <= 7 && carry === null; s++) {
+    const prev = schedule[DAY_KEYS[(idx - s + 7) % 7]] || [];
+    if (prev.length) carry = Number(prev[prev.length - 1].temp);
+  }
+  const blocks = (schedule[DAY_KEYS[idx]] || []).slice().sort((a, b) => a.time.localeCompare(b.time));
+  const segs = []; let start = 0; let temp = carry;
+  for (const b of blocks) { const m = toMin(b.time); if (m > start) segs.push([start, m, temp]); start = m; temp = Number(b.temp); }
+  segs.push([start, 1440, temp]);
+  const n = new Date(); const nowPct = ((n.getHours() * 60 + n.getMinutes()) / 14.4).toFixed(2);
+  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}"></i>`).join('')}</div><span class="now" style="left:${nowPct}%"></span></div>
+    <div class="ticks"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>`;
+}
+function timeOf(ms) {
+  const d = new Date(ms);
+  const same = d.toDateString() === new Date().toDateString();
+  return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', ...(same ? {} : { weekday: 'short' }) });
+}
+
+function render() {
+  const w = document.getElementById('w');
+  if (!data || !data.status || !data.status.updatedAt) {
+    w.className = ''; w.innerHTML = `<div class="err">${esc((data && data.status && data.status.error) || 'Nog geen gegevens van Slim verwarmen.')}</div>`;
+    return;
+  }
+  const s = data.status;
+  const target = pending != null ? pending : s.thermostatTarget;
+  const heating = target != null && s.indoor != null && target > s.indoor + 0.2;
+  w.classList.toggle('heat', heating);
+  const key = JSON.stringify([s.mode, s.thermostatTarget, s.indoor, s.override && s.override.until]);
+  if (prevKey !== null && key !== prevKey && pending == null) { w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
+  prevKey = key;
+  let sub;
+  if (s.mode === 'manual' && s.override) sub = `${ICON.hand}<span>Handmatig tot ${esc(timeOf(s.override.until))}</span>`;
+  else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(s.nextBlock ? s.nextBlock.at.slice(3) : '')}</span>`;
+  else if (s.nextBlock) sub = `<span>Straks ${esc(s.nextBlock.at.slice(3))} → ${fmt(s.nextBlock.temp)}</span>`;
+  else sub = '';
+  w.innerHTML = `
+    <div class="top">
+      <span class="chip">${heating ? ICON.flame : ''}${esc(MODES[s.mode] || s.mode)}</span>
+      <span class="right">${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Schema</button>` : `<span class="chip">${fmt(s.outdoor)} buiten</span>`}</span>
+    </div>
+    <div class="mid">
+      ${bigTemp(s.indoor)}
+      <div class="ctrl">
+        <button data-d="-0.5" aria-label="Kouder">−</button>
+        <output aria-label="Ingesteld">${fmt(target)}</output>
+        <button data-d="0.5" aria-label="Warmer">+</button>
+      </div>
+    </div>
+    <div class="sub">${sub}</div>
+    ${todayBar(data.schedule || {})}`;
+}
+
+function fitHeight() {
+  const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height);
+  if (H && typeof H.setHeight === 'function' && h) H.setHeight(h);
+}
+async function load() {
+  try { data = await H.api('GET', '/status'); } catch (e) { /* volgende poging */ }
+  render();
+}
+
+document.addEventListener('click', async (e) => {
+  const step = e.target.closest('[data-d]');
+  if (step && data && data.status) {
+    const base = pending != null ? pending : data.status.thermostatTarget;
+    pending = Math.min(28, Math.max(5, Math.round((base + Number(step.dataset.d)) * 2) / 2));
+    render();
+    // Even wachten zodat meerdere tikken één wijziging worden.
+    clearTimeout(sendTimer);
+    sendTimer = setTimeout(async () => {
+      const temp = pending;
+      try { data = await H.api('POST', '/action', { action: 'setTemp', temp }); } catch (err) { console.error(err); }
+      pending = null; render();
+    }, 1200);
+    return;
+  }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    try { data = await H.api('POST', '/action', { action: act.dataset.act }); } catch (err) { console.error(err); }
+    render();
+  }
+});
+
+function onHomeyReady(Homey) {
+  H = Homey;
+  Homey.ready({ height: 184 });
+  load().then(fitHeight);
+  if (typeof Homey.on === 'function') Homey.on('status', (st) => { if (data) { data.status = st; if (pending == null) render(); } else load(); });
+  setInterval(load, 30000);
+  setInterval(render, 60000); // nu-streepje laten meeschuiven
+}
+</script>
+</body>
+</html>

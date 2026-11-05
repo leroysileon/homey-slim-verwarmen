@@ -1,0 +1,7 @@
+{
+  "title": { "en": "Thermostat was changed manually", "nl": "Thermostaat is handmatig versteld" },
+  "tokens": [
+    { "name": "temp", "type": "number", "title": { "en": "Temperature", "nl": "Temperatuur" }, "example": 21 },
+    { "name": "until", "type": "string", "title": { "en": "Until", "nl": "Tot" }, "example": "22:30" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": { "en": "Turn smart heating on/off", "nl": "Slim verwarmen aan/uit" },
+  "titleFormatted": { "en": "Turn smart heating [[state]]", "nl": "Zet slim verwarmen [[state]]" },
+  "args": [
+    { "type": "dropdown", "name": "state", "values": [
+      { "id": "on", "title": { "en": "on", "nl": "aan" } },
+      { "id": "off", "title": { "en": "off (pause)", "nl": "uit (pauze)" } }
+    ] }
+  ]
+}

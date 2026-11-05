@@ -1,0 +1,8 @@
+{
+  "type": "string",
+  "title": { "en": "Mode", "nl": "Stand" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/icon.svg"
+}
