@@ -63,18 +63,21 @@ http.createServer((req, res) => {
     if (url === '/homey.js') return send(200, mockHomey, 'text/javascript');
     if (url === '/widget') {
       const html = fs.readFileSync(path.join(__dirname, '..', 'widgets', 'verwarming', 'public', 'index.html'), 'utf8')
-        .replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1"><style>html{background:#000}body{max-width:380px;height:236px;margin:16px auto;padding:0 12px}</style><script src="/widget-homey.js"></script></head>');
+        .replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1"><style>html{background:#000}body{max-width:380px;margin:16px auto;padding:0 12px}</style><script src="/widget-homey.js"></script></head>');
       return send(200, html, 'text/html');
     }
     if (url === '/widget-homey.js') return send(200, `
       (function(){
         const H = {
-          ready(){}, on(){}, popup(u){ console.log('POPUP', u); window.__popup = u; return Promise.resolve(); }, hapticFeedback(){},
+          ready(o){ window.__h = o && o.height; }, setHeight(h){ window.__h = h; return Promise.resolve(); }, on(){}, popup(u){ console.log('POPUP', u); window.__popup = u; return Promise.resolve(); }, hapticFeedback(){},
           async api(m, p, b){ const r = await fetch('/__widget' + p, { method: m, headers: {'content-type':'application/json'}, body: b ? JSON.stringify(b) : undefined }); return r.json(); },
         };
         window.addEventListener('load', () => window.onHomeyReady(H));
       })();`, 'text/javascript');
     if (url === '/__widget/status') return send(200, { status: status(), schedule: store.schedule });
+    if (url === '/__widget/action' || url === '/__api/action') {
+      if (!req.__delayed) { req.__delayed = true; return setTimeout(() => req.emit('end'), 1500); }
+    }
     if (url === '/__widget/action') {
       const b = JSON.parse(data || '{}');
       if (b.action === 'setTemp') { mode = 'manual'; manualTemp = b.temp; } else if (b.action === 'resume') mode = 'schedule';

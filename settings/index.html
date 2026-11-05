@@ -35,6 +35,8 @@
       border-radius: 999px; background: var(--pill); color: inherit; transition: background .12s, transform .06s; }
     #sv button:active { transform: scale(.97); }
     #sv button:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+    #sv button.busy { opacity: .7; pointer-events: none; animation: sv-pulse 1s ease-in-out infinite; }
+    @keyframes sv-pulse { 50% { opacity: .45; } }
     #sv button.link { background: none; padding: 0 4px; color: var(--link); min-height: 40px; }
     #sv button.solid { background: var(--warm); color: #1d1203; }
     #sv svg { width: 22px; height: 22px; flex: none; }
@@ -113,9 +115,9 @@
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a9aa0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat; background-position: right 14px center; background-size: 20px; }
     #sv input[type=time]::-webkit-calendar-picker-indicator { display: none; }
-    #sv input[type=time]::-webkit-date-and-time-value { text-align: center; margin: 0; }
+    #sv input[type=time]::-webkit-date-and-time-value { text-align: center; margin: 0; line-height: 40px; min-height: 40px; }
     #sv input[type=time]::-webkit-datetime-edit { display: flex; justify-content: center; }
-    #sv input[type=time] { width: 80px; min-height: 40px; font-size: 19px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; padding: 0 10px; background: var(--card); }
+    #sv input[type=time] { -webkit-appearance: none; appearance: none; width: 80px; height: 40px; min-height: 40px; line-height: 40px; font-size: 19px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; padding: 0 10px; background: var(--card); }
     #sv input[type=checkbox] { all: revert; width: 24px; height: 24px; accent-color: var(--warm); flex: none; }
     #sv label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
     #sv label:first-child { margin-top: 0; }
@@ -413,8 +415,9 @@ async function loadStatus() {
   renderStatus(s);
   schedulePoll();
 }
-let prevKey = null;
+let prevKey = null; let lastStatus = null;
 function renderStatus(s) {
+  if (s && s.updatedAt) lastStatus = s;
   if (s && s.updatedAt) {
     lastAt = Date.now();
     const dot = $('dot'); dot.classList.remove('ping'); void dot.offsetWidth; dot.classList.add('ping');
@@ -478,8 +481,17 @@ document.addEventListener('click', async (e) => {
     const ok = await call('confirm', 'Alle metingen wissen en opnieuw leren?', 'warning').catch(() => false);
     if (!ok) return;
   }
+  // Meteen laten zien dat er iets gebeurt; de Homey bevestigt een paar seconden later.
+  btn.classList.add('busy');
+  const label = btn.querySelector('svg') ? btn.lastChild : btn;
+  label.textContent = 'Bezig…';
+  if (act === 'resume' && lastStatus) {
+    renderStatus({ ...lastStatus, mode: 'schedule', override: null,
+      thermostatTarget: lastStatus.currentBlock ? lastStatus.currentBlock.temp : lastStatus.thermostatTarget });
+  }
   await call('api', 'POST', '/action', { action: act }).catch((err) => H.alert(err.message || err));
   loadStatus();
+  setTimeout(loadStatus, 4000);
 });
 
 // ---------- Instellingen ----------
