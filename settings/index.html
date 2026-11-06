@@ -725,7 +725,9 @@ const nextAt = (s) => (nextBlockAt(s) ? timeOf(nextBlockAt(s)) : '');
 const untilOf = (s, d) => (d === 'manual' ? null : d === 'next' ? s.nextChangeAt : Date.now() + d * 60000);
 function durText(s, d, until) {
   if (until == null) return { t: 'Tot je het schema hervat', cd: '∞' };
-  return { t: d === 'next' && nextAt(s) ? `Tot ${nextAt(s)}, het volgende moment in het schema` : `Tot ${timeOf(until)}`, cd: hms(until - Date.now()) };
+  // Bij 'volgend tijdsblok' aftellen tot het schema-moment (bijv. 18:00), net als de tekst; voorverwarmen begint iets eerder.
+  const shown = d === 'next' && nextBlockAt(s) ? nextBlockAt(s) : until;
+  return { t: d === 'next' && nextAt(s) ? `Tot ${nextAt(s)}, het volgende moment in het schema` : `Tot ${timeOf(until)}`, cd: hms(shown - Date.now()) };
 }
 function durBlock(s) {
   const d = s.override.duration || 'next';
@@ -770,7 +772,7 @@ setInterval(() => {
   const b = document.querySelector('.tile .dur');
   if (!b || !lastStatus || !lastStatus.override || sliding) return;
   if (touched != null) { showDur(b, touched); return; }
-  if (lastStatus.override.until != null) b.querySelector('.cd').textContent = hms(lastStatus.override.until - Date.now());
+  if (lastStatus.override.until != null) b.querySelector('.cd').textContent = durText(lastStatus, lastStatus.override.duration || 'next', lastStatus.override.until).cd;
 }, 1000);
 function renderStatus(s) {
   if (sliding) { if (s && s.updatedAt) lastStatus = s; return; } // niet onder je vinger vandaan tekenen

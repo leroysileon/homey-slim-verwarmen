@@ -68,7 +68,7 @@
     #w .bar { position: relative; display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin-top: 2px; }
     #w .bar i { display: block; height: 100%; }
     /* Handmatige periode: omlijning om dat stuk van de balk, met afgeronde hoeken (tekstkleur: zwart in lichte modus). */
-    #w .barwrap .manual { position: absolute; top: -2px; height: 14px; margin-left: -2px; padding: 0; box-sizing: content-box;
+    #w .barwrap .manual { position: absolute; top: -2px; height: 14px; margin-left: -2px; padding: 0; box-sizing: content-box; /* binnenrand = balkrand; placeManual zet left/width in px */
       border: 2px solid currentColor; border-radius: 8px; pointer-events: none; }
     #w .barwrap { position: relative; height: 12px; flex: none; }
     /* Nu-streepje verticaal gecentreerd op de balk, horizontaal precies op het tijdstip. */
@@ -203,12 +203,14 @@ function todayBar(schedule, st) {
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
     const toM = (ms) => Math.max(0, Math.min(1440, (ms - dayStart.getTime()) / 60000));
     const from = toM(o.since || Date.now());
-    const to = o.until == null ? 1440 : toM(o.until);
+    // Tot het schema-moment (zoals de tekst 'Tot 18:00'), niet tot de start van het voorverwarmen.
+    const end = o.until == null ? null : ((o.duration || 'next') === 'next' && nextBlockAt(st)) || o.until;
+    const to = end == null ? 1440 : toM(end);
     if (to > from) {
-      manualBox = `<span class="manual" style="left:${(from / 14.4).toFixed(2)}%;width:${((to - from) / 14.4).toFixed(2)}%" title="Handmatig ${deg(o.temp)}"></span>`;
+      manualBox = `<span class="manual" data-from="${from}" data-to="${to}" style="left:${(from / 14.4).toFixed(2)}%;width:${((to - from) / 14.4).toFixed(2)}%" title="Handmatig ${deg(o.temp)}"></span>`;
     }
   }
-  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}"></i>`).join('')}</div>${manualBox}<span class="now" style="left:${nowPct}%"></span></div>
+  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i data-a="${s[0]}" data-b="${s[1]}" style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}"></i>`).join('')}</div>${manualBox}<span class="now" style="left:${nowPct}%"></span></div>
     <div class="ticks"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>`;
 }
 /** Temperatuur die het schema nu voorschrijft (voor directe feedback op 'Schema'). */
@@ -267,7 +269,9 @@ function untilOf(s, d) { return d === 'manual' ? null : d === 'next' ? s.nextCha
 /** "Tot 03:41" + aftellen, of "Tot je het schema hervat". */
 function durLabel(s, d, until) {
   if (until == null) return { t: 'Tot je het schema hervat', cd: '' };
-  return { t: `Tot ${d === 'next' && nextAt(s) ? nextAt(s) : timeOf(until)}`, cd: hm(until - Date.now()) };
+  // Bij 'volgend tijdsblok' tonen we het schema-moment (bijv. 18:00), ook al begint het voorverwarmen iets eerder.
+  const shown = d === 'next' && nextBlockAt(s) ? nextBlockAt(s) : until;
+  return { t: `Tot ${timeOf(shown)}`, cd: hm(shown - Date.now()) };
 }
 function openDur() {
   if (!durOpen) enterPanel = true;
@@ -312,11 +316,12 @@ setInterval(() => {
   if (!data || !data.status || sliding) return;
   const ov = data.status.override;
   const cd = document.querySelector('#w .sub .cd');
-  if (cd && ov && ov.until != null) cd.textContent = hm(ov.until - Date.now());
+  const ovCd = () => durLabel(data.status, ov.duration || 'next', ov.until).cd; // tot het schema-moment, zoals de tekst
+  if (cd && ov && ov.until != null) cd.textContent = ovCd();
   const panel = document.querySelector('#w .dur');
   if (!panel) return;
   if (touched || chosenDur != null || !ov) showDur(panel, curDur(data.status)); // gekozen stand: 'tot' schuift mee met de klok
-  else if (ov.until != null) panel.querySelector('.cd').textContent = hm(ov.until - Date.now());
+  else if (ov.until != null) panel.querySelector('.cd').textContent = ovCd();
 }, 1000);
 async function commitDur(d) {
   chosenDur = d; touched = true; openDur();
@@ -357,7 +362,7 @@ function render() {
   if (durOpen && !manual && pending == null) durOpen = false; // inmiddels terug naar het schema
   let sub;
   if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span>${ICON.edit}`;
-  else if (manual) sub = `${ICON.hand}<span>${esc(durLabel(s, s.override.duration || 'next', s.override.until).t)}</span><span class="cd">${hm(s.override.until - Date.now())}</span>${ICON.edit}`;
+  else if (manual) { const l = durLabel(s, s.override.duration || 'next', s.override.until); sub = `${ICON.hand}<span>${esc(l.t)}</span><span class="cd">${l.cd}</span>${ICON.edit}`; }
   else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(nextAt(s))}</span>`;
   else if (s.nextBlock && nextBlockAt(s)) sub = `<span>${esc(cap(whenAt(nextBlockAt(s))))} → ${deg(s.nextBlock.temp)}</span>`;
   else sub = '';
@@ -383,9 +388,26 @@ function render() {
     ${durOpen ? durPanel(s)
     : `${manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`}
     ${todayBar(data.schedule || {}, s)}`}`;
+  placeManual();
   if (enterRow && !durOpen) { w.querySelectorAll('.sub, .barwrap, .ticks').forEach((el) => el.classList.add('enter')); enterRow = false; }
   setTimeout(fitHeight, 0);
 }
+
+/** Kader precies op de stukken van de balk: de tussenruimtes (2px) verschuiven de grenzen t.o.v. percentages. */
+function placeManual() {
+  const box = document.querySelector('#w .barwrap .manual'); if (!box) return;
+  const wrap = box.parentElement.getBoundingClientRect();
+  const xOf = (m) => {
+    for (const seg of document.querySelectorAll('#w .bar i')) {
+      const a = Number(seg.dataset.a); const b = Number(seg.dataset.b);
+      if (m >= a && m <= b) { const r = seg.getBoundingClientRect(); return r.left - wrap.left + ((m - a) / (b - a)) * r.width; }
+    }
+    return (m / 1440) * wrap.width;
+  };
+  const x1 = xOf(Number(box.dataset.from)); const x2 = xOf(Number(box.dataset.to));
+  box.style.left = `${x1}px`; box.style.width = `${Math.max(0, x2 - x1)}px`; // margin-left -2px + rand 2px: binnenkant van de rand ligt op x1..x2
+}
+window.addEventListener('resize', placeManual);
 
 // Widgethoogte = gemeten inhoud, zodat er niets wordt afgesneden en er niets te scrollen valt.
 let lastHeight = 198;
