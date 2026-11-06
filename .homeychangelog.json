@@ -10,5 +10,9 @@
   "1.1.1": {
     "en": "Choose how long a manual temperature lasts (until the next schedule change, a fixed time, or until you resume). New look with one colour per state, humidity and heating indicator in the widget, a frame around the manual period. Weekly schedule: Today button, tap a block to change start, end and temperature. New icon.",
     "nl": "Kies hoe lang een handmatige temperatuur geldt (tot het volgende moment in het schema, een vaste tijd, of tot je het schema hervat). Nieuw uiterlijk met één kleur per toestand, luchtvochtigheid en verwarm-golfjes in de widget, een kader om de handmatige periode. Weekschema: knop Vandaag, tik op een blok om begin, eind en temperatuur aan te passen. Nieuw icoon."
+  },
+  "1.2.0": {
+    "en": "Easy first setup: nothing changes until you tap Start. The settings page shows the same tile as the widget, with Away and Pause. Room name, a weather icon that matches the weather outside, humidity and outdoor temperature alternate when space is short. Choose how long a manual temperature lasts. Weekly schedule: tap a block to change start, end and temperature. Learns faster how quickly your home heats up.",
+    "nl": "Makkelijk beginnen: er verandert niets tot je op Start tikt. De instellingenpagina toont dezelfde tegel als de widget, met Afwezig en Pauzeren. Ruimtenaam, een weericoon dat past bij het weer buiten, luchtvochtigheid en buitentemperatuur wisselen elkaar af als er weinig ruimte is. Kies hoe lang een handmatige temperatuur geldt. Weekschema: tik op een blok om begin, eind en temperatuur aan te passen. Leert sneller hoe snel je huis opwarmt."
   }
 }
