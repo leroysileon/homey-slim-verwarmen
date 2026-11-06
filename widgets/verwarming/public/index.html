@@ -43,6 +43,14 @@
     #w .info button.it { all: unset; display: inline-flex; align-items: center; gap: 3px; opacity: .8; cursor: pointer; padding: 6px 4px; margin: -6px -4px; -webkit-tap-highlight-color: transparent; }
     #w .info button.it.high { opacity: 1; font-weight: 700; }
     #w .info button.it svg { width: 13px; height: 13px; flex: none; }
+    /* Wisselende waarde (handmatig): twee waarden op één plek, zachte overgang */
+    #w .info button.rot { display: inline-grid; }
+    #w .rot > span { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: 3px; transition: opacity .45s ease, transform .45s ease; }
+    #w .rot > .v2 { opacity: 0; transform: translateY(6px); }
+    #w .rot.alt > .v1 { opacity: 0; transform: translateY(-6px); }
+    #w .rot.alt > .v2 { opacity: 1; transform: none; }
+    #w .rot > .high { font-weight: 700; }
+    @media (prefers-reduced-motion: reduce) { #w .rot > span { transition: none; transform: none !important; } }
     /* Golfjes los boven het getal, zodat ze de rij niet verschuiven. */
     /* Golfjes naast de huidige temperatuur: 'het wordt warmer'. */
     #w .tw { position: relative; display: inline-flex; align-items: center; }
@@ -383,9 +391,16 @@ async function commitDur(d) {
   chosenDur = null; touched = false; render(); refreshSoon();
 }
 
-/** Vochtigheid en buiten. Handmatig is er maar plek voor één: tik om te wisselen (keuze wordt onthouden). */
+/** Vochtigheid en buiten. Handmatig is er maar plek voor één: ze wisselen elkaar om de paar seconden af (tik = meteen wisselen). */
 let showOutdoor = false;
-try { showOutdoor = localStorage.getItem('sv-info') === 'outdoor'; } catch (e) { /* geen opslag: standaard vochtigheid */ }
+const ROTATE_MS = 5000;
+let rotateTimer = null;
+function swapInfo() {
+  const r = document.querySelector('#w .rot'); if (!r) return;
+  showOutdoor = !showOutdoor; r.classList.toggle('alt', showOutdoor);
+}
+function startRotate() { clearInterval(rotateTimer); rotateTimer = setInterval(() => { if (!sliding) swapInfo(); }, ROTATE_MS); }
+startRotate();
 function infoItems(s) {
   const hum = s.humidity != null ? `${ICON.drop}${s.humidity}%` : '';
   const out = s.outdoor != null ? `${wxIcon(s.weather)}${fmt(s.outdoor)}` : '';
@@ -394,9 +409,8 @@ function infoItems(s) {
   if (s.mode !== 'manual' || !hum || !out) {
     return `${hum ? `<span class="it${humCls}" aria-label="${humLbl}">${hum}</span>` : ''}${out ? `<span class="it" aria-label="Buiten ${fmt(s.outdoor)}">${out}</span>` : ''}`;
   }
-  return showOutdoor
-    ? `<button class="it swap" data-swap aria-label="Buiten ${fmt(s.outdoor)}. Tik voor luchtvochtigheid">${out}</button>`
-    : `<button class="it swap${humCls}" data-swap aria-label="${humLbl}. Tik voor buitentemperatuur">${hum}</button>`;
+  // Beide waarden op dezelfde plek gestapeld; de plek is zo breed als de langste, dus niets verschuift.
+  return `<button class="it swap rot${showOutdoor ? ' alt' : ''}" data-swap aria-label="${humLbl}, buiten ${fmt(s.outdoor)}"><span class="v1${humCls}">${hum}</span><span class="v2">${out}</span></button>`;
 }
 
 function render() {
@@ -526,10 +540,9 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-duropen]')) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); openDur(); render(); return; }
   if (e.target.closest('[data-durclose]')) { closeDur(); return; }
   if (e.target.closest('[data-swap]')) {
-    showOutdoor = !showOutdoor;
-    try { localStorage.setItem('sv-info', showOutdoor ? 'outdoor' : 'humidity'); } catch (err) { /* niet erg */ }
+    swapInfo(); startRotate(); // meteen wisselen, daarna weer om de paar seconden
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
-    render(); return;
+    return;
   }
   if (e.target.closest('[data-next]') && data && data.status) {
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
