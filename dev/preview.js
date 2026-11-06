@@ -24,7 +24,7 @@ const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 466 
 let manualUntil = untilOf('next');
 const now = Date.now();
 const status = () => ({
-  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5,
+  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, setupDone: mode !== 'setup', thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5, weather: 'partly', room: 'Woonkamer',
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
@@ -66,6 +66,7 @@ http.createServer((req, res) => {
     const url = req.url.split('?')[0];
     if (url === '/' || url === '/index.html') return send(200, fs.readFileSync(path.join(__dirname, '..', 'settings', 'index.html'), 'utf8'), 'text/html');
     if (url === '/homey.js') return send(200, mockHomey, 'text/javascript');
+    if (url === '/tile.html') return send(200, fs.readFileSync(path.join(__dirname, '..', 'settings', 'tile.html'), 'utf8'), 'text/html');
     if (url === '/widget') {
       const html = fs.readFileSync(path.join(__dirname, '..', 'widgets', 'verwarming', 'public', 'index.html'), 'utf8')
         .replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1"><style>html{background:#000}body{max-width:380px;margin:16px auto;padding:0 12px}</style><script src="/widget-homey.js"></script></head>');
@@ -99,9 +100,13 @@ http.createServer((req, res) => {
     if (url === '/__api/status') return send(200, status());
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/action') {
-      const { action, duration } = JSON.parse(data || '{}');
+      const { action, duration, temp } = JSON.parse(data || '{}');
+      if (action === 'setTemp') {
+        if (mode !== 'manual' || duration != null) { manualDur = duration != null ? duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
+        mode = 'manual'; manualTemp = temp; confirmedAt = Date.now() + 6000; return send(200, status());
+      }
       if (action === 'setDuration') { manualDur = duration; manualUntil = untilOf(duration); return send(200, status()); }
-      mode = { resume: 'schedule', away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule' }[action] || mode;
+      mode = { resume: 'schedule', away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule', start: 'schedule' }[action] || mode;
       return send(200, status());
     }
     if (url === '/__mode') { mode = new URLSearchParams(req.url.split('?')[1]).get('m'); return send(200, { mode }); }

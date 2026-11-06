@@ -4,7 +4,8 @@
   "private": true,
   "main": "app.js",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "sync-tile": "node dev/sync-tile.js"
   },
   "dependencies": {
     "homey-api": "^3.0.0"

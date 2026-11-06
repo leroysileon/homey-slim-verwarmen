@@ -17,6 +17,7 @@
     #w.heat { background-color: #f7b52c; }
     #w.cold { background-color: #3b8cf0; }
     #w.humid { background-color: #2f9fb8; }
+    #w.setup { background-color: #8b8f96; } /* nog niet gestart */
     /* Zachte glans. */
     #w::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
       background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,0) 55%, rgba(0,0,0,.05)); }
@@ -38,6 +39,10 @@
     #w .info .it { display: inline-flex; align-items: center; gap: 3px; opacity: .8; }
     #w .info .it svg { width: 13px; height: 13px; flex: none; }
     #w .info .it.high { opacity: 1; font-weight: 700; }
+    /* Wisselknop (handmatig): zelfde tekst, iets groter tikvlak, zonder knoplook */
+    #w .info button.it { all: unset; display: inline-flex; align-items: center; gap: 3px; opacity: .8; cursor: pointer; padding: 6px 4px; margin: -6px -4px; -webkit-tap-highlight-color: transparent; }
+    #w .info button.it.high { opacity: 1; font-weight: 700; }
+    #w .info button.it svg { width: 13px; height: 13px; flex: none; }
     /* Golfjes los boven het getal, zodat ze de rij niet verschuiven. */
     /* Golfjes naast de huidige temperatuur: 'het wordt warmer'. */
     #w .tw { position: relative; display: inline-flex; align-items: center; }
@@ -63,6 +68,8 @@
     #w .ctrl button svg { width: 18px; height: 18px; display: block; }
     #w .ctrl .val { position: relative; width: 60px; text-align: center; }
     #w .ctrl output { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    /* Ruimte onder de grote temperatuur (zone van de thermostaat in Homey) */
+    #w .room { font-size: 18px; font-weight: 600; line-height: 22px; height: 22px; margin-top: -4px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #w .sub { display: flex; align-items: center; gap: 6px; font-size: 14px; height: 20px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #w .sub svg { width: 17px; height: 17px; flex: none; }
     #w .bar { position: relative; display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin-top: 2px; }
@@ -77,6 +84,12 @@
     #w .resume { flex: none; white-space: nowrap; height: 32px; padding: 0 12px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
     #w .resume svg { width: 16px; height: 16px; }
     #w .err { font-size: 13px; }
+    /* Op de instellingenpagina dezelfde ronding als de andere kaarten daar */
+    .in-settings #w { border-radius: 20px; padding: 16px 16px 16px; }
+    /* Alleen op de instellingenpagina: Afwezig en Pauzeren in de tegel */
+    #w .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; flex: none; }
+    #w .acts button { height: 42px; padding: 0 8px; font-size: 14.5px; white-space: nowrap; min-width: 0; }
+    #w .acts button svg { width: 17px; height: 17px; flex: none; }
     #w button.busy { opacity: .7; pointer-events: none; animation: w-pulse 1s ease-in-out infinite; }
     @keyframes w-pulse { 50% { opacity: .45; } }
     #w .right { display: inline-flex; align-items: center; gap: 6px; }
@@ -101,13 +114,16 @@
     #w .dur .sl { display: flex; align-items: center; gap: 10px; height: 30px; }
     #w .dur .nx { flex: none; height: 30px; padding: 0 11px; font-size: 13px; white-space: nowrap; }
     #w .dur .nx.on { background: var(--solid); color: var(--solid-text); }
-    #w input[type=range].off { opacity: .45; }
+    #w input[type=range].off { opacity: 1; }
     #w .dur .sl .inf { font-size: 18px; line-height: 1; opacity: .8; width: 20px; text-align: center; }
     #w input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 30px; margin: 0; background: none; touch-action: pan-y; }
     #w input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
-      background: linear-gradient(to right, currentColor var(--p, 0%), var(--pill) var(--p, 0%)); }
-    #w input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--pill); }
-    #w input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: currentColor; }
+      background: linear-gradient(to right, #ffffff var(--p, 0%), rgba(255,255,255,.3) var(--p, 0%)); }
+    #w input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255,255,255,.3); }
+    #w input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: #ffffff; }
+    /* 'Volgend tijdsblok' gekozen: hele balk licht, zonder grauwe doorschijnendheid */
+    #w input[type=range].off::-webkit-slider-runnable-track { background: rgba(255,255,255,.3); }
+    #w input[type=range].off::-moz-range-progress { background: rgba(255,255,255,.3); }
     #w input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 50%;
       background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
     #w input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
@@ -136,6 +152,7 @@
     <span class="sk big"></span>
     <div class="ctrl"><span class="sk btn"></span><span class="sk out"></span><span class="sk btn"></span></div>
   </div>
+  <div class="room"><span class="sk line" style="width:96px;height:16px"></span></div>
   <div class="sub"><span class="sk line"></span></div>
   <div class="barwrap"><div class="bar sk"></div></div>
   <div class="ticks sk-t"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
@@ -143,13 +160,31 @@
 
 <script>
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd' };
+const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart' };
+/** Weericoon bij de buitentemperatuur, passend bij het weer buiten (kind uit status.weather). */
+const WX = (() => {
+  const S = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const cloudHi = '<path d="M7 15h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 8a3.5 3.5 0 0 0 1 7z"/>';
+  const cloudLo = '<path d="M9.5 20h7.5a3.5 3.5 0 0 0 .4-6.98A5 5 0 0 0 8 14.2a3 3 0 0 0 1.5 5.8z"/>';
+  return {
+    clear: S('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'),
+    night: S('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+    partly: S(`<circle cx="8" cy="8" r="3"/><path d="M8 2v1.2M2 8h1.2M3.8 3.8l.9.9M12.2 3.8l-.9.9"/>${cloudLo}`),
+    nightpartly: S(`<path d="M12 9.5A4.5 4.5 0 1 1 6.5 3.5a3.6 3.6 0 0 0 5.5 6z"/>${cloudLo}`),
+    cloudy: S('<path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/>'),
+    rain: S(`${cloudHi}<path d="M8.5 18.5l-1 2.5M12.5 18.5l-1 2.5M16.5 18.5l-1 2.5"/>`),
+    snow: S(`${cloudHi}<path d="M8 19.5h.01M12 21h.01M16 19.5h.01M10 22.5h.01M14 22.5h.01"/>`, 2.6),
+    fog: S('<path d="M4 8h16M3 12.5h18M5 17h14"/>'),
+    thunder: S(`${cloudHi}<path d="M12.5 15.5l-2 3.5h3.5l-2 3.5"/>`),
+  };
+})();
+const wxIcon = (k) => WX[k] || WX.cloudy;
 const ICON = {
   cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>',
-  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 12 3l9.5 8v10.5h-19z"/><path d="M12 10.5s2.3 2.5 2.3 4.2a2.3 2.3 0 0 1-4.6 0c0-1.7 2.3-4.2 2.3-4.2z"/></svg>', // druppel in een huisje: luchtvochtigheid binnen
   waves: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5c-1.5 2 1.5 3.5 0 5.5S7 14 7 16m5-11c-1.5 2 1.5 3.5 0 5.5s0 3.5 0 5.5m5-11c-1.5 2 1.5 3.5 0 5.5s0 3.5 0 5.5"/></svg>',
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
@@ -158,6 +193,23 @@ const ICON = {
 };
 
 let confirmPoll = null;
+// Dezelfde widget dient ook als statustegel op de instellingenpagina (tile.html?in=settings):
+// daar geen dagbalk (het weekschema staat eronder), wel de knoppen Afwezig en Pauzeren in de tegel.
+const IN_SETTINGS = new URLSearchParams(location.search).get('in') === 'settings';
+if (IN_SETTINGS) document.documentElement.classList.add('in-settings');
+const ICON_ACT = {
+  away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 2 2 3M12 15l-1-4"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></svg>',
+};
+function settingsActions(s) {
+  if (!IN_SETTINGS || s.mode === 'setup') return '';
+  return `<div class="acts">
+      ${s.away ? `<button data-act="home">${ICON_ACT.home}Zet op thuis</button>` : `<button data-act="away">${ICON_ACT.away}Zet op afwezig</button>`}
+      ${s.enabled ? `<button data-act="pause">${ICON_ACT.pause}Pauzeren</button>` : `<button data-act="enable">${ICON_ACT.play}Start schema</button>`}
+    </div>`;
+}
 const COLD_BELOW = 16; // °C: kouder dan dit = blauw
 const HUMID_FROM = 65; // %: vanaf dit = te vochtig
 let H; let data = null; let loaded = false;
@@ -331,6 +383,22 @@ async function commitDur(d) {
   chosenDur = null; touched = false; render(); refreshSoon();
 }
 
+/** Vochtigheid en buiten. Handmatig is er maar plek voor één: tik om te wisselen (keuze wordt onthouden). */
+let showOutdoor = false;
+try { showOutdoor = localStorage.getItem('sv-info') === 'outdoor'; } catch (e) { /* geen opslag: standaard vochtigheid */ }
+function infoItems(s) {
+  const hum = s.humidity != null ? `${ICON.drop}${s.humidity}%` : '';
+  const out = s.outdoor != null ? `${wxIcon(s.weather)}${fmt(s.outdoor)}` : '';
+  const humCls = s.humidity >= HUMID_FROM ? ' high' : '';
+  const humLbl = `Luchtvochtigheid ${s.humidity}%${s.humidity >= HUMID_FROM ? ', te vochtig' : ''}`;
+  if (s.mode !== 'manual' || !hum || !out) {
+    return `${hum ? `<span class="it${humCls}" aria-label="${humLbl}">${hum}</span>` : ''}${out ? `<span class="it" aria-label="Buiten ${fmt(s.outdoor)}">${out}</span>` : ''}`;
+  }
+  return showOutdoor
+    ? `<button class="it swap" data-swap aria-label="Buiten ${fmt(s.outdoor)}. Tik voor luchtvochtigheid">${out}</button>`
+    : `<button class="it swap${humCls}" data-swap aria-label="${humLbl}. Tik voor buitentemperatuur">${hum}</button>`;
+}
+
 function render() {
   const w = document.getElementById('w');
   if (sliding) return; // niet onder je vinger vandaan tekenen
@@ -348,10 +416,12 @@ function render() {
   if (first) { w.className = 'in'; setTimeout(() => w.classList.remove('in'), 400); }
   const s = data.status;
   const target = pending != null ? pending : s.thermostatTarget;
-  const heating = target != null && s.indoor != null && target > s.indoor + 0.2;
+  const setup = s.mode === 'setup'; // nieuwe installatie, nog niet gestart: alleen kijken, niets bedienen
+  w.classList.toggle('setup', setup);
+  const heating = !setup && target != null && s.indoor != null && target > s.indoor + 0.2;
   // Toestand: verwarmen gaat voor, dan te koud, dan te vochtig.
-  const cold = !heating && s.indoor != null && s.indoor < COLD_BELOW;
-  const humid = !heating && !cold && s.humidity != null && s.humidity >= HUMID_FROM;
+  const cold = !setup && !heating && s.indoor != null && s.indoor < COLD_BELOW;
+  const humid = !setup && !heating && !cold && s.humidity != null && s.humidity >= HUMID_FROM;
   w.classList.toggle('heat', heating);
   w.classList.toggle('cold', cold);
   w.classList.toggle('humid', humid);
@@ -363,6 +433,7 @@ function render() {
   let sub;
   if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span>${ICON.edit}`;
   else if (manual) { const l = durLabel(s, s.override.duration || 'next', s.override.until); sub = `${ICON.hand}<span>${esc(l.t)}</span><span class="cd">${l.cd}</span>${ICON.edit}`; }
+  else if (setup) sub = '<span>Start via de app-instellingen</span>';
   else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(nextAt(s))}</span>`;
   else if (s.nextBlock && nextBlockAt(s)) sub = `<span>${esc(cap(whenAt(nextBlockAt(s))))} → ${deg(s.nextBlock.temp)}</span>`;
   else sub = '';
@@ -372,22 +443,23 @@ function render() {
     <div class="top">
       <span class="info">
         <span class="mode">${esc(MODES[s.mode] || s.mode)}</span>
-        ${s.humidity != null ? `<span class="it${s.humidity >= HUMID_FROM ? ' high' : ''}" aria-label="Luchtvochtigheid ${s.humidity}%${s.humidity >= HUMID_FROM ? ', te vochtig' : ''}">${ICON.drop}${s.humidity}%</span>` : ''}
-        ${s.outdoor != null && s.mode !== 'manual' ? `<span class="it" aria-label="Buiten ${fmt(s.outdoor)}">${ICON.cloud}${fmt(s.outdoor)}</span>` : ''}
+        ${infoItems(s)}
       </span>
       ${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>` : ''}
     </div>
     <div class="mid">
       <span class="tw">${bigTemp(s.indoor)}<span class="waves${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></span>
-      <div class="ctrl">
+      ${setup ? '' : `<div class="ctrl">
         <button data-d="-0.5" aria-label="Kouder">${ICON.minus}</button>
         <span class="val"><output aria-label="Ingesteld">${fmt(target)}</output></span>
         <button data-d="0.5" aria-label="Warmer">${ICON.plus}</button>
-      </div>
+      </div>`}
     </div>
+    ${s.room ? `<div class="room">${esc(s.room)}</div>` : ''}
     ${durOpen ? durPanel(s)
     : `${manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`}
-    ${todayBar(data.schedule || {}, s)}`}`;
+    ${IN_SETTINGS ? '' : todayBar(data.schedule || {}, s)}`}
+    ${settingsActions(s)}`;
   placeManual();
   if (enterRow && !durOpen) { w.querySelectorAll('.sub, .barwrap, .ticks').forEach((el) => el.classList.add('enter')); enterRow = false; }
   setTimeout(fitHeight, 0);
@@ -410,7 +482,7 @@ function placeManual() {
 window.addEventListener('resize', placeManual);
 
 // Widgethoogte = gemeten inhoud, zodat er niets wordt afgesneden en er niets te scrollen valt.
-let lastHeight = 198;
+let lastHeight = 224;
 function fitHeight() {
   const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height) + 6; // + ruimte voor de schaduw
   if (!H || !h) return;
@@ -453,6 +525,12 @@ async function sendTemp() {
 document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-duropen]')) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); openDur(); render(); return; }
   if (e.target.closest('[data-durclose]')) { closeDur(); return; }
+  if (e.target.closest('[data-swap]')) {
+    showOutdoor = !showOutdoor;
+    try { localStorage.setItem('sv-info', showOutdoor ? 'outdoor' : 'humidity'); } catch (err) { /* niet erg */ }
+    if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    render(); return;
+  }
   if (e.target.closest('[data-next]') && data && data.status) {
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
     showDur(e.target.closest('.dur'), 'next');

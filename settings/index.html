@@ -47,71 +47,8 @@
 
     /* Statustegel */
     /* Kleuren vloeiend laten overlopen: de warme laag fade in/uit, tekstkleur schuift mee. */
-    /* Kleur = toestand van de kamer (zelfde als de widget):
-       groen = rust (basis), geel = opwarmen, blauw = te koud, blauwgroen = te vochtig. Licht en donker gelijk. */
-    #sv .tile { position: relative; isolation: isolate; overflow: hidden; border-radius: 22px; padding: 16px 16px 18px;
-      background-color: #45c08f; color: #ffffff; --pill: rgba(0,0,0,.14); transition: background-color .9s ease; }
-    #sv .tile.heat { background-color: #f7b52c; }
-    #sv .tile.cold { background-color: #3b8cf0; }
-    #sv .tile.humid { background-color: #2f9fb8; }
-    #sv .tile::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
-      background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,0) 55%, rgba(0,0,0,.05)); }
-    #sv .tile button.solid { background: rgba(0,0,0,.22); color: #ffffff; }
-    #sv .tile input[type=range]::-webkit-slider-thumb { background: #ffffff; }
-    #sv .tile input[type=range]::-moz-range-thumb { background: #ffffff; }
-    /* Instellingen opslaan: grote knop over de hele breedte. */
-    #sv #preWrap > label { margin-top: 18px; }
-    #sv #saveConfig { display: flex; width: 100%; min-height: 52px; font-size: 17px; }
-    /* Korte gloed als er nieuwe gegevens binnenkomen. */
-    #sv .tile::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
-      background: radial-gradient(120% 90% at 20% 30%, rgba(255,255,255,.28), transparent 70%); }
-    #sv .tile.flash::after { animation: sv-flash 1.2s ease-out; }
-    @keyframes sv-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
-    #sv .tile .chg { animation: sv-fade .6s ease; }
-    @keyframes sv-fade { from { opacity: .25; } to { opacity: 1; } }
-    @media (prefers-reduced-motion: reduce) { #sv .tile, #sv .tile::before { transition: none; } #sv .tile.flash::after, #sv .tile .chg { animation: none; } }
-    /* Bovenste regel als tekst met icoontjes, net als de widget. */
-    #sv .tile .info { display: inline-flex; align-items: center; gap: 14px; font-size: 14px; white-space: nowrap; flex-wrap: wrap; row-gap: 4px; }
-    #sv .tile .info .mode { font-weight: 600; }
-    #sv .tile .info .it { display: inline-flex; align-items: center; gap: 4px; opacity: .85; }
-    #sv .tile .info .it svg { width: 15px !important; height: 15px !important; flex: none; }
-    #sv .tile .info .it.high { opacity: 1; font-weight: 700; }
-    #sv .tile .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    #sv .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: var(--pill); font-weight: 600; font-size: 14px; }
-    #sv .temp { display: inline-flex; align-items: flex-start; font-weight: 600; line-height: .9; letter-spacing: -.03em; }
-    #sv .temp .i { font-size: 76px; }
-    #sv .temp .r { display: flex; flex-direction: column; justify-content: space-between; height: 68px; margin-left: 9px; align-items: flex-start; }
-    #sv .temp .pt { position: absolute; right: 100%; bottom: 0; }
-    #sv .temp .deg { font-size: 34px; line-height: 1; }
-    #sv .temp .d { font-size: 30px; line-height: 1; position: relative; align-self: flex-start; }
-    #sv .tile .bigrow { margin: 18px 0 6px; }
-    #sv .tile .room { font-size: 22px; font-weight: 600; }
-    #sv .tile .sub { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 17px; }
-    #sv .tile .sub b { font-weight: 600; }
-    #sv .tile .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; opacity: .85; }
-    #sv .tile .meta b { font-weight: 600; }
-    #sv .tile .note { margin-top: 10px; font-size: 14px; opacity: .85; }
-    /* Hoe lang geldt de handmatige stand: schuifbalk, ∞ aan het eind. */
-    #sv .tile .dur { margin-top: 12px; }
-    #sv .tile .dur .dl { display: block; font-size: 14px; opacity: .85; }
-    #sv .tile .dur .cd { display: block; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-    #sv .tile .dur .sl { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
-    #sv .tile .dur .nx { flex: none; min-height: 36px; padding: 0 14px; font-size: 15px; font-weight: 600; white-space: nowrap; }
-    #sv .tile .dur .nx.on { background: #ffffff; color: #17171a; }
-    #sv .tile input[type=range].off { opacity: .45; }
-    #sv .tile .dur .inf { font-size: 20px; opacity: .8; }
-    #sv .tile input[type=range] { all: unset; -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 36px; background: none; touch-action: pan-y; }
-    #sv .tile input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
-      background: linear-gradient(to right, currentColor var(--p, 0%), var(--pill) var(--p, 0%)); }
-    #sv .tile input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--pill); }
-    #sv .tile input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: currentColor; }
-    #sv .tile input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 50%;
-      background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-    #sv .tile input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-    #sv .tile .actions { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    #sv .tile .actions button { min-height: 42px; padding: 0 8px; font-size: 14.5px; gap: 5px; white-space: nowrap; min-width: 0; }
-    #sv .tile .actions button svg { width: 17px; height: 17px; }
-    #sv .tile .actions button.solid { grid-column: 1 / -1; min-height: 46px; font-size: 16px; }
+    /* Statustegel = de widget zelf (iframe), knoppen ruim eronder */
+    #tileframe { display: block; width: 100%; height: 204px; border: 0; background: transparent; overflow: hidden; }
     #sv .actions { display: flex; flex-wrap: wrap; gap: 10px; }
     #sv .err { margin-top: 12px; font-weight: 600; }
 
@@ -238,6 +175,48 @@
     #sv .del { width: 34px; min-height: 36px; padding: 0; background: none; color: var(--muted); }
     #sv .empty { padding: 14px; border-radius: 14px; background: var(--card-2); color: var(--muted); text-align: center; margin-bottom: 8px; }
 
+    /* Eerste keer instellen */
+    #sv.setup:not(.show-main) #main { display: none; }
+    #sv.setup #status, #sv.setup .fresh { display: none; }
+    #setup .hello h2 { all: unset; display: block; font-size: 21px; font-weight: 700; margin: 2px 0 4px; }
+    #setup .hello p, #setup .sub { margin: 0; color: var(--muted); }
+    #setup .prog { display: flex; gap: 6px; margin: 14px 0 4px; }
+    #setup .prog i { flex: 1; height: 5px; border-radius: 3px; background: var(--line); }
+    #setup .prog i.on { background: #45c08f; }
+    #setup .progt { font-size: 13px; color: var(--muted); }
+    #setup .card { margin-bottom: 12px; }
+    #setup .step { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+    #setup .step:first-child { border-top: 0; padding-top: 2px; }
+    #setup .num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--card-2); color: var(--muted); }
+    #setup .num.done { background: #45c08f; color: #fff; }
+    #setup .num.now { background: var(--text); color: var(--card); }
+    #setup .num svg { width: 15px; height: 15px; }
+    #setup .sbody { flex: 1; min-width: 0; }
+    #setup .sbody > b { display: block; font-size: 16px; }
+    #setup .sub { font-size: 14px; margin-top: 2px; }
+    #setup .opt { font-weight: 400; color: var(--muted); font-size: 13px; }
+    #setup .found { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; }
+    #setup .found > span { min-width: 0; }
+    #setup .found small { display: block; color: var(--muted); }
+    #setup .links { display: flex; gap: 10px; flex: none; }
+    #setup button.wide { width: 100%; margin-top: 10px; }
+    #setup button.start { width: 100%; background: #45c08f; color: #fff; font-weight: 600; font-size: 16px; min-height: 50px; }
+    #setup button.start:disabled { opacity: .45; }
+    #setup .note { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); margin: 10px 4px 0; }
+    #setup .note svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+    #setup .dayl { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; margin-top: 14px; }
+    #setup .dayl span { color: var(--muted); font-weight: 400; }
+    #setup .pbar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; gap: 2px; margin-top: 6px; }
+    #setup .pbar i { display: flex; align-items: center; padding: 0 6px; font-style: normal; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+    #setup .ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+    #setup .done-card { text-align: center; }
+    #setup .done-card .check { width: 56px; height: 56px; border-radius: 50%; background: #45c08f; color: #fff; display: grid; place-items: center; margin: 4px auto 10px; }
+    #setup .done-card .check svg { width: 28px; height: 28px; }
+    #setup .done-card h2 { all: unset; display: block; font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+    #setup .first { margin-top: 14px; padding: 12px; border-radius: 14px; background: #d7f3e6; color: #1d6f4f; font-size: 14px; text-align: left; }
+    #setup .first b { display: block; }
+    @media (prefers-color-scheme: dark) { #setup .first { background: #1c4636; color: #6fdcae; } }
+
     /* Velden */
     #sv .card { background: var(--card); border-radius: 20px; padding: 16px 14px 18px; }
     #sv input, #sv select { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 48px; padding: 0 14px;
@@ -300,7 +279,12 @@
 <body>
 <div id="sv">
   <h1>Verwarming</h1>
-  <div id="status"><div class="tile" id="tile"><span class="muted">Laden…</span></div></div>
+  <div id="setup"></div>
+  <div id="main">
+  <div id="status">
+    <!-- De statustegel ís de widget (tile.html = kopie van het widgetbestand), zodat ze altijd gelijk zijn. -->
+    <iframe id="tileframe" src="tile.html?in=settings" title="Verwarming" scrolling="no"></iframe>
+  </div>
   <div class="fresh"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh">Laden…</span><button class="link" id="refresh">Nu ophalen</button></div>
 
   <div class="h2row"><h2>Weekschema</h2><button id="goToday">Vandaag</button></div>
@@ -351,6 +335,7 @@
     <div class="actions"><button class="solid" id="saveConfig">Instellingen opslaan</button></div>
   </div>
 
+  </div><!-- /main -->
   <div class="savebar" id="savebar" role="region" aria-live="polite">
     <span>Schema gewijzigd</span>
     <button id="undo">Annuleren</button>
@@ -362,11 +347,30 @@
 <script>
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DAY_LONG = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
-const DEFAULT_BLOCKS = [{ time: '06:30', temp: 20 }, { time: '22:30', temp: 16 }];
+const DEFAULT_BLOCKS = [{ time: '06:30', temp: 20 }, { time: '22:30', temp: 16 }]; // zelfde voorstel als de app
+const WEEKEND_BLOCKS = [{ time: '08:00', temp: 20 }, { time: '23:00', temp: 16 }];
 const MODES = {
   schedule: 'Volgens schema', preheat: 'Aan het voorverwarmen', manual: 'Handmatig',
-  away: 'Niemand thuis', paused: 'Gepauzeerd',
+  away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart',
 };
+/** Weericoon bij de buitentemperatuur, passend bij het weer buiten (kind uit status.weather). */
+const WX = (() => {
+  const S = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const cloudHi = '<path d="M7 15h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 8a3.5 3.5 0 0 0 1 7z"/>';
+  const cloudLo = '<path d="M9.5 20h7.5a3.5 3.5 0 0 0 .4-6.98A5 5 0 0 0 8 14.2a3 3 0 0 0 1.5 5.8z"/>';
+  return {
+    clear: S('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'),
+    night: S('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+    partly: S(`<circle cx="8" cy="8" r="3"/><path d="M8 2v1.2M2 8h1.2M3.8 3.8l.9.9M12.2 3.8l-.9.9"/>${cloudLo}`),
+    nightpartly: S(`<path d="M12 9.5A4.5 4.5 0 1 1 6.5 3.5a3.6 3.6 0 0 0 5.5 6z"/>${cloudLo}`),
+    cloudy: S('<path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/>'),
+    rain: S(`${cloudHi}<path d="M8.5 18.5l-1 2.5M12.5 18.5l-1 2.5M16.5 18.5l-1 2.5"/>`),
+    snow: S(`${cloudHi}<path d="M8 19.5h.01M12 21h.01M16 19.5h.01M10 22.5h.01M14 22.5h.01"/>`, 2.6),
+    fog: S('<path d="M4 8h16M3 12.5h18M5 17h14"/>'),
+    thunder: S(`${cloudHi}<path d="M12.5 15.5l-2 3.5h3.5l-2 3.5"/>`),
+  };
+})();
+const wxIcon = (k) => WX[k] || WX.cloudy;
 const ICON = {
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg>',
@@ -377,7 +381,7 @@ const ICON = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7M5 10v10h14V10"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg>',
-  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 12 3l9.5 8v10.5h-19z"/><path d="M12 10.5s2.3 2.5 2.3 4.2a2.3 2.3 0 0 1-4.6 0c0-1.7 2.3-4.2 2.3-4.2z"/></svg>',
   chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>',
@@ -702,133 +706,20 @@ async function loadStatus() {
   renderStatus(s);
   schedulePoll();
 }
-let prevKey = null; let lastStatus = null;
-// ---------- Duur van de handmatige stand ----------
-// Knop 'Tot 08:30' = tot het volgende moment in het schema. Schuifbalk = vaste duur, ∞ aan het eind.
-const STOPS = [15, 30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 480, 600, 720, Infinity];
-const durOfStop = (i) => (STOPS[i] === Infinity ? 'manual' : STOPS[i]);
-let sliding = false; let touched = null; // touched = duur die je aan het kiezen bent
-function stopIndex(d) {
-  if (d === 'manual') return STOPS.length - 1;
-  const m = Number(d);
-  let best = 0;
-  STOPS.forEach((v, j) => { if (Math.abs(v - m) < Math.abs(STOPS[best] - m)) best = j; });
-  return best;
-}
-/** Resterende tijd in uren en minuten, zonder seconden. Naar boven afgerond: nooit '0m' zolang er nog tijd is. */
-function hms(ms) {
-  if (ms <= 0) return '0m';
-  const t = Math.ceil(ms / 60000); const h = Math.floor(t / 60); const m = t % 60;
-  return h ? `${h}u ${m}m` : `${m}m`;
-}
-const nextAt = (s) => (nextBlockAt(s) ? timeOf(nextBlockAt(s)) : '');
-const untilOf = (s, d) => (d === 'manual' ? null : d === 'next' ? s.nextChangeAt : Date.now() + d * 60000);
-function durText(s, d, until) {
-  if (until == null) return { t: 'Tot je het schema hervat', cd: '∞' };
-  // Bij 'volgend tijdsblok' aftellen tot het schema-moment (bijv. 18:00), net als de tekst; voorverwarmen begint iets eerder.
-  const shown = d === 'next' && nextBlockAt(s) ? nextBlockAt(s) : until;
-  return { t: d === 'next' && nextAt(s) ? `Tot ${nextAt(s)}, het volgende moment in het schema` : `Tot ${timeOf(until)}`, cd: hms(shown - Date.now()) };
-}
-function durBlock(s) {
-  const d = s.override.duration || 'next';
-  const isNext = String(d) === 'next';
-  const l = durText(s, d, s.override.until);
-  const i = isNext ? stopIndex(Math.max(1, ((s.nextChangeAt || Date.now()) - Date.now()) / 60000)) : stopIndex(d);
-  return `<div class="dur"><span class="dl">${esc(l.t)}</span><span class="cd">${esc(l.cd)}</span>
-    <div class="sl">
-      <button class="nx${isNext ? ' on' : ''}" data-next aria-pressed="${isNext}">Volgend tijdsblok</button>
-      <input class="${isNext ? 'off' : ''}" type="range" min="0" max="${STOPS.length - 1}" step="1" value="${i}" style="--p:${(i / (STOPS.length - 1)) * 100}%" aria-label="Hoe lang geldt deze temperatuur">
-      <span class="inf" aria-hidden="true">∞</span>
-    </div></div>`;
-}
-function showDur(b, d) {
-  const l = durText(lastStatus, d, untilOf(lastStatus, d));
-  b.querySelector('.dl').textContent = l.t; b.querySelector('.cd').textContent = l.cd;
-  const input = b.querySelector('input'); const nx = b.querySelector('.nx');
-  input.classList.toggle('off', d === 'next'); nx.classList.toggle('on', d === 'next'); nx.setAttribute('aria-pressed', String(d === 'next'));
-  input.style.setProperty('--p', `${(Number(input.value) / (STOPS.length - 1)) * 100}%`);
-}
-async function commitDur(duration) {
-  touched = duration;
-  await call('api', 'POST', '/action', { action: 'setDuration', duration })
-    .then((st) => { touched = null; renderStatus(st); }).catch((err) => { touched = null; H.alert(err.message || err); });
-}
-document.addEventListener('pointerdown', (e) => { if (e.target.matches('.tile input[type=range]')) sliding = true; });
-['pointerup', 'pointercancel'].forEach((t) => document.addEventListener(t, () => { if (sliding) setTimeout(() => { sliding = false; }, 50); }));
-document.addEventListener('input', (e) => {
-  if (!e.target.matches('.tile input[type=range]')) return;
-  sliding = true; touched = durOfStop(Number(e.target.value)); showDur(e.target.closest('.dur'), touched);
-});
-document.addEventListener('change', (e) => {
-  if (!e.target.matches('.tile input[type=range]') || !lastStatus) return;
-  sliding = false; commitDur(durOfStop(Number(e.target.value)));
-});
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('.tile [data-next]'); if (!b || !lastStatus) return;
-  showDur(b.closest('.dur'), 'next'); commitDur('next');
-});
-// Aftellen zonder de kaart opnieuw te tekenen.
-setInterval(() => {
-  const b = document.querySelector('.tile .dur');
-  if (!b || !lastStatus || !lastStatus.override || sliding) return;
-  if (touched != null) { showDur(b, touched); return; }
-  if (lastStatus.override.until != null) b.querySelector('.cd').textContent = durText(lastStatus, lastStatus.override.duration || 'next', lastStatus.override.until).cd;
-}, 1000);
+let lastStatus = null; let sliding = false;
 function renderStatus(s) {
   if (sliding) { if (s && s.updatedAt) lastStatus = s; return; } // niet onder je vinger vandaan tekenen
   if (s && s.updatedAt) lastStatus = s;
+  // Welkomstkaart alleen opnieuw tekenen als er iets veranderd is (niet bij elke verversing).
+  const sk = s ? JSON.stringify([s.setupDone, s.indoor, s.outdoor, s.thermostatTarget]) : '';
+  if (s && sk !== renderStatus.setupKey && !setupState.starting) { renderStatus.setupKey = sk; renderSetup(); }
   if (s && s.updatedAt) {
     lastAt = Date.now();
     const dot = $('dot'); dot.classList.remove('ping'); void dot.offsetWidth; dot.classList.add('ping');
   }
   tickFresh();
-  const tile = $('tile');
-  if (!s || !s.updatedAt) {
-    tile.classList.remove('heat');
-    tile.innerHTML = `<b>${esc((s && s.error) || 'Nog geen gegevens.')}</b>`;
-    return;
-  }
-  // Wat is er veranderd t.o.v. de vorige keer? Alleen dan gloeien/infaden.
-  const key = JSON.stringify([s.mode, s.thermostatTarget, s.indoor, s.outdoor, s.override && s.override.until, s.away, s.enabled, s.nextBlock && s.nextBlock.at]);
-  const changed = prevKey !== null && key !== prevKey;
-  const prev = prevKey ? JSON.parse(prevKey) : [];
-  prevKey = key;
-  const cls = (i) => (changed && prev[i] !== JSON.parse(key)[i] ? ' chg' : '');
-  const heating = s.thermostatTarget != null && s.indoor != null && s.thermostatTarget > s.indoor + 0.2;
-  let sub;
-  if (s.mode === 'manual') sub = `${ICON.hand}<span>${heating ? 'Verwarm naar' : 'Ingesteld op'} <b>${fmt(s.thermostatTarget)}</b></span>`;
-  else if (s.mode === 'preheat') sub = `<span>Voorverwarmen naar <b>${fmt(s.thermostatTarget)}</b></span>`;
-  else sub = `<span>${heating ? 'Verwarm naar' : 'Ingesteld op'} <b>${fmt(s.thermostatTarget)}</b></span>`;
-
-  let note = '';
-  if (s.override) note = '';
-  else if (s.nextBlock && nextBlockAt(s)) note = `${esc(cap(whenAt(nextBlockAt(s))))} → ${deg(s.nextBlock.temp)}${s.preheatMinutes ? ` (${s.preheatMinutes} min eerder beginnen)` : ''}`;
-
-  const actions = [];
-  if (s.mode === 'manual') actions.push(`<button class="solid" data-act="resume">${ICON.cal}Schema hervatten</button>`);
-  actions.push(s.away ? `<button data-act="home">${ICON.home}Zet op thuis</button>` : `<button data-act="away">${ICON.away}Zet op afwezig</button>`);
-  actions.push(s.enabled ? `<button data-act="pause">${ICON.pause}Pauzeren</button>` : `<button class="solid" data-act="enable">${ICON.play}Start schema</button>`);
-
-  // Toestand: verwarmen gaat voor, dan te koud, dan te vochtig (zelfde grenzen als de widget).
-  const cold = !heating && s.indoor != null && s.indoor < 16;
-  const humid = !heating && !cold && s.humidity != null && s.humidity >= 65;
-  tile.classList.toggle('heat', heating);
-  tile.classList.toggle('cold', cold);
-  tile.classList.toggle('humid', humid);
-  tile.innerHTML = `
-      <div class="top"><span class="info">
-        <span class="mode${cls(0)}">${esc(MODES[s.mode] || s.mode)}</span>
-        ${s.humidity != null ? `<span class="it${s.humidity >= 65 ? ' high' : ''}" aria-label="Luchtvochtigheid ${s.humidity}%${s.humidity >= 65 ? ', te vochtig' : ''}">${ICON.drop}${s.humidity}%</span>` : ''}
-        ${s.outdoor != null ? `<span class="it${cls(3)}" aria-label="Buiten ${fmt(s.outdoor)}">${ICON.cloud}${fmt(s.outdoor)} buiten</span>` : ''}
-      </span></div>
-      <div class="bigrow${cls(2)}">${bigTemp(s.indoor)}</div>
-      <div class="room">Woonkamer</div>
-      <div class="sub${cls(1)}">${sub}</div>
-      ${note ? `<div class="note${cls(4) || cls(7)}">${note}</div>` : ''}
-      ${s.override ? durBlock(s) : ''}
-      ${s.error ? `<div class="err">${esc(s.error)}</div>` : ''}
-      <div class="actions">${actions.join('')}</div>`;
-  if (changed) { tile.classList.remove('flash'); void tile.offsetWidth; tile.classList.add('flash'); }
+  if (!s || !s.updatedAt) return;
+  tileListeners.forEach((cb) => cb(s)); // live naar de tegel (widget)
 
   const l = s.learned;
   const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r"><span>${new Date(r.at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} · ${fmt(r.from)} → ${fmt(r.to)}${r.outdoor != null ? ` <small>(buiten ${fmt(r.outdoor)})</small>` : ''}</span><span>${fmt(r.rate, '°/u')} · ${r.deadTime} min</span></div>`).join('');
@@ -917,15 +808,148 @@ $('saveConfig').addEventListener('click', async () => {
   try {
     await call('set', 'config', config);
     toast('Instellingen opgeslagen');
+    // Tijdens het eerste instellen: terug naar de stappen.
+    if (inSetup() && !setupState.done) { $('sv').classList.remove('show-main'); renderSetup(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     setTimeout(loadStatus, 1500);
   } catch (err) { H.alert(`Opslaan mislukt: ${err.message || err}`); }
+});
+
+
+// ---------- Statustegel = widget ----------
+// De tegel krijgt dezelfde 'Homey' als in het Home-scherm: status + schema ophalen, acties doorgeven, hoogte aanpassen.
+const tileListeners = [];
+function tileData(st) { let sch; try { sch = JSON.parse(saved); } catch (e) { sch = schedule; } return { status: st, schedule: sch }; }
+const tileHomey = {
+  ready() {}, hapticFeedback() {},
+  setHeight(h) { $('tileframe').style.height = `${h}px`; return Promise.resolve(); },
+  on(ev, cb) { if (ev === 'status') tileListeners.push(cb); },
+  async api(method, path, body) {
+    const st = method === 'GET' ? await call('api', 'GET', '/status', null) : await call('api', 'POST', '/action', body);
+    if (method !== 'GET') renderStatus(st);
+    return tileData(st);
+  },
+};
+function bootTile() {
+  const f = $('tileframe'); const w = f.contentWindow;
+  if (!H || f.dataset.booted || !w || typeof w.onHomeyReady !== 'function') return;
+  f.dataset.booted = '1';
+  w.onHomeyReady(tileHomey);
+}
+$('tileframe').addEventListener('load', bootTile);
+
+// ---------- Eerste keer instellen ----------
+// Nieuwe installatie: de app staat stil tot je op Start tikt. Gevonden apparaten en een voorstelschema staan al klaar.
+const SETUP_ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>',
+};
+const setupState = { outdoorSkipped: false, reviewed: false, proposal: false, starting: false, done: false };
+function inSetup() { return !!(lastStatus && lastStatus.setupDone === false) || setupState.done; }
+function devName(id) { const d = devices.find((x) => x.id === id); return d ? `${d.name}${d.zone ? ` · ${d.zone}` : ''}` : ''; }
+function sameDays(keys) { const j = JSON.stringify(schedule[keys[0]] || []); return keys.every((k) => JSON.stringify(schedule[k] || []) === j); }
+function proposalDay(label, key) {
+  const segs = segments(key);
+  const blocks = (schedule[key] || []).slice().sort((a, b) => a.time.localeCompare(b.time));
+  const warm = blocks.reduce((a, b) => (Number(b.temp) > Number(a.temp) ? b : a), blocks[0] || { temp: 0 });
+  return `<div class="dayl">${label}${warm.time ? `<span>${deg(warm.temp)} vanaf ${warm.time}</span>` : ''}</div>
+    <div class="pbar">${segs.map((g) => `<i style="flex:${g.to - g.from} 0 0;${tempStyle(g.temp)}">${(g.to - g.from) >= 150 && g.temp != null ? deg(g.temp) : ''}</i>`).join('')}</div>
+    <div class="ticks"><span>0:00</span><span>8:00</span><span>16:00</span><span>24:00</span></div>`;
+}
+function renderSetup() {
+  const sv = $('sv'); const box = $('setup');
+  const on = inSetup();
+  sv.classList.toggle('setup', on && !setupState.done);
+  if (!on) { box.innerHTML = ''; return; }
+  const s = lastStatus || {};
+  if (setupState.done) {
+    const nb = nextBlockAt(s);
+    box.innerHTML = `<div class="card done-card">
+      <div class="check">${SETUP_ICON.check}</div>
+      <h2>Slim verwarmen staat aan</h2>
+      <p class="sub">Je thermostaat volgt nu het weekschema.</p>
+      ${nb && s.nextBlock ? `<div class="first"><b>Eerste moment: ${esc(whenAt(nb))} → ${deg(s.nextBlock.temp)}</b>Draai je zelf aan de thermostaat, dan blijft die temperatuur staan tot het volgende moment. De app leert hoe snel je huis opwarmt en begint dan vanzelf op tijd.</div>` : ''}
+      <div class="note" style="text-align:left">${SETUP_ICON.info}<span>Tip: voeg de widget Verwarming toe aan je Home-scherm in de Homey-app.</span></div>
+      <button class="wide" data-setup="close">Sluiten</button>
+    </div>`;
+    return;
+  }
+  const thermOk = !!config.thermostatId;
+  const outOk = !!config.outdoorDeviceId || setupState.outdoorSkipped;
+  const steps = [thermOk, outOk, setupState.reviewed];
+  const doneN = steps.filter(Boolean).length;
+  const num = (i) => (steps[i] ? `<span class="num done">${SETUP_ICON.check}</span>` : `<span class="num ${steps.slice(0, i).every(Boolean) ? 'now' : ''}">${i + 1}</span>`);
+  const work = sameDays(DAY_KEYS.slice(0, 5)); const weekend = sameDays(['sat', 'sun']);
+  const proposal = setupState.proposal ? `<div class="card">
+      <b style="font-size:17px">Voorstel weekschema</b>
+      <p class="sub">Overdag warm, 's nachts zuiniger.</p>
+      ${work ? proposalDay('Maandag t/m vrijdag', 'mon') : DAY_KEYS.slice(0, 5).map((k, i) => proposalDay(DAY_LONG[i], k)).join('')}
+      ${weekend ? proposalDay('Zaterdag en zondag', 'sat') : proposalDay('Zaterdag', 'sat') + proposalDay('Zondag', 'sun')}
+      <button class="wide start" data-setup="ok" style="margin-top:18px">Ziet er goed uit</button>
+      <button class="wide" data-setup="edit">Tijden of temperaturen aanpassen</button>
+    </div>` : '';
+  box.innerHTML = `<div class="card hello">
+      <h2>Welkom bij Slim verwarmen</h2>
+      <p>Nog drie korte stappen. Tot je op Start tikt, verandert er niets aan je thermostaat.</p>
+      <div class="prog">${steps.map((d) => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="progt">${doneN} van 3 klaar</div>
+    </div>
+    <div class="card">
+      <div class="step">${num(0)}<div class="sbody"><b>Thermostaat</b>
+        ${thermOk
+          ? `<div class="found"><span>${esc(devName(config.thermostatId) || 'Gekozen thermostaat')}${s.indoor != null ? `<small>Nu ${fmt(s.indoor)} · ingesteld op ${deg(s.thermostatTarget)}</small>` : ''}</span><button class="link" data-setup="therm">Wijzig</button></div>`
+          : `<p class="sub">Nog geen thermostaat gevonden.</p><button class="wide" data-setup="therm">Kies je thermostaat</button>`}
+      </div></div>
+      <div class="step">${num(1)}<div class="sbody"><b>Buitentemperatuur <span class="opt">· mag je overslaan</span></b>
+        <p class="sub">Helpt om op tijd warm te zijn als het koud is.</p>
+        ${config.outdoorDeviceId
+          ? `<div class="found"><span>${esc(devName(config.outdoorDeviceId) || 'Gekozen sensor')}${s.outdoor != null ? `<small>Nu ${fmt(s.outdoor)} buiten</small>` : ''}</span><button class="link" data-setup="outdoor">Wijzig</button></div>`
+          : `<div class="found"><span>${setupState.outdoorSkipped ? 'Overgeslagen' : 'Geen gekozen'}</span><span class="links"><button class="link" data-setup="outdoor">Kies</button>${setupState.outdoorSkipped ? '' : '<button class="link" data-setup="skip">Overslaan</button>'}</span></div>`}
+      </div></div>
+      <div class="step">${num(2)}<div class="sbody"><b>Weekschema</b>
+        <p class="sub">${setupState.reviewed ? 'Voorstel bekeken. Aanpassen kan altijd.' : 'Een voorstel om mee te beginnen. Pas het aan wanneer je wilt.'}</p>
+        ${setupState.proposal ? '' : `<button class="wide" data-setup="proposal">${setupState.reviewed ? 'Bekijk het schema' : 'Bekijk het voorstel'}</button>`}
+      </div></div>
+    </div>
+    ${proposal}
+    <button class="start" data-setup="start" ${thermOk && !setupState.starting ? '' : 'disabled'}>${setupState.starting ? 'Bezig met starten…' : 'Start slim verwarmen'}</button>
+    <div class="note">${SETUP_ICON.info}<span>Je kunt later altijd pauzeren of het schema veranderen.</span></div>`;
+}
+/** Een deel van de gewone pagina tonen (thermostaat kiezen, schema aanpassen) en ernaartoe scrollen. */
+function showMain(el) { $('sv').classList.add('show-main'); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }
+$('setup').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-setup]'); if (!b) return;
+  const a = b.dataset.setup;
+  if (a === 'therm') showMain($('thermostat'));
+  else if (a === 'outdoor') showMain($('outdoor'));
+  else if (a === 'skip') setupState.outdoorSkipped = true;
+  else if (a === 'proposal') setupState.proposal = true;
+  else if (a === 'ok') { setupState.reviewed = true; setupState.proposal = false; }
+  else if (a === 'edit') {
+    setupState.reviewed = true; setupState.proposal = false;
+    open.add('mon'); renderWeek(); showMain(document.querySelector('[data-card="mon"]'));
+  } else if (a === 'close') { setupState.done = false; $('sv').classList.remove('show-main'); }
+  else if (a === 'start') {
+    setupState.starting = true; renderSetup();
+    try {
+      // Schema vastleggen zoals je het nu ziet, zodat de app precies dit voorstel gebruikt.
+      if (dirty() || !(await call('get', 'schedule').catch(() => null))) {
+        await call('set', 'schedule', schedule); saved = JSON.stringify(schedule); renderWeek();
+      }
+      const st = await call('api', 'POST', '/action', { action: 'start' });
+      setupState.done = true; $('sv').classList.remove('show-main');
+      renderStatus(st);
+    } catch (err) { H.alert(`Starten lukte niet: ${err.message || err}`); }
+    setupState.starting = false;
+  }
+  renderSetup();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 async function onHomeyReady(Homey) {
   H = Homey;
   schedule = (await call('get', 'schedule').catch(() => null)) || {};
   if (!DAY_KEYS.some((k) => (schedule[k] || []).length)) {
-    DAY_KEYS.forEach((k) => { schedule[k] = clone(DEFAULT_BLOCKS); });
+    DAY_KEYS.forEach((k) => { schedule[k] = clone(k === 'sat' || k === 'sun' ? WEEKEND_BLOCKS : DEFAULT_BLOCKS); });
   }
   DAY_KEYS.forEach((k) => { schedule[k] = schedule[k] || []; });
   saved = JSON.stringify(schedule);
@@ -934,7 +958,7 @@ async function onHomeyReady(Homey) {
   Homey.ready();
   loadStatus();
   devices = await call('api', 'GET', '/devices', null).catch(() => []);
-  renderConfig();
+  renderConfig(); renderSetup(); bootTile();
   // Live: de app stuurt na elke wijziging de nieuwe stand. Ophalen elke 15 s blijft als vangnet.
   if (typeof Homey.on === 'function') Homey.on('status', (st) => { lastVia = 'live'; renderStatus(st); schedulePoll(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });

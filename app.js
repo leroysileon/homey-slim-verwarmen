@@ -3,6 +3,7 @@
 const Homey = require('homey');
 const { HomeyAPI } = require('homey-api');
 const { Controller } = require('./lib/controller');
+const { weatherOf } = require('./lib/weather');
 
 const TICK_MS = 60 * 1000;
 const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig' };
@@ -23,6 +24,7 @@ class SlimVerwarmenApp extends Homey.App {
         timeZone: () => this.homey.clock.getTimezone(),
         readThermostat: () => this.readThermostat(),
         readOutdoor: () => this.readOutdoor(),
+        weather: () => this.lastWeather || null,
         writeTarget: (temp) => this.writeTarget(temp),
       },
       store: this.homey.settings,
@@ -63,11 +65,24 @@ class SlimVerwarmenApp extends Homey.App {
     }
   }
 
+  /** Naam van de Homey-zone (bijv. Woonkamer), even onthouden. */
+  async zoneName(id) {
+    if (!id) return null;
+    this.zoneCache = this.zoneCache || {};
+    const hit = this.zoneCache[id];
+    if (hit && Date.now() - hit.at < 10 * 60000) return hit.name;
+    const zone = await this.api.zones.getZone({ id }).catch(() => null);
+    const name = zone && zone.name ? zone.name : (hit ? hit.name : null);
+    this.zoneCache[id] = { name, at: Date.now() };
+    return name;
+  }
+
   async readThermostat() {
     const device = await this.getDeviceSafe(this.config.thermostatId, true);
     if (!device || !device.capabilitiesObj) return null;
     const caps = device.capabilitiesObj;
     return {
+      room: await this.zoneName(device.zone),
       target: caps.target_temperature ? caps.target_temperature.value : null,
       indoor: caps.measure_temperature ? caps.measure_temperature.value : null,
       humidity: caps.measure_humidity ? caps.measure_humidity.value : null,
@@ -78,6 +93,9 @@ class SlimVerwarmenApp extends Homey.App {
     const { outdoorDeviceId, outdoorCapability } = this.config;
     const device = await this.getDeviceSafe(outdoorDeviceId, true);
     const cap = device && device.capabilitiesObj && device.capabilitiesObj[outdoorCapability];
+    // Weertype voor het icoon in de widget (zon, wolk, regen, …), als het apparaat een omschrijving heeft.
+    const t = new Date(new Date().toLocaleString('en-US', { timeZone: this.homey.clock.getTimezone() }));
+    this.lastWeather = device ? weatherOf(device, t.getHours() * 60 + t.getMinutes()) : null;
     const value = cap ? Number(cap.value) : NaN;
     return Number.isFinite(value) ? value : null;
   }
@@ -156,15 +174,17 @@ class SlimVerwarmenApp extends Homey.App {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async runAction({ action, duration } = {}) {
+  async runAction({ action, duration, temp } = {}) {
     const c = this.controller;
     switch (action) {
+      case 'setTemp': await c.setManual(Math.round(Number(temp) * 2) / 2, duration); break; // −/+ in de tegel
       case 'resume': await c.clearOverride(); break;
       case 'setDuration': await c.setOverrideDuration(duration); break;
       case 'away': await c.setAway(true); break;
       case 'home': await c.setAway(false); break;
       case 'pause': await c.setEnabled(false); break;
       case 'enable': await c.setEnabled(true); break;
+      case 'start': await c.setEnabled(true); break; // eerste keer: welkomstkaart 'Start slim verwarmen'
       case 'resetLearning': c.resetLearning(); await c.tick(); break;
       default: await c.tick();
     }

@@ -37,7 +37,7 @@ function setup({ now, target = 16, indoor = 17, outdoor = 4, store } = {}) {
     writeTarget: async (t) => { sim.target = t; sim.writes.push({ t, at: sim.now }); },
   };
   const c = new Controller({
-    io, store: store || memoryStore({ schedule: SCHEDULE }), onEvent: (e, d) => events.push({ e, d }),
+    io, store: store || memoryStore({ schedule: SCHEDULE, state: {} }), onEvent: (e, d) => events.push({ e, d }), // state: bestaande installatie
   });
   return { c, sim, events };
 }
@@ -233,7 +233,7 @@ test('duur van een lopende handmatige stand aanpassen', async () => {
 });
 
 test('standaardduur uit de instellingen geldt ook voor draaien aan de knop', async () => {
-  const store = memoryStore({ schedule: SCHEDULE, config: { overrideDefault: 120 } });
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, config: { overrideDefault: 120 } });
   const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20, store });
   await c.tick();
   sim.target = 21; // iemand draait aan de knop
@@ -261,4 +261,24 @@ test('status meldt of de thermostaat de nieuwe temperatuur heeft bevestigd', asy
   sim.now = at('12:00') + 5000;
   await c.tick();
   assert.equal(c.status.targetConfirmed, true);
+});
+
+test('nieuwe installatie: eerst stil, pas na Start volgt de thermostaat het schema', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 15, store: memoryStore({ schedule: SCHEDULE }) });
+  await c.tick();
+  assert.equal(c.status.mode, 'setup');
+  assert.equal(c.status.setupDone, false);
+  assert.equal(sim.target, 15); // niets aangeraakt
+  await c.setEnabled(true); // 'Start slim verwarmen'
+  assert.equal(c.status.setupDone, true);
+  assert.notEqual(c.status.mode, 'setup');
+  assert.notEqual(sim.target, 15); // volgt nu het schema
+});
+
+test('tegel op de instellingenpagina is gelijk aan de widget', () => {
+  const fs = require('fs'); const path = require('path');
+  const root = path.join(__dirname, '..');
+  const a = fs.readFileSync(path.join(root, 'widgets/verwarming/public/index.html'), 'utf8');
+  const b = fs.readFileSync(path.join(root, 'settings/tile.html'), 'utf8');
+  assert.equal(b, a, 'voer node dev/sync-tile.js uit');
 });
