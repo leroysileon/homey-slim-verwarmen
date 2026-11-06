@@ -20,7 +20,7 @@ const store = {
 let mode = 'schedule';
 let manualTemp = 21;
 let manualDur = 'next';
-const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 530 * 60000 : Date.now() + d * 60000);
+const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 466 * 60000 : Date.now() + d * 60000);
 let manualUntil = untilOf('next');
 const now = Date.now();
 const status = () => ({
@@ -28,6 +28,7 @@ const status = () => ({
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
+  nextChangeAt: Date.now() + 466 * 60000,
   away: mode === 'away', enabled: mode !== 'paused',
   learned: { samples: 3, rate: 1.35, deadTime: 14, heatingNow: false, recent: [
     { at: now - 86400000, from: 15.2, to: 18, rate: 1.4, deadTime: 12, outdoor: 4 },
