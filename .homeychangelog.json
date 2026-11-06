@@ -6,5 +6,9 @@
   "1.1.0": {
     "en": "Choose how long a manual temperature lasts: until the next schedule change, a fixed time with a countdown, or until you resume the schedule. New look: one colour per state (resting, heating, too cold, too humid), humidity and heating indicator in the widget, a frame around the manual period. Weekly schedule: today's view, tap a block to change start, end time and temperature. New icon.",
     "nl": "Kies hoe lang een handmatige temperatuur geldt: tot het volgende moment in het schema, een vaste tijd met aftellen, of tot je het schema hervat. Nieuw uiterlijk: één kleur per toestand (rust, verwarmen, te koud, te vochtig), luchtvochtigheid en verwarm-golfjes in de widget, een kader om de handmatige periode. Weekschema: knop Vandaag, tik op een blok om begin, eind en temperatuur aan te passen. Nieuw icoon."
+  },
+  "1.1.1": {
+    "en": "Choose how long a manual temperature lasts (until the next schedule change, a fixed time, or until you resume). New look with one colour per state, humidity and heating indicator in the widget, a frame around the manual period. Weekly schedule: Today button, tap a block to change start, end and temperature. New icon.",
+    "nl": "Kies hoe lang een handmatige temperatuur geldt (tot het volgende moment in het schema, een vaste tijd, of tot je het schema hervat). Nieuw uiterlijk met één kleur per toestand, luchtvochtigheid en verwarm-golfjes in de widget, een kader om de handmatige periode. Weekschema: knop Vandaag, tik op een blok om begin, eind en temperatuur aan te passen. Nieuw icoon."
   }
 }
