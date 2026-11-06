@@ -118,6 +118,30 @@
     /* Tijdsblokken bewerken */
     #sv .edit { display: none; margin-top: 14px; }
     #sv .daycard.open .edit { display: block; }
+    /* Kop met knop Vandaag */
+    #sv .h2row { display: flex; align-items: center; justify-content: space-between; margin: 30px 4px 12px; }
+    #sv .h2row h2 { margin: 0; }
+    #sv .h2row button { min-height: 36px; padding: 0 14px; font-size: 15px; }
+    /* Nu-streepje in de balk van vandaag */
+    #sv .barwrap { position: relative; margin-top: 14px; }
+    #sv .barwrap .bar { margin-top: 0; }
+    #sv .barwrap .now { position: absolute; top: -5px; bottom: -5px; width: 3px; border-radius: 2px; background: var(--text); box-shadow: 0 0 0 2px var(--card); transform: translateX(-1.5px); pointer-events: none; }
+    /* Tijdvakken zoals tado */
+    #sv .slots { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    #sv .slot { position: relative; border-radius: 16px; background: var(--tint); overflow: hidden; }
+    #sv .slot::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
+    #sv .slot.cold::before { display: none; }
+    #sv .slot .sh { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 14px 16px 14px 20px; cursor: pointer; }
+    #sv .slot .sh .range { display: block; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .slot .sh .st { display: block; font-size: 16px; color: var(--muted); margin-top: 2px; }
+    #sv .slot .sh svg { width: 22px; height: 22px; color: var(--muted); transition: transform .2s; flex: none; }
+    #sv .slot.open .sh svg { transform: rotate(90deg); }
+    #sv .slot.fixed .sh { cursor: default; }
+    #sv .slot .se { display: none; align-items: center; gap: 8px; padding: 0 12px 14px 20px; flex-wrap: wrap; }
+    #sv .slot.open .se { display: flex; }
+    #sv .slot .se .from { display: flex; flex-direction: column; }
+    #sv .slot .se .grow { flex: 1; }
+    #sv .slot .se .del { width: auto; padding: 0 12px; gap: 6px; font-size: 15px; color: var(--muted); }
     #sv .block { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 8px 6px 8px 18px; position: relative;
       background: var(--card-2); border-radius: 14px; margin-bottom: 8px; }
     #sv .block::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 4px; border-radius: 2px; background: var(--c); }
@@ -193,7 +217,7 @@
   <div id="status"><div class="tile" id="tile"><span class="muted">Laden…</span></div></div>
   <div class="fresh"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh">Laden…</span><button class="link" id="refresh">Nu ophalen</button></div>
 
-  <h2>Weekschema</h2>
+  <div class="h2row"><h2>Weekschema</h2><button id="goToday">Vandaag</button></div>
   <div id="week"></div>
 
   <h2>Wat de app heeft geleerd</h2>
@@ -327,31 +351,70 @@ function segments(key) {
 // ---------- Weekschema ----------
 function dirty() { return JSON.stringify(schedule) !== saved; }
 
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+/** Lichte tint per temperatuur, zoals de tijdvakken in de tado-app. */
+function tint(t) {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  if (t < 16) return dark ? '#1d3437' : '#e5f0f0';
+  if (t < 18) return dark ? '#352d17' : '#fdf3dc';
+  if (t < 20) return dark ? '#3a2814' : '#fde9d4';
+  return dark ? '#3d2016' : '#fde0d4';
+}
+let editing = null; // 'dag:index' van het geopende tijdvak
+
+/** Tijdvakken van een dag: [{from, to, temp, idx}] (idx = null voor het stuk dat van gisteren doorloopt). */
+function slots(key) {
+  const list = (schedule[key] || []).map((b, idx) => ({ ...b, idx })).filter((b) => /^\d{2}:\d{2}$/.test(b.time))
+    .sort((a, b) => a.time.localeCompare(b.time));
+  const segs = segments(key);
+  const out = [];
+  if (!list.length || toMin(list[0].time) > 0) out.push({ from: 0, to: list.length ? toMin(list[0].time) : 1440, temp: segs[0] ? segs[0].temp : null, idx: null });
+  list.forEach((b, n) => out.push({ from: toMin(b.time), to: n + 1 < list.length ? toMin(list[n + 1].time) : 1440, temp: Number(b.temp), idx: b.idx }));
+  return out.filter((x) => x.to > x.from || x.idx !== null);
+}
+
 function dayCard(key, i) {
-  const blocks = schedule[key] || [];
   const bar = segments(key).map((s) => {
     const w = (s.to - s.from) / 14.4;
     return `<i style="flex:${(s.to - s.from)} 0 0;${tempStyle(s.temp)}">${w >= 11 && s.temp != null ? `${Number(s.temp).toFixed(1)}°` : ''}</i>`;
   }).join('');
-  const rows = blocks.length ? blocks.map((b, n) => `
-      <div class="block" style="--c:${tempColor(Number(b.temp))}">
-        <div class="from"><small>vanaf</small><input type="time" value="${esc(b.time)}" data-day="${key}" data-i="${n}" aria-label="Tijd"></div>
-        <div class="stepper">
-          <button data-step="-0.5" data-day="${key}" data-i="${n}" aria-label="Kouder">−</button>
+  const isToday = key === todayKey;
+  const nowMark = isToday ? `<span class="now" style="left:${(nowMin() / 14.4).toFixed(2)}%"></span>` : '';
+  const chev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+  const list = slots(key);
+  const rows = list.length ? list.map((sl) => {
+    const t = sl.temp;
+    const cold = t == null || t < 16;
+    const range = `${hhmm(sl.from)} – ${hhmm(sl.to === 1440 ? 1440 : sl.to).replace('24:00', '24:00')}`;
+    if (sl.idx === null) {
+      return `<div class="slot fixed ${cold ? 'cold' : ''}" style="--tint:${tint(t ?? 15)};--c:${tempColor(t ?? 15)}">
+        <div class="sh"><span><span class="range">${range}</span><span class="st">${t == null ? '–' : `${t}°`} · loopt door van de dag ervoor</span></span></div></div>`;
+    }
+    const id = `${key}:${sl.idx}`;
+    const isOpen = editing === id;
+    const b = schedule[key][sl.idx];
+    return `<div class="slot ${isOpen ? 'open' : ''} ${cold ? 'cold' : ''}" style="--tint:${tint(t)};--c:${tempColor(t)}">
+      <button class="sh" data-slot="${id}" aria-expanded="${isOpen}"><span><span class="range">${range}</span><span class="st">${t}°</span></span>${chev}</button>
+      <div class="se">
+        <div class="from"><small>begint om</small><input type="time" value="${esc(b.time)}" data-day="${key}" data-i="${sl.idx}" aria-label="Begintijd"></div>
+        <div class="stepper grow">
+          <button data-step="-0.5" data-day="${key}" data-i="${sl.idx}" aria-label="Kouder">−</button>
           <output>${Number(b.temp).toFixed(1)}°</output>
-          <button data-step="0.5" data-day="${key}" data-i="${n}" aria-label="Warmer">+</button>
+          <button data-step="0.5" data-day="${key}" data-i="${sl.idx}" aria-label="Warmer">+</button>
         </div>
-        <button class="del" data-del="${n}" data-day="${key}" aria-label="Verwijder tijdsblok">${ICON.trash}</button>
-      </div>`).join('')
-    : '<div class="empty">Geen tijdsblokken: de temperatuur van de dag ervoor loopt door.</div>';
+        <button class="del" data-del="${sl.idx}" data-day="${key}" aria-label="Verwijder tijdvak">${ICON.trash}</button>
+      </div>
+    </div>`;
+  }).join('') : '';
   return `
     <section class="daycard ${open.has(key) ? 'open' : ''}" data-card="${key}">
       <button class="head" data-toggle="${key}" aria-expanded="${open.has(key)}">
-        <span><span class="t">${DAY_LONG[i]}</span>${key === todayKey ? '<span class="today">vandaag</span>' : ''}</span>${ICON.chev}
+        <span><span class="t">${DAY_LONG[i]}</span>${isToday ? '<span class="today">vandaag</span>' : ''}</span>${ICON.chev}
       </button>
-      <div class="bar" data-toggle="${key}">${bar}</div>
+      <div class="barwrap" data-toggle="${key}"><div class="bar">${bar}</div>${nowMark}</div>
       <div class="ticks"><span>0:00</span><span>8:00</span><span>16:00</span><span>24:00</span></div>
-      <div class="edit">${rows}</div>
+      <div class="edit"><div class="slots">${rows}</div></div>
       <div class="foot">
         <button class="copybtn" data-copyopen="${key}">${ICON.copy}Kopiëren</button>
         <button class="link" data-add="${key}">Tijdsblok toevoegen</button>
@@ -365,6 +428,18 @@ function dayCard(key, i) {
     </section>`;
 }
 
+/** Naar vandaag: dag openklappen en ernaartoe scrollen. */
+$('goToday').addEventListener('click', () => {
+  open.add(todayKey); renderWeek();
+  const card = document.querySelector(`[data-card="${todayKey}"]`);
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+/** Nu-streepje elke minuut laten meeschuiven, zonder alles opnieuw te tekenen. */
+setInterval(() => {
+  const m = document.querySelector(`[data-card="${todayKey}"] .now`);
+  if (m) m.style.left = `${(nowMin() / 14.4).toFixed(2)}%`;
+}, 60000);
+
 function renderWeek() {
   $('week').innerHTML = DAY_KEYS.map(dayCard).join('');
   $('savebar').classList.toggle('show', dirty());
@@ -373,6 +448,7 @@ function renderWeek() {
 $('week').addEventListener('click', (e) => {
   const t = (sel) => e.target.closest(sel);
   let el;
+  if ((el = t('[data-slot]'))) { editing = editing === el.dataset.slot ? null : el.dataset.slot; renderWeek(); return; }
   if ((el = t('[data-toggle]'))) {
     const k = el.dataset.toggle; open.has(k) ? open.delete(k) : open.add(k); renderWeek(); return;
   }
@@ -381,12 +457,13 @@ $('week').addEventListener('click', (e) => {
     b.temp = Math.min(28, Math.max(5, Math.round((Number(b.temp) + Number(el.dataset.step)) * 2) / 2));
     renderWeek(); return;
   }
-  if ((el = t('[data-del]'))) { schedule[el.dataset.day].splice(Number(el.dataset.del), 1); renderWeek(); return; }
+  if ((el = t('[data-del]'))) { schedule[el.dataset.day].splice(Number(el.dataset.del), 1); editing = null; renderWeek(); return; }
   if ((el = t('[data-add]'))) {
     const k = el.dataset.add; const list = schedule[k] = schedule[k] || [];
     const last = list[list.length - 1];
     const m = last ? Math.min(toMin(last.time) + 60, 23 * 60 + 30) : 7 * 60;
     list.push({ time: `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`, temp: last ? Number(last.temp) : 19 });
+    editing = `${k}:${list.length - 1}`;
     open.add(k); renderWeek(); return;
   }
   if ((el = t('[data-copyopen]'))) { copyOpen = copyOpen === el.dataset.copyopen ? null : el.dataset.copyopen; renderWeek(); return; }
@@ -400,9 +477,11 @@ $('week').addEventListener('click', (e) => {
 });
 $('week').addEventListener('change', (e) => {
   if (e.target.type !== 'time') return;
-  const list = schedule[e.target.dataset.day];
-  list[e.target.dataset.i].time = e.target.value;
+  const day = e.target.dataset.day; const list = schedule[day];
+  const blk = list[e.target.dataset.i];
+  blk.time = e.target.value;
   list.sort((a, b) => a.time.localeCompare(b.time));
+  editing = `${day}:${list.indexOf(blk)}`;
   renderWeek();
 });
 $('undo').addEventListener('click', () => { schedule = JSON.parse(saved); renderWeek(); });
