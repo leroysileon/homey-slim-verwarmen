@@ -5,27 +5,30 @@
   <style>
     /* Kleur = toestand van de kamer (zelfde als de statustegel in de instellingen):
        groen = rust (basis), geel = opwarmen, blauw = te koud, blauwgroen = te vochtig. Licht en donker gelijk. */
+    /* #w = houder; elke pagina (.pg) is een eigen kaart, zoals een slimme stapel. */
     #w {
       --fg: #ffffff; --pill: rgba(0,0,0,.14); --solid: rgba(0,0,0,.22); --solid-text: #ffffff;
-      border-radius: 12px; padding: 14px 16px 14px; background-color: #45c08f; color: var(--fg);
-      font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
-      display: flex; flex-direction: column; gap: 8px; -webkit-tap-highlight-color: transparent; user-select: none;
+      color: var(--fg); font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
+      -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; position: relative;
     }
-    #w { box-sizing: border-box; position: relative; isolation: isolate; overflow: hidden; transition: background-color .9s ease; }
-    #w { box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 3px 8px -3px rgba(0,0,0,.12); }
-    @media (prefers-color-scheme: dark) { #w { box-shadow: none; } }
-    #w.heat { background-color: #f7b52c; }
-    #w.cold { background-color: #3b8cf0; }
-    #w.humid { background-color: #2f9fb8; }
-    #w.setup { background-color: #8b8f96; } /* nog niet gestart */
+    #w .pg {
+      border-radius: 12px; padding: 14px 16px; background-color: #45c08f; position: relative; isolation: isolate; overflow: hidden;
+      display: flex; flex-direction: column; gap: 8px; transition: background-color .9s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 3px 8px -3px rgba(0,0,0,.12); transform-origin: 50% 50%;
+    }
+    @media (prefers-color-scheme: dark) { #w .pg { box-shadow: none; } }
+    #w.heat .pg { background-color: #f7b52c; }
+    #w.cold .pg { background-color: #3b8cf0; }
+    #w.humid .pg { background-color: #2f9fb8; }
+    #w.setup .pg { background-color: #8b8f96; } /* nog niet gestart */
     /* Zachte glans. */
-    #w::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+    #w .pg::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
       background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,0) 55%, rgba(0,0,0,.05)); }
-    #w::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+    #w .pg::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
       background: radial-gradient(120% 90% at 20% 30%, rgba(255,255,255,.28), transparent 70%); }
-    #w.flash::after { animation: w-flash 1.2s ease-out; }
+    #w.flash .p0::after { animation: w-flash 1.2s ease-out; }
     @keyframes w-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
-    @media (prefers-reduced-motion: reduce) { #w, #w::before { transition: none; } #w.flash::after { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { #w .pg { transition: none; } #w.flash .p0::after { animation: none; } }
     /* Niet scrollen of 'meeveren' als je de widget met je vinger versleept. */
     html, body { margin: 0; padding: 0; height: 100%; background: transparent; overflow: hidden; overscroll-behavior: none; }
     body { position: fixed; inset: 0; touch-action: manipulation; -webkit-user-select: none; padding: 0 1px 6px; box-sizing: border-box; }
@@ -54,13 +57,40 @@
     /* Golfjes los boven het getal, zodat ze de rij niet verschuiven. */
     /* Golfjes naast de huidige temperatuur: 'het wordt warmer'. */
     #w .tw { position: relative; display: inline-flex; align-items: center; }
-    #w .waves { display: inline-flex; width: 18px; height: 18px; margin-left: 6px; align-self: center; opacity: 0; transition: opacity .6s; pointer-events: none; }
-    #w.heat .waves { opacity: 1; }
-    /* Knipperen zolang de thermostaat de nieuwe temperatuur nog niet heeft bevestigd. */
-    #w.heat .waves.blink { animation: w-blink 1s ease-in-out infinite; }
-    @keyframes w-blink { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
-    @media (prefers-reduced-motion: reduce) { #w.heat .waves.blink { animation: none; opacity: .5; } }
-    #w .waves svg { width: 18px; height: 18px; }
+    /* Drie golfjes staan er altijd (gedimd). Bij verwarmen vullen ze zich: 1, 2 of 3, naar hoe lang het opwarmen
+       nog duurt (zie heatLevel). Nog niet bevestigd door de thermostaat: de gevulde golfjes knipperen. */
+    #w .waves { display: inline-flex; width: 20px; height: 26px; margin-left: 8px; align-self: flex-end; margin-bottom: 2px; pointer-events: none; }
+    /* Golfjes zijn aan te tikken voor uitleg; ruim tikvlak zonder dat de golfjes verschuiven. */
+    #w button.wbtn { all: unset; display: inline-flex; align-self: flex-end; padding: 8px 10px 4px 0; margin: -8px -10px -4px 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    /* Uitleg bij de golfjes: kaart iets gedimd, golfjes blijven erboven, een ballonnetje wijst ernaar. */
+    #w .wscrim { position: absolute; inset: 0; z-index: 4; background: rgba(0,0,0,.22); cursor: pointer; }
+    #w.wexp-on .wbtn { position: relative; z-index: 5; }
+    #w .wpop { position: absolute; left: 10px; width: max-content; max-width: calc(100% - 20px); box-sizing: border-box; z-index: 6; background: #fff; color: #17171a; border-radius: 12px; padding: 7px 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.22); cursor: pointer; }
+    #w .wpop::before { content: ''; position: absolute; top: -6px; left: var(--ax, 40px); width: 12px; height: 12px; margin-left: -6px; background: inherit; transform: rotate(45deg); border-radius: 2px; }
+    #w .wpop .t { font-size: 13.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #w .wpop .t b { font-weight: 700; }
+    #w .wpop .lg { display: flex; gap: 2px; margin: 5px -6px 0; }
+    #w .wpop .lg > span { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 8px; font-size: 12.5px; color: #3a3d42; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    #w .wpop .lg > span.cur { background: #f7b52c; color: #17171a; font-weight: 700; }
+    #w .wpop .lg .waves { margin: 0; align-self: center; width: 12px; height: 16px; color: #17171a; }
+    #w .wpop .lg .waves svg { width: 12px; height: 16px; }
+    #w .wpop .lg .waves path { opacity: .22; } /* duidelijk verschil tussen aan en uit */
+    #w .wpop .lg .waves.l1 .w1, #w .wpop .lg .waves.l2 .w1, #w .wpop .lg .waves.l2 .w2, #w .wpop .lg .waves.l3 path { opacity: 1; }
+    #w .wpop.enter, #w .wscrim.enter { animation: wexp-in .18s ease; }
+    @keyframes wexp-in { from { opacity: 0; } }
+    @media (prefers-color-scheme: dark) { #w .wpop { background: #2a2b2f; color: #fff; } #w .wpop .lg > span { color: #d5d7db; } #w .wpop .lg .waves { color: #fff; } }
+    @media (prefers-reduced-motion: reduce) { #w .wpop.enter, #w .wscrim.enter { animation: none; } }
+    #w .waves path { opacity: .35; transition: opacity .5s ease; }
+    #w .waves.l1 .w1, #w .waves.l2 .w1, #w .waves.l2 .w2, #w .waves.l3 path { opacity: 1; }
+    /* Nog niet bevestigd: de gevulde golfjes knipperen tegelijk, aan/uit zonder overgang. */
+    #w .waves.blink.l1 .w1, #w .waves.blink.l2 .w1, #w .waves.blink.l2 .w2, #w .waves.blink.l3 path { transition: none; animation: w-blink 1s steps(1, end) infinite; }
+    @keyframes w-blink { 0% { opacity: 1; } 50% { opacity: .2; } }
+    #w.setup .waves { visibility: hidden; }
+    @media (prefers-reduced-motion: reduce) { #w .waves.blink path { animation: none !important; } }
+    #w .waves svg { width: 20px; height: 26px; }
+    /* In het kaartje bij de tijdlijn: zelfde 1, 2 of 3 golfjes als bovenaan (opwarmtijd vanaf dat moment). */
+    #w .wtip .waves { margin: 0; width: auto; height: auto; align-self: auto; }
     #w .mid { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 56px; flex: none; }
     #w .temp { display: inline-flex; align-items: flex-start; font-weight: 600; line-height: .9; letter-spacing: -.03em; }
     #w .temp .i { font-size: 58px; }
@@ -92,8 +122,57 @@
     #w .resume { flex: none; white-space: nowrap; height: 32px; padding: 0 12px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
     #w .resume svg { width: 16px; height: 16px; }
     #w .err { font-size: 13px; }
+    /* Twee pagina's (alleen dashboard): nu en verloop van vandaag. Swipen of op de puntjes tikken. */
+    #w { touch-action: pan-y; }
+    /* Schuifbaan: beide pagina's naast elkaar; de inhoud volgt je vinger tot aan de rand van de kaart. */
+    #w .vp { overflow: visible; position: relative; isolation: isolate; border-radius: 16px; }
+    /* Tijdens het vegen is het kader de lijst: kaarten wisselen erbinnen en vallen er niet overheen. */
+    #w.stacking .vp { overflow: hidden; }
+    /* Kader achter de kaarten (zoals een slimme stapel): tijdens vegen zichtbaar en groter dan de kaart, daarna weer weg. */
+    #w .stackframe { position: absolute; inset: 0; border-radius: 16px; pointer-events: none; z-index: -1;
+      /* Glazig en iets afwijkend van de achtergrond: grijze tint, lichte rand, zachte schaduw. */
+      background: linear-gradient(180deg, rgba(120,120,128,.22), rgba(120,120,128,.30));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
+      -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+      opacity: 0; transform: scale(.94); transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
+    @media (prefers-color-scheme: dark) { #w .stackframe { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.10)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); } }
+    #w.stacking .stackframe { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { #w .stackframe { transition: opacity .2s; transform: none; } }
+    #w .track { position: relative; }
+    #w .track > .p1 { position: absolute; top: 0; left: 0; right: 0; }
+    #w .track > .pg { will-change: transform; }
+    #w .chart { display: block; width: 100%; flex: none; }
+    /* Details bij vasthouden: lijn, stip en kaartje */
+    #w .chart .scrub line { stroke: currentColor; stroke-width: 1.2; }
+    #w .chart .scrub circle { fill: #fff; stroke: currentColor; stroke-width: 2; }
+    #w .wtip { position: absolute; top: 6px; transform: translateX(-50%); pointer-events: none; z-index: 3; white-space: nowrap; width: max-content; /* niet laten samenknijpen aan de rand */
+      background: #17171a; color: #fff; border-radius: 10px; padding: 5px 10px; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+    #w .wtip .tt { font-size: 11px; opacity: .7; text-align: center; }
+    #w .wtip .tv { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    #w .wtip .tr { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    #w .wtip span { display: inline-flex; align-items: center; gap: 3px; }
+    #w .wtip svg { width: 13px; height: 13px; flex: none; } #w .wtip .tv svg { width: 15px; height: 18px; opacity: .8; }
+    @media (prefers-color-scheme: dark) { #w .wtip { background: #f5f5f5; color: #17171a; } #w .chart .scrub circle { fill: #242528; } }
+    /* Verloopkaart: wit (donker: donkergrijs), zelfde rustige kleuren als het verloop in de instellingen */
+    #w .track > .p1 { background-color: #ffffff; color: #17171a; }
+    #w .p1::before, #w .p1::after { display: none; }
+    #w .chart .g { stroke: #ecebe8; }
+    #w .chart .l { fill: #9a9aa0; font-size: 10px; }
+    #w .chart .heat { fill: #fbe3a6; opacity: .75; }
+    #w .chart .in { stroke: #17171a; }
+    #w .chart .sp { stroke: #45c08f; }
+    #w .chart .b-schedule { fill: #d7f3e6; } #w .chart .b-manual { fill: #f7b52c; } #w .chart .b-away { fill: #8b8f96; } #w .chart .b-off { fill: #c9cbd1; }
+    #w .chart .i-schedule { stroke: #1d6f4f; } #w .chart .i-manual { stroke: #4a3000; } #w .chart .i-away, #w .chart .i-off { stroke: #fff; }
+    @media (prefers-color-scheme: dark) {
+      #w .track > .p1 { background-color: #242528; color: #f5f5f5; }
+      #w .chart .g { stroke: #3a3b40; } #w .chart .in { stroke: #f5f5f5; }
+      #w .chart .heat { fill: rgba(247,181,44,.28); opacity: 1; }
+      #w .chart .b-schedule { fill: #1c4636; } #w .chart .b-away { fill: #6b6f76; } #w .chart .b-off { fill: #4a4c52; }
+      #w .chart .i-schedule { stroke: #6fdcae; }
+    }
+
     /* Op de instellingenpagina dezelfde ronding als de andere kaarten daar */
-    .in-settings #w { border-radius: 20px; padding: 16px 16px 16px; }
+    .in-settings #w .pg { border-radius: 20px; padding: 16px; }
     /* Alleen op de instellingenpagina: Afwezig en Pauzeren in de tegel */
     #w .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; flex: none; }
     #w .acts button { height: 42px; padding: 0 8px; font-size: 14.5px; white-space: nowrap; min-width: 0; }
@@ -103,7 +182,9 @@
     #w .right { display: inline-flex; align-items: center; gap: 6px; }
     /* Hoe lang geldt de handmatige stand? Schuifbalk, ∞ aan het eind.
        Neemt precies de plek van regel + dagbalk in, zodat de widget niet verspringt. */
-    #w button.sub { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 14px; height: 20px; flex: none;
+    /* Alleen handje + tekst + potloodje is aan te tikken, niet de lege ruimte ernaast (tikvlak iets ruimer dan de tekst). */
+    #w button.sub { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 14px; height: 32px; flex: none;
+      align-self: flex-start; max-width: calc(100% + 16px); padding: 0 8px; margin: -6px -8px; border-radius: 10px;
       white-space: nowrap; overflow: hidden; cursor: pointer; color: inherit; }
     #w button.sub .cd { font-variant-numeric: tabular-nums; opacity: .75; }
     #w button.sub .edit { width: 15px; height: 15px; opacity: .75; }
@@ -154,7 +235,7 @@
   </style>
 </head>
 <body>
-<div id="w" class="loading" aria-busy="true" aria-label="Laden…">
+<div id="w" class="loading" aria-busy="true" aria-label="Laden…"><div class="vp"><div class="track"><div class="pg p0">
   <div class="top"><span class="sk chip"></span><span class="sk chip s"></span></div>
   <div class="mid">
     <span class="sk big"></span>
@@ -164,7 +245,7 @@
   <div class="sub"><span class="sk line"></span></div>
   <div class="barwrap"><div class="bar sk"></div></div>
   <div class="ticks sk-t"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
-</div>
+</div></div></div></div>
 
 <script>
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -193,7 +274,7 @@ const ICON = {
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>',
   drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 12 3l9.5 8v10.5h-19z"/><path d="M12 10.5s2.3 2.5 2.3 4.2a2.3 2.3 0 0 1-4.6 0c0-1.7 2.3-4.2 2.3-4.2z"/></svg>', // druppel in een huisje: luchtvochtigheid binnen
-  waves: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5c-1.5 2 1.5 3.5 0 5.5S7 14 7 16m5-11c-1.5 2 1.5 3.5 0 5.5s0 3.5 0 5.5m5-11c-1.5 2 1.5 3.5 0 5.5s0 3.5 0 5.5"/></svg>',
+  waves: '<svg viewBox="0 0 20 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path class="w1" d="M4 3c-1.4 3-1.4 7 0 10s1.4 7 0 10"/><path class="w2" d="M10 3c-1.4 3-1.4 7 0 10s1.4 7 0 10"/><path class="w3" d="M16 3c-1.4 3-1.4 7 0 10s1.4 7 0 10"/></svg>',
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
   edit: '<svg class="edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -413,6 +494,142 @@ function infoItems(s) {
   return `<button class="it swap rot${showOutdoor ? ' alt' : ''}" data-swap aria-label="${humLbl}, buiten ${fmt(s.outdoor)}"><span class="v1${humCls}">${hum}</span><span class="v2">${out}</span></button>`;
 }
 
+/**
+ * Hoeveel golfjes vol: hoe lang het opwarmen nog duurt (korter dan 30 min, tot 90 min, langer).
+ * Gebruikt de geleerde opwarmsnelheid en opstarttijd; zolang er nog niets geleerd is: graden te koud (tot 1°, tot 2°, meer).
+ */
+/** Geschatte minuten tot warm, of null als er nog niets geleerd is. */
+function heatMinutes(target, indoor, learned) {
+  if (!(learned && learned.samples > 0 && learned.rate > 0)) return null;
+  return ((target - indoor) / learned.rate) * 60 + (learned.heatingNow ? 0 : (learned.deadTime || 0));
+}
+function heatLevel(target, indoor, heating, learned) {
+  if (!heating) return '';
+  const gap = target - indoor;
+  if (learned && learned.samples > 0 && learned.rate > 0) {
+    const min = heatMinutes(target, indoor, learned);
+    return min < 30 ? ' l1' : min < 90 ? ' l2' : ' l3';
+  }
+  return gap < 1 ? ' l1' : gap < 2 ? ' l2' : ' l3';
+}
+
+// ---- Tweede pagina: verloop van vandaag (alleen op het dashboard) ----
+let wModel = null; let page = 0; let hist = null; let histAt = 0; let drag = null; let suppressClick = false;
+const BAND_ICON = {
+  schedule: '<path d="M4 11 12 4l8 7v9H4z"/>',
+  manual: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/>',
+  away: '<circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 2 2 3M12 15l-1-4"/>',
+  off: '<path d="M9 6v12M15 6v12"/>',
+};
+const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off' };
+/** Vaste opbouw: kaart 'nu' (p0) en kaart 'verloop' (p1). Geeft p0 terug. */
+function frame(w) {
+  let p0 = w.querySelector('.vp[data-ready] .p0');
+  if (!p0) {
+    w.innerHTML = `<div class="vp" data-ready>${IN_SETTINGS ? '' : '<div class="stackframe" aria-hidden="true"></div>'}<div class="track"><div class="pg p0"></div>${IN_SETTINGS ? '' : '<div class="pg p1" aria-label="Verloop vandaag"></div>'}</div></div>`;
+    p0 = w.querySelector('.p0'); place(0, false);
+  }
+  return p0;
+}
+// Eindeloos vegen: de andere kaart staat steeds aan de kant waar je naartoe veegt. Kaart van 'page' = huidige.
+const GAP = 12; let scaleNow = 1; let growTimer = null;
+const cards = () => [document.querySelector('#w .p0'), document.querySelector('#w .p1')];
+/** Huidige kaart op dx, de andere ernaast (rechts bij naar links vegen, links bij naar rechts vegen). */
+let othSide = 1; // aan welke kant de andere kaart nu buiten beeld ligt
+function place(dx, animate, otherSide) {
+  const [a, b] = cards(); if (!a || !b) return;
+  const W = a.offsetWidth + GAP; const side = otherSide || (dx > 0 ? -1 : 1);
+  const cur = page === 0 ? a : b; const oth = page === 0 ? b : a;
+  const tr = animate ? 'transform .34s cubic-bezier(.2,.8,.2,1), background-color .9s ease' : 'background-color .9s ease';
+  const sc = scaleNow === 1 ? '' : ` scale(${scaleNow[0]}, ${scaleNow[1]})`;
+  cur.style.zIndex = '2'; oth.style.zIndex = '1'; // huidige kaart altijd bovenop
+  cur.style.transition = tr;
+  // Moet de andere kaart naar de andere kant? Dan springen (buiten beeld), niet animeren: anders vliegt hij erlangs.
+  oth.style.transition = side !== othSide ? 'background-color .9s ease' : tr; othSide = side;
+  cur.style.transform = `translateX(${dx}px)${sc}`;
+  oth.style.transform = `translateX(${dx + side * W}px)${sc}`;
+}
+function setScale(v, animate) { scaleNow = v; place(0, animate, 1); }
+/** Kader tonen en kaarten iets kleiner; 1 seconde na het landen krimpt het kader weer en worden de kaarten groot. */
+/** Zo veel kleiner dat het kader er rondom precies ~6px omheen valt (breedte en hoogte apart). */
+const stackScale = () => {
+  const a = document.querySelector('#w .p0'); if (!a || !a.offsetWidth) return [0.95, 0.93];
+  return [1 - 12 / a.offsetWidth, 1 - 12 / a.offsetHeight]; // ~6px rondom
+};
+function lift() { clearTimeout(growTimer); document.getElementById('w').classList.add('stacking'); }
+function settle(delay = 1000) {
+  clearTimeout(growTimer);
+  growTimer = setTimeout(() => { document.getElementById('w').classList.remove('stacking'); setScale(1, true); }, delay);
+}
+/** Naar de andere kaart: de huidige schuift weg naar `side` (-1 = links, 1 = rechts), de andere komt erin. */
+function flip(side) {
+  if (IN_SETTINGS) return;
+  const [a] = cards(); const W = a.offsetWidth + GAP;
+  const cur = page === 0 ? a : cards()[1]; const oth = page === 0 ? cards()[1] : a;
+  const sc = scaleNow === 1 ? '' : ` scale(${scaleNow[0]}, ${scaleNow[1]})`;
+  const tr = 'transform .34s cubic-bezier(.2,.8,.2,1), background-color .9s ease';
+  cur.style.transition = tr; oth.style.transition = tr;
+  cur.style.zIndex = '1'; oth.style.zIndex = '2'; // de binnenkomende kaart landt bovenop
+  cur.style.transform = `translateX(${side * W}px)${sc}`; oth.style.transform = `translateX(0px)${sc}`;
+  page = 1 - page; othSide = side; // de oude kaart ligt nu aan die kant
+  if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+  if (page === 1 && (!hist || Date.now() - histAt > 5 * 60000)) loadHist();
+  settle(1000);
+}
+async function loadHist() {
+  try { hist = await H.api('GET', '/history'); histAt = Date.now(); } catch (e) { /* later opnieuw */ }
+  renderChart();
+}
+function renderChart() {
+  const p1 = document.querySelector('#w .p1'); const p0 = document.querySelector('#w .p0');
+  if (p1 && p0) chartPage(p1, p0);
+}
+function chartPage(p1, p0) {
+  // Zelfde hoogte als de pagina 'nu', echte breedte in pixels (tekst en iconen niet uitgerekt).
+  const H0 = p0.offsetHeight; // offset*: niet beïnvloed door het verkleinen tijdens vegen
+  const W = Math.max(200, p1.offsetWidth - 32); const CH = Math.max(90, H0 - 28 - 32 - 8);
+  const X0 = 0; const Y0 = 13; const HH = CH - 30; // graden staan ín de grafiek: volle breedte
+  let svg = ''; let summary = '';
+  if (!hist) {
+    svg = `<text class="l" x="${W / 2}" y="${HH / 2}" text-anchor="middle">Laden…</text>`;
+  } else {
+    const h = hist; const step = 300000;
+    const all = [...h.indoor.map((r) => r[1]), ...h.target.map((r) => Math.round(r[1] * 2) / 2)];
+    const TMIN = Math.min(15, Math.floor(Math.min(...all, 99))); const TMAX = Math.max(21, Math.ceil(Math.max(...all, 0)));
+    const x = (t) => X0 + ((t - h.start) / (h.end - h.start)) * (W - X0);
+    const y = (v) => Y0 + ((TMAX - v) / (TMAX - TMIN)) * (HH - Y0);
+    for (let v = TMIN; v <= TMAX; v += 3) svg += `<line class="g" x1="${X0}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>${v > TMIN ? `<text class="l" x="2" y="${y(v) - 3}">${v}°</text>` : ''}`;
+    const tgt = new Map(h.target.map(([t, v]) => [Math.round(t / step), Math.round(v * 2) / 2]));
+    let heatMin = 0;
+    h.indoor.forEach(([t, v]) => { const sp = tgt.get(Math.round(t / step)); if (sp != null && sp > v + 0.2) { heatMin += 5; svg += `<rect class="heat" x="${x(t)}" y="${Y0}" width="${Math.max(0, x(Math.min(t + step, h.now)) - x(t) + 0.3)}" height="${HH - Y0}"/>`; } });
+    if (h.target.length) {
+      let d = ''; h.target.forEach(([t, v], i) => { const vv = Math.round(v * 2) / 2; d += i ? `H${x(t)}V${y(vv)}` : `M${x(t)} ${y(vv)}`; });
+      svg += `<path class="sp" d="${d}H${x(Math.min(h.target[h.target.length - 1][0] + step, h.now))}" fill="none" stroke-width="1.6"/>`;
+    }
+    if (h.indoor.length) svg += `<path class="in" d="${h.indoor.map(([t, v], i) => `${i ? 'L' : 'M'}${x(Math.min(t + step / 2, h.now))} ${y(v)}`).join('')}" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    else {
+      svg += `<text class="l" x="${W / 2}" y="${HH / 2}" text-anchor="middle">Nog geen gegevens</text>`;
+      if (h.errors && h.errors.length) svg += `<text class="l" x="${W / 2}" y="${HH / 2 + 14}" text-anchor="middle" style="font-size:8px">${esc(String(h.errors[0]).slice(0, 60))}</text>`;
+    }
+    const nx = x(Math.min(h.now, h.end)); svg += `<line class="in" x1="${nx}" x2="${nx}" y1="${Y0}" y2="${HH}" stroke-width="1" stroke-dasharray="2 3"/>`;
+    svg += `<g class="scrub" style="display:none"><line x1="0" x2="0" y1="${Y0}" y2="${HH}"/><circle r="3.5" cx="0" cy="0"/></g>`;
+    wModel = { h, x, y, X0, W, step, tgt, out: new Map((h.outdoor || []).map(([t, v]) => [Math.round(t / step), v])), hum: new Map((h.humidity || []).map(([t, v]) => [Math.round(t / step), v])) };
+    const by = HH + 4; const until = Math.min(h.now, h.end);
+    (h.modes || []).forEach((m, i) => {
+      const a = Math.max(m.t, h.start); const b = i + 1 < h.modes.length ? h.modes[i + 1].t : until; if (b <= a) return;
+      const k = BAND_KIND[m.m] || 'off'; const bw = Math.max(1, x(b) - x(a) - 1);
+      svg += `<rect class="b-${k}" x="${x(a)}" y="${by}" width="${bw}" height="13" rx="3.5"/>`;
+      if (bw >= 14) svg += `<g class="i-${k}" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(${x(a) + bw / 2 - 4.8} ${by + 1.7}) scale(.4)">${BAND_ICON[k]}</g>`;
+    });
+    [0, 6, 12, 18, 24].forEach((hr) => { svg += `<text class="l" x="${x(h.start + hr * 3600000)}" y="${CH - 1}" text-anchor="${hr === 0 ? 'start' : hr === 24 ? 'end' : 'middle'}">${hr}</text>`; });
+    summary = `<span class="it">${ICON.waves}${Math.floor(heatMin / 60)}u ${heatMin % 60}m verwarmd</span>`;
+  }
+  p1.style.height = `${H0}px`;
+  p1.innerHTML = `<div class="top"><span class="info"><span class="mode">Verloop vandaag</span>${summary}</span></div>
+    <svg class="chart" viewBox="0 0 ${W} ${CH}" style="height:${CH}px" role="img" aria-label="Temperatuurverloop vandaag. Houd vast en schuif voor details.">${svg}</svg>
+    <div class="wtip" hidden></div>`;
+}
+
 function render() {
   const w = document.getElementById('w');
   if (sliding) return; // niet onder je vinger vandaan tekenen
@@ -423,7 +640,7 @@ function render() {
     // Melding in een kaart van dezelfde hoogte, zodat de widget niet krimpt.
     w.className = first ? 'in' : ''; if (first) setTimeout(() => w.classList.remove('in'), 400);
     w.style.minHeight = `${lastHeight}px`;
-    w.innerHTML = `<div class="err">${esc((data && data.status && data.status.error) || 'Nog geen gegevens van Slim verwarmen.')}</div>`;
+    w.innerHTML = `<div class="vp"><div class="track"><div class="pg p0" style="min-height:${lastHeight - 6}px"><div class="err">${esc((data && data.status && data.status.error) || 'Nog geen gegevens van Slim verwarmen.')}</div></div></div></div>`;
     return;
   }
   w.style.minHeight = '';
@@ -453,7 +670,8 @@ function render() {
   else sub = '';
   const waiting = heating && (pending == null) && s.targetConfirmed === false;
   clearTimeout(confirmPoll); if (waiting) confirmPoll = setTimeout(load, 3000); // wacht op bevestiging: vaker kijken
-  w.innerHTML = `
+  const p0 = frame(w);
+  p0.innerHTML = `
     <div class="top">
       <span class="info">
         <span class="mode">${esc(MODES[s.mode] || s.mode)}</span>
@@ -462,7 +680,7 @@ function render() {
       ${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>` : ''}
     </div>
     <div class="mid">
-      <span class="tw">${bigTemp(s.indoor)}<span class="waves${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></span>
+      <span class="tw">${bigTemp(s.indoor)}<button class="wbtn" data-waveinfo aria-label="Wat betekenen de golfjes?"><span class="waves${heatLevel(target, s.indoor, heating, s.learned)}${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></button></span>
       ${setup ? '' : `<div class="ctrl">
         <button data-d="-0.5" aria-label="Kouder">${ICON.minus}</button>
         <span class="val"><output aria-label="Ingesteld">${fmt(target)}</output></span>
@@ -473,10 +691,47 @@ function render() {
     ${durOpen ? durPanel(s)
     : `${manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`}
     ${IN_SETTINGS ? '' : todayBar(data.schedule || {}, s)}`}
-    ${settingsActions(s)}`;
+    ${settingsActions(s)}
+    ${waveInfo && !setup ? waveInfoPanel(s, target, heating, heating && (pending != null || s.targetConfirmed === false)) : ''}`;
+  renderChart();
+  placeWaveInfo(p0);
   placeManual();
   if (enterRow && !durOpen) { w.querySelectorAll('.sub, .barwrap, .ticks').forEach((el) => el.classList.add('enter')); enterRow = false; }
   setTimeout(fitHeight, 0);
+}
+
+/** Uitleg bij de golfjes: ballonnetje met wat ze nu betekenen en hoe ze tellen. */
+let waveInfo = false; let waveTimer = null; let waveEnter = false; // alleen bij openen invagen, niet bij elke verversing
+function waveInfoPanel(s, target, heating, waiting) {
+  const lvl = heatLevel(target, s.indoor, heating, s.learned).trim();
+  const min = heating ? heatMinutes(target, s.indoor, s.learned) : null;
+  const dur = (m) => { const r = Math.max(5, Math.round(m / 5) * 5); return r < 60 ? `${r} min` : `${Math.floor(r / 60)}u${r % 60 ? ` ${r % 60}m` : ''}`; };
+  // Zo kort mogelijk: niet aan het verwarmen = één regel; wel = waarde + legenda met wat de golfjes tellen.
+  let line; let rows = null;
+  // Of de cv echt brandt beslist de thermostaat (met eigen marge); daarom niets over 'uit' zeggen, alleen hoe dicht we erbij zitten.
+  if (!heating) line = s.indoor != null && target != null && s.indoor < target ? '<b>Bijna op temperatuur</b>' : '<b>Op temperatuur</b>';
+  else if (waiting) line = `Wacht tot de thermostaat <b>${fmt(target)}</b> overneemt`;
+  else if (min != null) { line = `Opwarmtijd: <b>nog ± ${dur(min)}</b>`; rows = [['l1', '&lt;30 min'], ['l2', '30–90 min'], ['l3', '&gt;1½ uur']]; }
+  else { line = `Te koud: <b>nog ${fmt(target - s.indoor)}</b>`; rows = [['l1', '&lt;1°'], ['l2', '1–2°'], ['l3', '&gt;2°']]; }
+  const enter = waveEnter ? ' enter' : ''; waveEnter = false;
+  return `<div class="wscrim${enter}" data-waveclose></div>
+  <div class="wpop${enter}" data-waveclose role="dialog" aria-label="Uitleg golfjes">
+    <div class="t">${line}</div>
+    ${rows ? `<div class="lg">${rows.map(([c, t]) => `<span class="${c === lvl ? 'cur' : ''}"><span class="waves ${c}">${ICON.waves}</span>${t}</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+/** Ballonnetje net onder de golfjes zetten, met het pijltje erop gericht. */
+function placeWaveInfo(p0) {
+  const pop = p0.querySelector('.wpop'); const wv = p0.querySelector('.wbtn .waves');
+  document.getElementById('w').classList.toggle('wexp-on', !!pop);
+  if (!pop || !wv) return;
+  const pr = p0.getBoundingClientRect(); const r = wv.getBoundingClientRect();
+  let top = r.bottom - pr.top + 10; const h = pop.offsetHeight;
+  if (top + h > pr.height - 8) top = Math.max(8, pr.height - h - 8);
+  const cx = r.left + r.width / 2 - pr.left; // midden van de golfjes
+  const left = Math.max(10, Math.min(cx - 34, pr.width - pop.offsetWidth - 10));
+  pop.style.top = `${top}px`; pop.style.left = `${left}px`;
+  pop.style.setProperty('--ax', `${cx - left}px`);
 }
 
 /** Kader precies op de stukken van de balk: de tussenruimtes (2px) verschuiven de grenzen t.o.v. percentages. */
@@ -496,7 +751,7 @@ function placeManual() {
 window.addEventListener('resize', placeManual);
 
 // Widgethoogte = gemeten inhoud, zodat er niets wordt afgesneden en er niets te scrollen valt.
-let lastHeight = 224;
+let lastHeight = 226;
 function fitHeight() {
   const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height) + 6; // + ruimte voor de schaduw
   if (!H || !h) return;
@@ -511,6 +766,79 @@ async function load() {
   loaded = true;
   render();
 }
+
+// Swipen over de hele widget: naar links = verloop, naar rechts = terug (niet op de schuifbalk).
+// Vasthouden op het verloop: lijn, stip en kaartje met de waarden op dat moment.
+/** Stand op tijdstip t: 'manual' = met de hand ingesteld (handje), anders schema (kalender). */
+function modeAt(h, t) { let r = null; (h.modes || []).forEach((x) => { if (x.t <= t) r = x.m; }); return r; }
+function wScrub(clientX) {
+  const m = wModel; const svg = document.querySelector('#w .p1 .chart'); if (!m || !svg || !m.h.indoor.length) return;
+  const r = svg.getBoundingClientRect(); const k = m.W / r.width;
+  const px = Math.max(m.X0, Math.min(m.W, (clientX - r.left) * k));
+  const t = m.h.start + ((px - m.X0) / (m.W - m.X0)) * (m.h.end - m.h.start);
+  const row = m.h.indoor.reduce((a, b) => (Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a));
+  const v = row[1]; const sp = m.tgt.get(Math.round(row[0] / m.step)); const hum = m.hum.get(Math.round(row[0] / m.step));
+  const out = m.out.get(Math.round(row[0] / m.step));
+  const cx = m.x(Math.min(row[0] + m.step / 2, m.h.now)); const cy = m.y(v);
+  const g = svg.querySelector('.scrub'); g.style.display = '';
+  g.querySelector('line').setAttribute('x1', cx); g.querySelector('line').setAttribute('x2', cx);
+  g.querySelector('circle').setAttribute('cx', cx); g.querySelector('circle').setAttribute('cy', cy);
+  const tip = document.querySelector('#w .p1 .wtip'); tip.hidden = false;
+  tip.innerHTML = `<div class="tt">${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
+    <div class="tv">${fmt(v)}${sp != null && sp > v + 0.2 ? `<span class="waves${heatLevel(sp, v, true, data && data.status && data.status.learned ? { ...data.status.learned, heatingNow: true } : null)}">${ICON.waves}</span>` : ''}</div>
+    <div class="tr">${hum != null ? `<span>${ICON.drop}${Math.round(hum)}%</span>` : ''}${sp != null ? `<span>${modeAt(m.h, row[0]) === 'manual' ? ICON.hand : ICON.cal}${fmt(sp)}</span>` : ''}</div>`;
+  const p1 = document.querySelector('#w .p1'); const pr = p1.getBoundingClientRect();
+  const half = tip.offsetWidth / 2; const at = r.left - pr.left + cx / k;
+  tip.style.left = `${Math.max(half + 6, Math.min(pr.width - half - 6, at))}px`;
+}
+let wHide = null;
+function wScrubEnd() {
+  const g = document.querySelector('#w .p1 .chart .scrub'); if (g) g.style.display = 'none';
+  const tip = document.querySelector('#w .p1 .wtip'); if (tip) tip.hidden = true;
+}
+
+// De inhoud volgt je vinger; loslaten = naar de dichtstbijzijnde pagina. Aan de randen wat weerstand.
+document.addEventListener('touchstart', (e) => {
+  if (IN_SETTINGS || !document.querySelector('#w .track') || e.target.closest('input[type=range]')) return;
+  const t = e.touches[0]; drag = { x: t.clientX, y: t.clientY, dx: 0, mode: null };
+  // Op het verloop even stilhouden = details bekijken (in plaats van vegen).
+  drag.onChart = page === 1 && !!e.target.closest('.p1 .chart');
+  if (drag.onChart) {
+    clearTimeout(wHide);
+    drag.hold = setTimeout(() => {
+      if (!drag || drag.mode) return;
+      drag.mode = 'scrub'; wScrub(drag.x);
+      if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    }, 250);
+  }
+}, { passive: true });
+document.addEventListener('touchmove', (e) => {
+  if (!drag) return;
+  const t = e.touches[0]; const dx = t.clientX - drag.x; const dy = t.clientY - drag.y;
+  if (drag.mode === 'scrub') { if (e.cancelable) e.preventDefault(); wScrub(t.clientX); return; }
+  if (!drag.mode && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    clearTimeout(drag.hold);
+    drag.mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v';
+    if (drag.mode === 'h' && (!hist || Date.now() - histAt > 5 * 60000)) loadHist();
+  }
+  if (drag.mode !== 'h') return;
+  if (e.cancelable) e.preventDefault();
+  drag.dx = dx; // eindeloos: geen rand, dus geen weerstand
+  if (!drag.lifted) { drag.lifted = true; lift(); scaleNow = stackScale(); } // kader verschijnt, kaarten iets kleiner
+  place(drag.dx, false);
+}, { passive: false });
+function endDrag() {
+  if (!drag) return; const { mode, dx, x, onChart } = drag; clearTimeout(drag.hold); drag = null;
+  if (mode === 'scrub') { clearTimeout(wHide); wHide = setTimeout(wScrubEnd, 3000); suppressClick = true; setTimeout(() => { suppressClick = false; }, 350); return; }
+  if (!mode && onChart) { clearTimeout(wHide); wScrub(x); wHide = setTimeout(wScrubEnd, 3000); return; } // tik op het verloop: details even tonen
+  if (mode !== 'h') return;
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 350);
+  const vp = document.querySelector('#w .vp'); const width = vp ? vp.offsetWidth : 300;
+  if (Math.abs(dx) > width * 0.5) { flip(dx < 0 ? -1 : 1); return; } // pas voorbij de helft: andere kaart landt
+  place(0, true, dx > 0 ? -1 : 1); settle(1000); // terugveren, na 1 s weer groot
+}
+document.addEventListener('touchend', endDrag);
+document.addEventListener('touchcancel', endDrag);
 
 // Schuifbalk: tijdens slepen alleen het label bijwerken, bij loslaten de duur doorgeven.
 document.addEventListener('pointerdown', (e) => { if (e.target.matches('#w input[type=range]')) { sliding = true; openDur(); } });
@@ -537,8 +865,16 @@ async function sendTemp() {
 }
 
 document.addEventListener('click', async (e) => {
+  if (suppressClick) { e.preventDefault(); e.stopPropagation(); return; } // net geveegd: geen knop laten afgaan
   if (e.target.closest('[data-duropen]')) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); openDur(); render(); return; }
   if (e.target.closest('[data-durclose]')) { closeDur(); return; }
+  if (e.target.closest('[data-waveclose]')) { clearTimeout(waveTimer); waveInfo = false; render(); return; }
+  if (e.target.closest('[data-waveinfo]')) {
+    if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    waveInfo = true; waveEnter = true; render();
+    clearTimeout(waveTimer); waveTimer = setTimeout(() => { waveInfo = false; render(); }, 10000); // vanzelf weer dicht
+    return;
+  }
   if (e.target.closest('[data-swap]')) {
     swapInfo(); startRotate(); // meteen wisselen, daarna weer om de paar seconden
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
@@ -584,6 +920,7 @@ function onHomeyReady(Homey) {
   lastHeight = Math.ceil(document.getElementById('w').getBoundingClientRect().height) || lastHeight;
   Homey.ready({ height: lastHeight });
   load();
+  if (!IN_SETTINGS) setTimeout(loadHist, 1500); // verloop alvast klaarzetten, zodat de tweede kaart gevuld binnenschuift
   if (typeof Homey.on === 'function') Homey.on('status', (st) => { if (data) { data.status = st; if (pending == null) render(); } else load(); });
   setInterval(load, 10000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });

@@ -12,7 +12,7 @@
       --link: #1f6fe5; --warm: #ee8a35; --warm-text: #b45f12; --cold-bg: #d6ecea; --cold-text: #1f6f69;
       --tile-heat: linear-gradient(160deg, #f3b25f, #e58a2c); --tile-idle: linear-gradient(160deg, #cfe3e4, #b7d3d6);
       --tile-text-heat: #3a1f02; --tile-text-idle: #0f3a3d; --pill: rgba(0,0,0,.08); --press: #ebeae7;
-      background: var(--bg); color: var(--text); min-height: 100vh; padding: 8px 8px 110px; overflow-x: hidden;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding: 8px 8px 110px; overflow-x: clip; /* clip i.p.v. hidden: anders werkt het vaste snelmenu niet */
       font: 400 17px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
       -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     }
@@ -106,6 +106,13 @@
     #sv .slot.fixed .sh .st { opacity: 1; }
     @keyframes slotIn2 { from { opacity: 0; transform: translateY(-4px); } }
     #sv .slot.flash { animation: slotFlash 1.2s ease; }
+    /* Tijdsblokken neutraal; de temperatuurkleur zit alleen in een lijn links. */
+    #sv .slot { --tint: var(--card-2) !important; --ink: var(--text) !important; }
+    #sv .slot::before { content: ''; position: absolute; left: 9px; top: 12px; bottom: 12px; width: 4px; border-radius: 2px; background: var(--c); z-index: 1; pointer-events: none; }
+    #sv .slot .sh, #sv .slot .se .sh, #sv .slot .se .sh.oh, #sv .slot.fixed .sh { padding-left: 26px !important; }
+    #sv .slot .ed { padding-left: 20px !important; }
+    #sv .slot.fixed { background: transparent; border: 1.5px solid var(--card-2); }
+    #sv .slot.fixed::before { left: 7.5px; top: 10.5px; bottom: 10.5px; opacity: .55; }
     @keyframes slotFlash { 0%, 35% { box-shadow: 0 0 0 3px var(--ink); } 100% { box-shadow: 0 0 0 3px transparent; } }
     /* Label bij het blok dat nu actief is */
     #sv .slot .nowtag { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 16px; vertical-align: 1px;
@@ -217,6 +224,101 @@
     #setup .first b { display: block; }
     @media (prefers-color-scheme: dark) { #setup .first { background: #1c4636; color: #6fdcae; } }
 
+    /* Verloop van een dag */
+    #sv .hhd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    #sv .hroom { font-weight: 600; }
+    #sv .hnav { display: flex; align-items: center; gap: 6px; }
+    #sv .hnav b { font-size: 16px; min-width: 84px; text-align: center; font-weight: 600; }
+    #sv button.harr { width: 36px; min-height: 36px; height: 36px; padding: 0; color: var(--muted); display: grid; place-items: center; }
+    #sv button.harr svg { width: 18px; height: 18px; display: block; }
+    #sv button.harr:disabled { opacity: .35; }
+    #sv .hsum { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 12.5px; color: var(--muted); margin: 8px 2px 0; }
+    #sv .hsum span { display: flex; flex-direction: column; }
+    #sv .hsum b { font-size: 16px; color: var(--text); font-weight: 600; }
+    #sv .hempty { text-anchor: middle; font-size: 13px; fill: var(--muted); }
+    #sv svg#hChart { display: block; width: 100%; height: auto; touch-action: manipulation; cursor: crosshair; } /* niet de 22px van icoontjes */
+    /* Details bij vasthouden/schuiven: lijn, stip en een kaartje */
+    #sv .hwrap { position: relative; }
+    svg.hchart .hscrub line { stroke: var(--text); stroke-width: 1.2; }
+    svg.hchart .hscrub circle { fill: var(--card); stroke: var(--text); stroke-width: 2; }
+    #sv .htip { position: absolute; top: -6px; transform: translate(-50%, -100%); pointer-events: none; z-index: 3;
+      background: var(--text); color: var(--card); border-radius: 12px; padding: 8px 12px; white-space: nowrap; width: max-content; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+    #sv .htip .tt { font-size: 12px; opacity: .7; text-align: center; margin-bottom: 2px; }
+    #sv .htip .tv { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .htip .tr { display: flex; gap: 14px; font-size: 14px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    #sv .htip .tr span, #sv .htip .tv span { display: inline-flex; align-items: center; gap: 4px; }
+    #sv .htip svg { width: 15px !important; height: 15px !important; flex: none; }
+    #sv .htip .tv svg { width: 18px !important; height: 18px !important; opacity: .8; }
+    #sv .htip .hw path { opacity: .35; } #sv .htip .hw.l1 .w1, #sv .htip .hw.l2 .w1, #sv .htip .hw.l2 .w2, #sv .htip .hw.l3 path { opacity: 1; }
+    /* Kleuren via de opmaak, zodat de grafiek altijd meeloopt met licht/donker */
+    svg.hchart .hg { stroke: var(--line); }
+    svg.hchart .hl { fill: var(--muted); font-size: 10px; }
+    svg.hchart .hin { stroke: var(--text); }
+    svg.hchart .hnow { stroke: var(--text); }
+    svg.hchart .hheat { fill: #fbe3a6; opacity: .75; }
+    svg.hchart .b-schedule { fill: #d7f3e6; } svg.hchart .b-manual { fill: #f7b52c; } svg.hchart .b-away { fill: #8b8f96; } svg.hchart .b-off { fill: #c9cbd1; }
+    svg.hchart .i-schedule { stroke: #1d6f4f; } svg.hchart .i-manual { stroke: #4a3000; } svg.hchart .i-away, svg.hchart .i-off { stroke: #fff; }
+    @media (prefers-color-scheme: dark) {
+      svg.hchart .hheat { fill: rgba(247,181,44,.28); opacity: 1; }
+      svg.hchart .b-schedule { fill: #1c4636; } svg.hchart .b-away { fill: #6b6f76; } svg.hchart .b-off { fill: #4a4c52; }
+      svg.hchart .i-schedule { stroke: #6fdcae; }
+    }
+
+
+    /* Snelmenu: app-icoon links, daarnaast een tekstbalk die je opzij kunt vegen. Blijft bovenaan staan tijdens scrollen. */
+    #sv .qnav { position: -webkit-sticky; position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 8px;
+      margin: -4px -8px 12px; padding: 8px; background: transparent; pointer-events: none;
+      /* Glas zoals iOS: half doorzichtig, wazig en iets verzadigd wat eronder langs scrolt, met een dun licht randje. */
+      --glass: color-mix(in srgb, var(--card) 62%, transparent);
+      --glass-edge: inset 0 0 0 .5px rgba(255,255,255,.55), inset 0 1px 0 rgba(255,255,255,.5), 0 2px 10px rgba(0,0,0,.08); }
+    @media (prefers-color-scheme: dark) { #sv .qnav { --glass: color-mix(in srgb, var(--card) 55%, transparent);
+      --glass-edge: inset 0 0 0 .5px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.08), 0 2px 10px rgba(0,0,0,.3); } }
+    #sv .qnav > * { pointer-events: auto; }
+    #sv .qnav .qlogo, #sv .qscroll { background: var(--glass); -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%); box-shadow: var(--glass-edge); }
+    /* Homey geeft knoppen eigen breedte/padding: hier alles vastzetten zodat het een echt rondje blijft. */
+    #sv .qnav .qlogo { flex: 0 0 44px; box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; max-width: 44px; min-height: 44px; max-height: 44px; aspect-ratio: 1; padding: 0; margin: 0; border: 0; line-height: 0; border-radius: 50%; color: var(--text); display: grid; place-items: center; }
+    #sv .qnav .qlogo svg { width: 30px; height: 30px; }
+    #sv .qscroll { position: relative; flex: 0 1 auto; margin-left: auto; min-width: 0; display: flex; gap: 2px; padding: 3px; border-radius: 999px;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+    #sv .qscroll::-webkit-scrollbar { display: none; }
+    /* Binnenschaduw aan de kant waar nog meer menu-items zitten. */
+    #sv .qscroll { transition: box-shadow .2s; }
+    #sv .qscroll.more-r { box-shadow: var(--glass-edge), inset -14px 0 12px -12px rgba(0,0,0,.14); }
+    #sv .qscroll.more-l { box-shadow: var(--glass-edge), inset 14px 0 12px -12px rgba(0,0,0,.14); }
+    #sv .qscroll.more-l.more-r { box-shadow: var(--glass-edge), inset -14px 0 12px -12px rgba(0,0,0,.14), inset 14px 0 12px -12px rgba(0,0,0,.14); }
+    #sv .qscroll button { flex: none; min-height: 38px; padding: 0 14px; margin: 0; font-size: 14px; background: transparent; color: var(--text); white-space: nowrap;
+      transition: background-color .2s, color .2s; }
+    #sv .qscroll button.on { background: var(--text); color: var(--card); }
+    #sv #secWeek, #sv #secHist, #sv #secLearn, #sv #secCfg { scroll-margin-top: 84px; }
+
+    /* Verloop groot */
+    /* Lange ruimtenaam: inkorten met '…'; vergroot-icoon en dagknoppen blijven altijd zichtbaar. */
+    #sv .hhd { gap: 8px; }
+    #sv .hroom { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; }
+    #sv .hroom #hRoom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #sv .hnav { flex: none; }
+    /* Tertiair: geen achtergrond, alleen een rustig icoon (wel een groot tikvlak) */
+    #sv button.hexp { flex: none; width: 32px; height: 32px; min-height: 32px; background: none; color: var(--muted); }
+    #sv button.hexp svg { width: 16px; height: 16px; }
+    #sv .hfs { position: fixed; inset: 0; z-index: 100; background: var(--card); }
+    #sv .hfs[hidden] { display: none; }
+    #sv .hfsbox { position: absolute; top: 50%; left: 50%; width: 100vw; height: 100vh; transform: translate(-50%, -50%);
+      display: flex; flex-direction: column; padding: 12px 16px; box-sizing: border-box; }
+    #sv .hfs.rot .hfsbox { width: 100vh; height: 100vw; transform: translate(-50%, -50%) rotate(90deg);
+      padding: max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-top)); }
+    #sv .hfswrap { flex: 1; min-height: 0; }
+    #sv svg#fsChart { display: block; width: 100%; height: 100%; touch-action: none; }
+    #sv #fsTip { top: 6px; transform: translateX(-50%); } /* in het grote scherm binnen de grafiek, niet erboven */
+    #sv button.hback { min-height: 36px; padding: 0 14px 0 8px; gap: 4px; font-size: 15px; }
+    #sv button.hback svg { width: 18px; height: 18px; }
+
+    /* Uitleg bij Opwarmtijd, met link naar 'Op tijd warm' */
+    #sv .pnote { margin: -4px 4px 12px; font-size: 14px; color: var(--muted); line-height: 1.45; }
+    #sv .pnote b { color: var(--text); font-weight: 600; }
+    #sv .pnote button.link { min-height: 0; padding: 0; font-size: 14px; vertical-align: baseline; }
+    #sv label.toggle.flash { animation: sv-glow 1.4s ease; }
+    @keyframes sv-glow { 0%, 40% { box-shadow: 0 0 0 3px var(--link); } 100% { box-shadow: 0 0 0 3px transparent; } }
+
     /* Velden */
     #sv .card { background: var(--card); border-radius: 20px; padding: 16px 14px 18px; }
     #sv input, #sv select { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 48px; padding: 0 14px;
@@ -257,6 +359,7 @@
     #sv .switch { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
     #sv .switch label { margin: 0; color: var(--text); font-size: 16px; }
     #sv .card .actions { margin-top: 18px; }
+    #sv #saveConfig { display: flex; width: 100%; min-height: 52px; font-size: 17px; } /* opslaan over de hele breedte */
 
     #sv .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
     #sv .stats span { display: block; font-size: 14px; font-weight: 500; color: var(--muted); }
@@ -278,22 +381,34 @@
 </head>
 <body>
 <div id="sv">
-  <h1>Verwarming</h1>
   <div id="setup"></div>
   <div id="main">
+  <nav class="qnav" id="qnav" aria-label="Snel naar">
+    <button class="qlogo" id="qtop" aria-label="Naar boven"><svg viewBox="0 0 960 960" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M270 460 480 270l210 190v230H270z" stroke-width="60"/><circle cx="772" cy="282" r="58" stroke-width="48"/></svg></button>
+    <div class="qscroll" id="qscroll"><button data-go="secWeek">Schema</button><button data-go="secHist">Terugkijken</button><button data-go="secLearn">Opwarmtijd</button><button data-go="secCfg">Instellingen</button></div>
+  </nav>
   <div id="status">
     <!-- De statustegel ís de widget (tile.html = kopie van het widgetbestand), zodat ze altijd gelijk zijn. -->
     <iframe id="tileframe" src="tile.html?in=settings" title="Verwarming" scrolling="no"></iframe>
   </div>
   <div class="fresh"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh">Laden…</span><button class="link" id="refresh">Nu ophalen</button></div>
 
-  <div class="h2row"><h2>Weekschema</h2><button id="goToday">Vandaag</button></div>
+  <div class="h2row" id="secWeek"><h2>Schema</h2><button id="goToday">Vandaag</button></div>
   <div id="week"></div>
 
-  <h2>Wat de app heeft geleerd</h2>
+  <div class="h2row" id="secHist"><h2>Terugkijken</h2></div>
+  <div class="card" id="hist">
+    <div class="hhd"><span class="hroom"><span id="hRoom"></span><button class="harr hexp" id="hFull" aria-label="Verloop groot bekijken"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button></span>
+      <span class="hnav"><button class="harr" id="hPrev" aria-label="Dag eerder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg></button><b id="hDay">Vandaag</b><button class="harr" id="hNext" aria-label="Dag later"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></svg></button></span></div>
+    <div class="hwrap"> <svg id="hChart" class="hchart" width="100%" viewBox="0 0 340 196" role="img" aria-label="Temperatuurverloop. Houd ingedrukt en schuif voor details."></svg><div class="htip" id="hTip" hidden></div></div>
+    <div class="hsum" id="hSum"></div>
+  </div>
+
+  <h2 id="secLearn">Opwarmtijd</h2>
+  <p class="pnote" id="preNote"></p>
   <div class="card" id="learned"><span class="muted">Laden…</span></div>
 
-  <h2>Instellingen</h2>
+  <h2 id="secCfg">Instellingen</h2>
   <div class="card">
     <label for="thermostat">Thermostaat</label>
     <select id="thermostat"></select>
@@ -318,7 +433,7 @@
       <option value="manual">tot je het schema hervat</option>
     </select>
 
-    <label class="toggle" for="preheat">
+    <label class="toggle" for="preheat" id="preToggle">
       <span class="tt"><b>Op tijd warm</b><small>Begint vanzelf eerder met verwarmen, zodat het op het ingestelde tijdstip al warm is. Uit: de verwarming begint pas op dat tijdstip.</small></span>
       <input id="preheat" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
@@ -336,6 +451,14 @@
   </div>
 
   </div><!-- /main -->
+  <!-- Verloop groot: schermvullend; rechtop gehouden telefoon → een kwartslag gedraaid, zodat de grafiek over de lengte loopt -->
+  <div class="hfs" id="hFs" hidden>
+    <div class="hfsbox">
+      <div class="hhd"><button class="hback" id="hFsBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg>Terug</button>
+        <span class="hnav"><button class="harr" id="fsPrev" aria-label="Dag eerder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg></button><b id="fsDay">Vandaag</b><button class="harr" id="fsNext" aria-label="Dag later"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></svg></button></span></div>
+      <div class="hwrap hfswrap"><svg id="fsChart" class="hchart" role="img" aria-label="Temperatuurverloop, groot"></svg><div class="htip" id="fsTip" hidden></div></div>
+    </div>
+  </div>
   <div class="savebar" id="savebar" role="region" aria-live="polite">
     <span>Schema gewijzigd</span>
     <button id="undo">Annuleren</button>
@@ -790,9 +913,21 @@ function renderConfig() {
   $('overrideDefault').value = String(config.overrideDefault || 'next');
   if (!$('overrideDefault').value) $('overrideDefault').value = 'next';
   $('preheat').checked = config.preheat !== false;
+  renderPreNote();
   $('preWrap').hidden = !$('preheat').checked;
 }
 $('preheat').addEventListener('change', () => { $('preWrap').hidden = !$('preheat').checked; });
+/** Uitleg bij Opwarmtijd: waarvoor de gegevens dienen en of 'Op tijd warm' (opgeslagen) aan staat. */
+function renderPreNote() {
+  const on = config.preheat !== false;
+  $('preNote').innerHTML = `De app gebruikt dit om op tijd te beginnen met verwarmen, zodat het warm is op het tijdstip uit je schema. `
+    + `<b>Op tijd warm</b> staat ${on ? 'aan' : 'uit'}. <button class="link" id="preGo">${on ? 'Bekijk instelling' : 'Zet aan'}</button>`;
+}
+$('preNote').addEventListener('click', (e) => {
+  if (!e.target.closest('#preGo')) return;
+  const t = $('preToggle'); t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
+});
 $('saveConfig').addEventListener('click', async () => {
   const [outId, outCap] = ($('outdoor').value || '|').split('|');
   config = {
@@ -808,6 +943,7 @@ $('saveConfig').addEventListener('click', async () => {
   try {
     await call('set', 'config', config);
     toast('Instellingen opgeslagen');
+    renderPreNote(); // uitleg bij Opwarmtijd bijwerken (aan/uit)
     // Tijdens het eerste instellen: terug naar de stappen.
     if (inSetup() && !setupState.done) { $('sv').classList.remove('show-main'); renderSetup(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     setTimeout(loadStatus, 1500);
@@ -815,12 +951,211 @@ $('saveConfig').addEventListener('click', async () => {
 });
 
 
+// ---------- Verloop van een dag ----------
+// Temperaturen uit Homey Inzichten, stand uit de eigen standlog. Minimaal: lijn gemeten, trapjes ingesteld, geel = verwarmen.
+let histDay = 0; let histModel = null; let fsModel = null;
+// Stand in de balk: kleur + icoon (huisje = thuis volgens schema, hand = handmatig, wandelaar = afwezig, pauze).
+const BAND_ICON = {
+  schedule: '<path d="M4 11 12 4l8 7v9H4z"/>',
+  manual: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/>',
+  away: '<circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 2 2 3M12 15l-1-4"/>',
+  off: '<path d="M9 6v12M15 6v12"/>',
+};
+const MODE_BAND = { schedule: ['schedule', 'Thuis · schema'], preheat: ['schedule', 'Thuis · schema'], manual: ['manual', 'Handmatig'],
+  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''] };
+function dayLabel(day, start) {
+  if (day === 0) return 'Vandaag';
+  if (day === 1) return 'Gisteren';
+  return new Date(start + 12 * 3600000).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+async function loadHistory() {
+  $('hDay').textContent = dayLabel(histDay, Date.now() - histDay * 86400000);
+  $('hPrev').disabled = histDay >= 6; $('hNext').disabled = histDay <= 0;
+  const h = await call('api', 'GET', `/history?day=${histDay}`, null).catch(() => null);
+  renderHistory(h);
+}
+/** Grafiek tekenen in svg-coördinaten W×H (plotgebied), met standbalk en uren eronder. Geeft svg-tekst + model terug. */
+function chartSvg(h, W, H) {
+  const X0 = 0; const Y0 = 14; // graden staan ín de grafiek: volle breedte
+  const all = [...h.indoor.map((r) => r[1]), ...h.target.map((r) => Math.round(r[1] * 2) / 2)];
+  const TMIN = Math.min(15, Math.floor(Math.min(...all, 99))); const TMAX = Math.max(21, Math.ceil(Math.max(...all, 0)));
+  const x = (t) => X0 + ((t - h.start) / (h.end - h.start)) * (W - X0);
+  const y = (v) => Y0 + ((TMAX - v) / (TMAX - TMIN)) * (H - Y0);
+  const step = 300000; let s = ''; let heatMin = 0; let model = null;
+  for (let v = TMIN; v <= TMAX; v += 2) s += `<line class="hg" x1="${X0}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>${v > TMIN ? `<text class="hl hdeg" x="2" y="${y(v) - 3}">${v}°</text>` : ''}`;
+  [0, 6, 12, 18, 24].forEach((hr) => { s += `<text class="hl" x="${x(h.start + hr * 3600000)}" y="${H + 14}" text-anchor="${hr === 0 ? 'start' : hr === 24 ? 'end' : 'middle'}">${hr}</text>`; });
+  if (!h.indoor.length) {
+    s += `<text class="hempty" x="${(X0 + W) / 2}" y="${H / 2}">Nog geen gegevens voor deze dag.</text>`;
+    if (h.errors && h.errors.length) s += `<text class="hempty" x="${(X0 + W) / 2}" y="${H / 2 + 16}" style="font-size:9px">${esc(String(h.errors[0]).slice(0, 70))}</text>`;
+  } else {
+    const tgt = new Map(h.target.map(([t, v]) => [Math.round(t / step), Math.round(v * 2) / 2]));
+    h.indoor.forEach(([t, v]) => {
+      const sp = tgt.get(Math.round(t / step));
+      if (sp != null && sp > v + 0.2) { heatMin += 5; s += `<rect class="hheat" x="${x(t)}" y="${Y0}" width="${Math.max(0, x(Math.min(t + step, h.now)) - x(t) + 0.3)}" height="${H - Y0}"/>`; }
+    });
+    if (h.target.length) {
+      let d = '';
+      h.target.forEach(([t, v], i) => { const vv = Math.round(v * 2) / 2; d += i ? `H${x(t)}V${y(vv)}` : `M${x(t)} ${y(vv)}`; });
+      d += `H${x(Math.min(h.target[h.target.length - 1][0] + step, h.now))}`; // niet voorbij 'nu'
+      s += `<path d="${d}" fill="none" stroke="#45c08f" stroke-width="2" stroke-linejoin="round"/>`;
+    }
+    s += `<path d="${h.indoor.map(([t, v], i) => `${i ? 'L' : 'M'}${x(Math.min(t + step / 2, h.now))} ${y(v)}`).join('')}" class="hin" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (h.day === 0) { const nx = x(Math.min(h.now, h.end)); s += `<line class="hnow" x1="${nx}" x2="${nx}" y1="${Y0}" y2="${H}" stroke-dasharray="2 3"/>`; }
+    s += `<g class="hscrub" style="display:none"><line x1="0" x2="0" y1="${Y0}" y2="${H}"/><circle r="4" cx="0" cy="0"/></g>`;
+    model = { h, x, y, X0, W, step, tgt, hum: new Map((h.humidity || []).map(([t, v]) => [Math.round(t / step), v])) };
+  }
+  // Standbalk
+  const by = H + 22; const until = h.day === 0 ? Math.min(h.now, h.end) : h.end;
+  (h.modes || []).forEach((m, i) => {
+    const a = Math.max(m.t, h.start); const b = i + 1 < h.modes.length ? h.modes[i + 1].t : until;
+    if (b <= a) return;
+    const [k] = MODE_BAND[m.m] || ['off'];
+    const w = Math.max(1, x(b) - x(a) - 1);
+    s += `<rect class="b-${k}" x="${x(a)}" y="${by}" width="${w}" height="16" rx="4"/>`;
+    if (w >= 16) s += `<g class="i-${k}" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(${x(a) + w / 2 - 6} ${by + 2}) scale(.5)">${BAND_ICON[k]}</g>`;
+  });
+  if (!(h.modes || []).length) s += `<text class="hl" x="${X0}" y="${by + 9}">Stand wordt vanaf nu bijgehouden</text>`;
+  return { s, model, heatMin, viewH: by + 18 };
+}
+let lastHist = null;
+function renderHistory(h) {
+  const svg = $('hChart');
+  if (!h) { svg.innerHTML = '<text class="hempty" x="170" y="90">Verloop kon niet worden geladen.</text>'; $('hSum').innerHTML = ''; return; }
+  lastHist = h;
+  $('hRoom').textContent = h.room || '';
+  $('hDay').textContent = dayLabel(h.day, h.start);
+  const c = chartSvg(h, 340, 156);
+  histModel = c.model;
+  svg.setAttribute('viewBox', `0 0 340 ${c.viewH}`);
+  svg.innerHTML = c.s;
+  if (h.indoor.length) {
+    const avg = h.indoor.reduce((a, r) => a + r[1], 0) / h.indoor.length;
+    $('hSum').innerHTML = `<span>Verwarmd<b>${Math.floor(c.heatMin / 60)}u ${c.heatMin % 60}m</b></span><span>Gemiddeld<b>${fmt(avg)}</b></span>`;
+  } else $('hSum').innerHTML = '';
+  if (!$('hFs').hidden) renderFs();
+}
+// Vasthouden en schuiven over de grafiek: lijn, stip en kaartje met de waarden op dat moment.
+const TIP_ICON = {
+  waves: '<svg viewBox="0 0 20 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path class="w1" d="M4 3c-1.4 3-1.4 7 0 10s1.4 7 0 10"/><path class="w2" d="M10 3c-1.4 3-1.4 7 0 10s1.4 7 0 10"/><path class="w3" d="M16 3c-1.4 3-1.4 7 0 10s1.4 7 0 10"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 12 3l9.5 8v10.5h-19z"/><path d="M12 10.5s2.3 2.5 2.3 4.2a2.3 2.3 0 0 1-4.6 0c0-1.7 2.3-4.2 2.3-4.2z"/></svg>',
+  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+};
+/** Stand op tijdstip t (uit de standlog): 'manual' = met de hand ingesteld, anders volgens schema. */
+function modeAt(h, t) { let m = null; (h.modes || []).forEach((x) => { if (x.t <= t) m = x.m; }); return m; }
+// Detail-kaartje bij tik/slepen, voor de kaart (MAIN) en het grote scherm (FS, mogelijk gedraaid).
+const MAIN = { svg: 'hChart', tip: 'hTip', model: () => histModel, rotated: () => false };
+const FS = { svg: 'fsChart', tip: 'fsTip', model: () => fsModel, rotated: () => $('hFs').classList.contains('rot') };
+function scrubAt(ctx, clientX, clientY) {
+  const m = ctx.model(); const svg = $(ctx.svg); if (!m || !m.h.indoor.length) return;
+  const r = svg.getBoundingClientRect(); const local = svg.clientWidth || r.width; const k = m.W / local;
+  // Gedraaid (telefoon rechtop, grafiek dwars): de tijd-as loopt dan van boven naar beneden op het scherm.
+  const frac = ctx.rotated() ? (clientY - r.top) / r.height : (clientX - r.left) / r.width;
+  const px = Math.max(m.X0, Math.min(m.W, frac * m.W));
+  let t = m.h.start + ((px - m.X0) / (m.W - m.X0)) * (m.h.end - m.h.start);
+  t = Math.min(t, m.h.indoor[m.h.indoor.length - 1][0]);
+  const row = m.h.indoor.reduce((a, b) => (Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a));
+  const v = row[1]; const sp = m.tgt.get(Math.round(row[0] / m.step)); const hum = m.hum.get(Math.round(row[0] / m.step));
+  const cx = m.x(Math.min(row[0] + m.step / 2, m.h.now)); const cy = m.y(v);
+  const g = svg.querySelector('.hscrub'); g.style.display = '';
+  g.querySelector('line').setAttribute('x1', cx); g.querySelector('line').setAttribute('x2', cx);
+  g.querySelector('circle').setAttribute('cx', cx); g.querySelector('circle').setAttribute('cy', cy);
+  const heat = sp != null && sp > v + 0.2;
+  // Zelfde 1, 2 of 3 golfjes als in de widget: hoe lang het vanaf dat moment nog opwarmen was.
+  const L = lastStatus && lastStatus.learned; const gap = heat ? sp - v : 0;
+  const mins = L && L.samples > 0 && L.rate > 0 ? (gap / L.rate) * 60 : null;
+  const lvl = !heat ? '' : mins != null ? (mins < 30 ? 'l1' : mins < 90 ? 'l2' : 'l3') : (gap < 1 ? 'l1' : gap < 2 ? 'l2' : 'l3');
+  const tip = $(ctx.tip); tip.hidden = false;
+  tip.innerHTML = `<div class="tt">${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
+    <div class="tv">${fmt(v)}${heat ? `<span class="hw ${lvl}">${TIP_ICON.waves}</span>` : ''}</div>
+    <div class="tr">${hum != null ? `<span>${TIP_ICON.drop}${Math.round(hum)}%</span>` : ''}${sp != null ? `<span>${modeAt(m.h, row[0]) === 'manual' ? TIP_ICON.hand : TIP_ICON.cal}${fmt(sp)}</span>` : ''}</div>`;
+  const half = tip.offsetWidth / 2; tip.style.left = `${Math.max(half, Math.min(local - half, cx / k))}px`;
+}
+const scrubHide = {};
+function scrubEnd(ctx) { const g = $(ctx.svg).querySelector('.hscrub'); if (g) g.style.display = 'none'; $(ctx.tip).hidden = true; }
+/** Tik of sleep: details tonen; bij de eerste beweging de richting kiezen (langs de tijd-as = slepen, anders scrollen). */
+function attachScrub(ctx) {
+  const el = $(ctx.svg); let st = null;
+  el.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; clearTimeout(scrubHide[ctx.svg]); scrubAt(ctx, e.clientX, e.clientY); });
+  el.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') { clearTimeout(scrubHide[ctx.svg]); scrubAt(ctx, e.clientX, e.clientY); } });
+  el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') scrubEnd(ctx); });
+  el.addEventListener('touchstart', (e) => {
+    const t = e.touches[0]; st = { x: t.clientX, y: t.clientY, mode: null };
+    clearTimeout(scrubHide[ctx.svg]); scrubAt(ctx, t.clientX, t.clientY);
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    if (!st) return; const t = e.touches[0];
+    let a = t.clientX - st.x; let b = t.clientY - st.y; if (ctx.rotated()) [a, b] = [b, a]; // a = langs de tijd-as
+    if (!st.mode && (Math.abs(a) > 6 || Math.abs(b) > 6)) st.mode = Math.abs(a) >= Math.abs(b) ? 'h' : 'v';
+    if (st.mode === 'v' && ctx === MAIN) { scrubEnd(ctx); return; }
+    if (e.cancelable) e.preventDefault();
+    scrubAt(ctx, t.clientX, t.clientY);
+  }, { passive: false });
+  ['touchend', 'touchcancel'].forEach((ev) => el.addEventListener(ev, () => {
+    if (st && st.mode !== 'v') { clearTimeout(scrubHide[ctx.svg]); scrubHide[ctx.svg] = setTimeout(() => scrubEnd(ctx), 3000); }
+    st = null;
+  }));
+}
+attachScrub(MAIN);
+
+$('hPrev').addEventListener('click', () => { if (histDay < 6) { histDay += 1; loadHistory(); } });
+$('hNext').addEventListener('click', () => { if (histDay > 0) { histDay -= 1; loadHistory(); } });
+
+// ---------- Verloop groot ----------
+function renderFs() {
+  const h = lastHist; if (!h) return;
+  const fs = $('hFs'); fs.classList.toggle('rot', window.innerHeight > window.innerWidth); // rechtop → dwars tekenen
+  $('fsDay').textContent = dayLabel(h.day, h.start);
+  $('fsPrev').disabled = histDay >= 6; $('fsNext').disabled = histDay <= 0;
+  const svg = $('fsChart');
+  const W = Math.max(300, svg.clientWidth); const Ht = Math.max(160, svg.clientHeight);
+  const c = chartSvg(h, W, Ht - 40); // onderin ruimte voor uren en standbalk
+  fsModel = c.model;
+  svg.setAttribute('viewBox', `0 0 ${W} ${c.viewH}`);
+  svg.innerHTML = c.s;
+}
+$('hFull').addEventListener('click', () => { $('hFs').hidden = false; requestAnimationFrame(renderFs); });
+$('hFsBack').addEventListener('click', () => { $('hFs').hidden = true; scrubEnd(FS); });
+$('fsPrev').addEventListener('click', () => { if (histDay < 6) { histDay += 1; loadHistory(); } });
+$('fsNext').addEventListener('click', () => { if (histDay > 0) { histDay -= 1; loadHistory(); } });
+window.addEventListener('resize', () => { if (!$('hFs').hidden) renderFs(); });
+attachScrub(FS);
+
+// ---------- Snelmenu ----------
+$('qtop').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); // huisje = helemaal naar boven
+document.querySelectorAll('#qnav [data-go]').forEach((b) => b.addEventListener('click', () => {
+  const el = $(b.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+function navShadow() {
+  const sc = $('qscroll'); const max = sc.scrollWidth - sc.clientWidth;
+  sc.classList.toggle('more-l', sc.scrollLeft > 2);
+  sc.classList.toggle('more-r', sc.scrollLeft < max - 2);
+}
+$('qscroll').addEventListener('scroll', navShadow, { passive: true });
+window.addEventListener('resize', navShadow);
+navShadow();
+let navCur = null;
+function markNav() {
+  const ids = ['secWeek', 'secHist', 'secLearn', 'secCfg'];
+  let cur = null; // bovenaan (status) is geen menuknop actief
+  ids.forEach((id) => { const el = $(id); if (el && el.getBoundingClientRect().top < 120) cur = id; });
+  // Helemaal onderaan: laatste kiezen.
+  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = ids[ids.length - 1];
+  let changed = null;
+  document.querySelectorAll('#qnav [data-go]').forEach((b) => { const on = b.dataset.go === cur; if (on && !b.classList.contains('on')) changed = b; b.classList.toggle('on', on); });
+  // Actieve knop zichtbaar houden in de veegbalk (alleen de balk scrollt, niet de pagina).
+  if (!cur && navCur) $('qscroll').scrollTo({ left: 0, behavior: 'smooth' }); // terug bovenaan: balk naar het begin
+  navCur = cur;
+  if (changed) { const sc = $('qscroll'); sc.scrollTo({ left: changed.offsetLeft - (sc.clientWidth - changed.offsetWidth) / 2, behavior: 'smooth' }); }
+}
+window.addEventListener('scroll', () => requestAnimationFrame(markNav), { passive: true });
+
 // ---------- Statustegel = widget ----------
 // De tegel krijgt dezelfde 'Homey' als in het Home-scherm: status + schema ophalen, acties doorgeven, hoogte aanpassen.
 const tileListeners = [];
 function tileData(st) { let sch; try { sch = JSON.parse(saved); } catch (e) { sch = schedule; } return { status: st, schedule: sch }; }
 const tileHomey = {
-  ready() {}, hapticFeedback() {},
+  ready(o) { if (o && o.height) $('tileframe').style.height = `${o.height}px`; }, hapticFeedback() {},
   setHeight(h) { $('tileframe').style.height = `${h}px`; return Promise.resolve(); },
   on(ev, cb) { if (ev === 'status') tileListeners.push(cb); },
   async api(method, path, body) {
@@ -866,7 +1201,7 @@ function renderSetup() {
     box.innerHTML = `<div class="card done-card">
       <div class="check">${SETUP_ICON.check}</div>
       <h2>Slim verwarmen staat aan</h2>
-      <p class="sub">Je thermostaat volgt nu het weekschema.</p>
+      <p class="sub">Je thermostaat volgt nu het schema.</p>
       ${nb && s.nextBlock ? `<div class="first"><b>Eerste moment: ${esc(whenAt(nb))} → ${deg(s.nextBlock.temp)}</b>Draai je zelf aan de thermostaat, dan blijft die temperatuur staan tot het volgende moment. De app leert hoe snel je huis opwarmt en begint dan vanzelf op tijd.</div>` : ''}
       <div class="note" style="text-align:left">${SETUP_ICON.info}<span>Tip: voeg de widget Verwarming toe aan je Home-scherm in de Homey-app.</span></div>
       <button class="wide" data-setup="close">Sluiten</button>
@@ -880,7 +1215,7 @@ function renderSetup() {
   const num = (i) => (steps[i] ? `<span class="num done">${SETUP_ICON.check}</span>` : `<span class="num ${steps.slice(0, i).every(Boolean) ? 'now' : ''}">${i + 1}</span>`);
   const work = sameDays(DAY_KEYS.slice(0, 5)); const weekend = sameDays(['sat', 'sun']);
   const proposal = setupState.proposal ? `<div class="card">
-      <b style="font-size:17px">Voorstel weekschema</b>
+      <b style="font-size:17px">Voorstel schema</b>
       <p class="sub">Overdag warm, 's nachts zuiniger.</p>
       ${work ? proposalDay('Maandag t/m vrijdag', 'mon') : DAY_KEYS.slice(0, 5).map((k, i) => proposalDay(DAY_LONG[i], k)).join('')}
       ${weekend ? proposalDay('Zaterdag en zondag', 'sat') : proposalDay('Zaterdag', 'sat') + proposalDay('Zondag', 'sun')}
@@ -905,7 +1240,7 @@ function renderSetup() {
           ? `<div class="found"><span>${esc(devName(config.outdoorDeviceId) || 'Gekozen sensor')}${s.outdoor != null ? `<small>Nu ${fmt(s.outdoor)} buiten</small>` : ''}</span><button class="link" data-setup="outdoor">Wijzig</button></div>`
           : `<div class="found"><span>${setupState.outdoorSkipped ? 'Overgeslagen' : 'Geen gekozen'}</span><span class="links"><button class="link" data-setup="outdoor">Kies</button>${setupState.outdoorSkipped ? '' : '<button class="link" data-setup="skip">Overslaan</button>'}</span></div>`}
       </div></div>
-      <div class="step">${num(2)}<div class="sbody"><b>Weekschema</b>
+      <div class="step">${num(2)}<div class="sbody"><b>Schema</b>
         <p class="sub">${setupState.reviewed ? 'Voorstel bekeken. Aanpassen kan altijd.' : 'Een voorstel om mee te beginnen. Pas het aan wanneer je wilt.'}</p>
         ${setupState.proposal ? '' : `<button class="wide" data-setup="proposal">${setupState.reviewed ? 'Bekijk het schema' : 'Bekijk het voorstel'}</button>`}
       </div></div>
@@ -964,6 +1299,9 @@ async function onHomeyReady(Homey) {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });
   $('refresh').addEventListener('click', () => { $('fresh').textContent = 'Ophalen…'; loadStatus(); });
   setInterval(tickFresh, 1000);
+  // Wisselt het toestel tussen licht en donker terwijl de pagina open is: kleuren van het weekschema opnieuw uitrekenen.
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { renderWeek(); });
+  loadHistory(); setInterval(() => { if (histDay === 0 && !document.hidden) loadHistory(); }, 5 * 60000); // vandaag elke 5 min bijwerken
 }
 </script>
 </body>

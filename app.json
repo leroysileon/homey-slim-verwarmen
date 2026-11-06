@@ -43,6 +43,10 @@
     "postAction": {
       "method": "POST",
       "path": "/action"
+    },
+    "getHistory": {
+      "method": "GET",
+      "path": "/history"
     }
   },
   "flow": {
@@ -367,7 +371,7 @@
         "en": "Heating",
         "nl": "Verwarming"
       },
-      "height": 224,
+      "height": 226,
       "settings": [],
       "api": {
         "getStatus": {
@@ -377,6 +381,10 @@
         "postAction": {
           "method": "POST",
           "path": "/action"
+        },
+        "getHistory": {
+          "method": "GET",
+          "path": "/history"
         }
       },
       "transparent": true,

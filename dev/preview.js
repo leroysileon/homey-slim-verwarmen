@@ -98,6 +98,18 @@ http.createServer((req, res) => {
       return send(200, store[k] === undefined ? null : store[k]);
     }
     if (url === '/__api/status') return send(200, status());
+    if (url === '/__api/history' || url === '/__widget/history') {
+      // Nepverloop: 's nachts afkoelen, ochtend opwarmen naar 18°, middag handmatig 20.5°.
+      const day = Number(new URLSearchParams(req.url.split('?')[1]).get('day')) || 0;
+      const d0 = new Date(); d0.setHours(0, 0, 0, 0); const start = d0.getTime() - day * 86400000; const end = start + 86400000;
+      const upto = day === 0 ? Date.now() : end; const indoor = []; const target = []; const outdoor = []; const humidity = []; let t = 18;
+      for (let k = start; k < upto; k += 300000) {
+        const hr = (k - start) / 3600000; const sp = hr < 6.5 ? 15 : hr < 8.5 ? 18 : hr < 12 ? 17 : hr < 14 ? 20.5 : hr < 18 ? 17 : hr < 22.5 ? 18 : 15;
+        t += sp > t ? 0.08 : -0.02; indoor.push([k, Math.round(t * 10) / 10]); target.push([k, sp]); outdoor.push([k, 2 + 5 * Math.sin((hr - 8) / 24 * Math.PI * 2)]); humidity.push([k, Math.round(60 + 4 * Math.sin(hr / 3))]);
+      }
+      const modes = [{ t: start, m: 'schedule' }, { t: start + 12 * 3600000, m: 'manual' }, { t: start + 14 * 3600000, m: 'schedule' }].filter((m) => m.t < upto);
+      return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, humidity, modes });
+    }
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/action') {
       const { action, duration, temp } = JSON.parse(data || '{}');

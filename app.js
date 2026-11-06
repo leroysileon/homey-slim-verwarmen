@@ -174,6 +174,49 @@ class SlimVerwarmenApp extends Homey.App {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  /**
+   * Verloop van één dag (0 = vandaag, 1 = gisteren, … 6) voor de kaart 'Verloop'.
+   * Temperaturen uit Homey Inzichten (5-minutenwaarden), stand uit de eigen standlog.
+   */
+  async getHistory(day = 0) {
+    day = Math.max(0, Math.min(6, Math.round(day)));
+    const tz = this.homey.clock.getTimezone();
+    const now = Date.now();
+    const local = new Date(new Date(now).toLocaleString('en-US', { timeZone: tz }));
+    const start = now - ((local.getHours() * 60 + local.getMinutes()) * 60 + local.getSeconds()) * 1000 - day * 86400000;
+    const end = start + 86400000;
+    const resolution = day === 0 ? 'today' : day === 1 ? 'yesterday' : 'last7Days';
+    const errors = [];
+    // Inzichten ophalen. Homey-versies verschillen in hoe een log heet (los 'id' of 'uri:id'), dus beide proberen.
+    const toRows = (res) => {
+      const raw = (res && (res.values || res.entries || res.data)) || (Array.isArray(res) ? res : []);
+      return raw.map((r) => (Array.isArray(r) ? [Number(r[0]), r[1]] : [new Date(r.t != null ? r.t : r.time).getTime(), r.v != null ? r.v : r.value]))
+        .filter(([t, v]) => Number.isFinite(t) && v != null && t >= start && t < end && t <= now); // niets van na 'nu'
+    };
+    const read = async (uri, id) => {
+      // homey-api verwacht het volledige log-id ('homey:device:<id>:measure_temperature'); de korte vorm als reserve.
+      for (const args of [{ id: `${uri}:${id}`, resolution }, { uri, id, resolution }]) {
+        try {
+          const rows = toRows(await this.api.insights.getLogEntries(args));
+          if (rows.length) return rows;
+        } catch (err) { errors.push(`${args.id}: ${err.message || err}`); }
+      }
+      return [];
+    };
+    const dev = this.config.thermostatId ? `homey:device:${this.config.thermostatId}` : null;
+    const [indoor, target, humidity, outdoor] = await Promise.all([
+      dev ? read(dev, 'measure_temperature') : [],
+      dev ? read(dev, 'target_temperature') : [],
+      dev ? read(dev, 'measure_humidity') : [],
+      read('homey:manager:weather', 'temperature'),
+    ]);
+    const log = this.controller.modeLog || [];
+    const before = log.filter((x) => x.t < start).pop();
+    const modes = [...(before ? [{ t: start, m: before.m }] : []), ...log.filter((x) => x.t >= start && x.t < end)];
+    if (!indoor.length && errors.length) this.error('Inzichten:', errors.join(' | '));
+    return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, modes, errors: indoor.length ? [] : errors.slice(0, 2) };
+  }
+
   async runAction({ action, duration, temp } = {}) {
     const c = this.controller;
     switch (action) {

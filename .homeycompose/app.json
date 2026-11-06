@@ -42,6 +42,10 @@
     "postAction": {
       "method": "POST",
       "path": "/action"
+    },
+    "getHistory": {
+      "method": "GET",
+      "path": "/history"
     }
   }
 }
