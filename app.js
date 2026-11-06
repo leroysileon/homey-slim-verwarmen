@@ -70,6 +70,7 @@ class SlimVerwarmenApp extends Homey.App {
     return {
       target: caps.target_temperature ? caps.target_temperature.value : null,
       indoor: caps.measure_temperature ? caps.measure_temperature.value : null,
+      humidity: caps.measure_humidity ? caps.measure_humidity.value : null,
     };
   }
 

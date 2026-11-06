@@ -24,7 +24,7 @@ const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 466 
 let manualUntil = untilOf('next');
 const now = Date.now();
 const status = () => ({
-  updatedAt: Date.now(), mode, thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, outdoor: 3.5,
+  updatedAt: Date.now(), mode, thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5,
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
