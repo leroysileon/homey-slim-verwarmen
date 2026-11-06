@@ -2,5 +2,9 @@
   "1.0.0": {
     "en": "First release: weekly schedule, manual changes respected until the next block, learned preheating, home/away Flow cards, Home screen widget and Climate device.",
     "nl": "Eerste versie: weekschema, handmatig verstellen blijft tot het volgende blok, slim voorverwarmen dat leert, thuis/afwezig-flowkaarten, widget voor het Home-scherm en Klimaat-apparaat."
+  },
+  "1.1.0": {
+    "en": "Choose how long a manual temperature lasts, like in the tado app: until the next schedule change, a fixed time with a countdown, or until you resume the schedule. Widget loads without jumping.",
+    "nl": "Kies hoe lang een handmatige temperatuur geldt, zoals in de tado-app: tot het volgende moment in het schema, een vaste tijd met aftellen, of tot je het schema hervat. Widget laadt zonder te verspringen."
   }
 }
