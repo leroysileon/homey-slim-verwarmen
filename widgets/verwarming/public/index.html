@@ -68,6 +68,9 @@
     #w .dur .q .cd { opacity: .75; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
     #w .dur .q button { margin-left: auto; width: 26px; height: 22px; font-size: 13px; background: none; opacity: .7; flex: none; }
     #w .dur .sl { display: flex; align-items: center; gap: 10px; height: 30px; }
+    #w .dur .nx { flex: none; height: 30px; padding: 0 11px; font-size: 13px; white-space: nowrap; }
+    #w .dur .nx.on { background: var(--solid); color: var(--solid-text); }
+    #w input[type=range].off { opacity: .45; }
     #w .dur .sl .inf { font-size: 18px; line-height: 1; opacity: .8; width: 20px; text-align: center; }
     #w input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 30px; margin: 0; background: none; touch-action: pan-y; }
     #w input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
@@ -173,38 +176,27 @@ function timeOf(ms) {
 }
 
 // ---- Duur van de handmatige stand ----
-const STOPS = [15, 30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 480, 600, 720];
-/** Standen van de schuifbalk: minuten, met 'tot het volgende moment in het schema' op z'n plek, en ∞ aan het eind. */
-function durStops(s) {
-  const out = STOPS.map((m) => ({ d: m, min: m }));
-  if (s.nextChangeAt) {
-    const min = Math.max(1, Math.round((s.nextChangeAt - Date.now()) / 60000));
-    const near = out.findIndex((o) => Math.abs(o.min - min) < 10);
-    if (near >= 0) out.splice(near, 1);
-    const at = out.findIndex((o) => o.min > min);
-    out.splice(at < 0 ? out.length : at, 0, { d: 'next', min });
-  }
-  out.push({ d: 'manual', min: Infinity });
-  return out;
-}
-function stopIndex(stops, d) {
-  const i = stops.findIndex((o) => String(o.d) === String(d));
-  if (i >= 0) return i;
-  const m = Number(d); // vrije duur (bijv. uit een flow): dichtstbijzijnde stand
-  if (!Number.isFinite(m)) return stops.length - 1;
+// Knop 'Tot 08:30' = tot het volgende moment in het schema. Schuifbalk = vaste duur, ∞ aan het eind.
+const STOPS = [15, 30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 480, 600, 720, Infinity];
+const durOfStop = (i) => (STOPS[i] === Infinity ? 'manual' : STOPS[i]);
+function stopIndex(d) {
+  if (d === 'manual') return STOPS.length - 1;
+  const m = Number(d); // ook vrije duur (bijv. uit een flow): dichtstbijzijnde stand
   let best = 0;
-  stops.forEach((o, j) => { if (Math.abs(o.min - m) < Math.abs(stops[best].min - m)) best = j; });
+  STOPS.forEach((v, j) => { if (Math.abs(v - m) < Math.abs(STOPS[best] - m)) best = j; });
   return best;
 }
 function hm(ms) {
   const t = Math.max(0, Math.round(ms / 1000)); const h = Math.floor(t / 3600); const m = Math.floor((t % 3600) / 60); const sec = t % 60;
   return h ? `${h}u ${m}m ${sec}s` : `${m}m ${sec}s`;
 }
-function untilOfStop(o) { return o.d === 'manual' ? null : o.d === 'next' ? data.status.nextChangeAt : Date.now() + o.min * 60000; }
+/** Tijd van het volgende blok zoals in het schema staat ("08:30"). */
+const nextAt = (s) => (s.nextBlock && s.nextBlock.at ? s.nextBlock.at.slice(3) : '');
+function untilOf(s, d) { return d === 'manual' ? null : d === 'next' ? s.nextChangeAt : Date.now() + d * 60000; }
 /** "Tot 03:41" + aftellen, of "Tot je het schema hervat". */
-function durLabel(until, viaSchedule) {
-  if (until == null) return { t: 'Tot je het schema hervat', cd: '∞' };
-  return { t: `Tot ${timeOf(until)}`, cd: viaSchedule ? `${hm(until - Date.now())} · schema` : hm(until - Date.now()) };
+function durLabel(s, d, until) {
+  if (until == null) return { t: 'Tot je het schema hervat', cd: '' };
+  return { t: `Tot ${d === 'next' && nextAt(s) ? nextAt(s) : timeOf(until)}`, cd: hm(until - Date.now()) };
 }
 function openDur() {
   durOpen = true;
@@ -218,35 +210,47 @@ function curDur(s) {
   return s.overrideDefault || 'next';
 }
 function durPanel(s) {
-  const stops = durStops(s);
-  const i = stopIndex(stops, curDur(s));
-  const until = s.mode === 'manual' && s.override && chosenDur == null && String(curDur(s)) === String(s.override.duration || 'next')
-    ? s.override.until : untilOfStop(stops[i]);
-  const l = durLabel(until, stops[i].d === 'next');
+  const d = curDur(s);
+  const isNext = String(d) === 'next';
+  const sameAsNow = s.mode === 'manual' && s.override && chosenDur == null;
+  const l = durLabel(s, d, sameAsNow ? s.override.until : untilOf(s, d));
+  const i = isNext ? stopIndex(Math.max(1, ((s.nextChangeAt || Date.now()) - Date.now()) / 60000)) : stopIndex(d);
   return `<div class="dur">
       <div class="q"><b class="dl">${esc(l.t)}</b><span class="cd">${esc(l.cd)}</span><button data-durclose aria-label="Klaar">✕</button></div>
-      <div class="sl"><input type="range" min="0" max="${stops.length - 1}" step="1" value="${i}" style="--p:${(i / (stops.length - 1)) * 100}%" aria-label="Hoe lang geldt deze temperatuur"><span class="inf" aria-hidden="true">∞</span></div>
+      <div class="sl">
+        <button class="nx${isNext ? ' on' : ''}" data-next aria-pressed="${isNext}">${esc(nextAt(s) ? `Tot ${nextAt(s)}` : 'Tot schema')}</button>
+        <input class="${isNext ? 'off' : ''}" type="range" min="0" max="${STOPS.length - 1}" step="1" value="${i}" style="--p:${(i / (STOPS.length - 1)) * 100}%" aria-label="Hoe lang geldt deze temperatuur">
+        <span class="inf" aria-hidden="true">∞</span>
+      </div>
     </div>`;
 }
-function onSlide(input, commit) {
-  const stops = durStops(data.status);
-  const o = stops[Number(input.value)];
-  input.style.setProperty('--p', `${(Number(input.value) / (stops.length - 1)) * 100}%`);
-  const l = durLabel(untilOfStop(o), o.d === 'next');
-  const q = input.closest('.dur');
-  q.querySelector('.dl').textContent = l.t; q.querySelector('.cd').textContent = l.cd;
-  if (commit) chosenDur = o.d;
-  return o.d;
+/** Label en balk bijwerken voor duur d, zonder opnieuw te tekenen. */
+function showDur(panel, d) {
+  const s = data.status;
+  const l = durLabel(s, d, untilOf(s, d));
+  panel.querySelector('.dl').textContent = l.t; panel.querySelector('.cd').textContent = l.cd;
+  const input = panel.querySelector('input'); const nx = panel.querySelector('.nx');
+  input.classList.toggle('off', d === 'next'); nx.classList.toggle('on', d === 'next'); nx.setAttribute('aria-pressed', String(d === 'next'));
+  input.style.setProperty('--p', `${(Number(input.value) / (STOPS.length - 1)) * 100}%`);
 }
-// Aftellen in de regel en in de schuifbalk, zonder de hele widget opnieuw te tekenen.
+// Aftellen in de regel en in het paneel, zonder de hele widget opnieuw te tekenen.
 setInterval(() => {
-  if (!data || !data.status || !data.status.override || sliding) return;
+  if (!data || !data.status || sliding) return;
+  const ov = data.status.override;
   const cd = document.querySelector('#w .sub .cd');
-  if (cd && data.status.override.until != null) cd.textContent = hm(data.status.override.until - Date.now());
-  const sl = document.querySelector('#w .dur input');
-  if (sl && (touched || chosenDur != null)) onSlide(sl, false); // gekozen stand: 'tot' schuift mee met de klok
-  else if (sl && data.status.override.until != null) sl.closest('.dur').querySelector('.cd').textContent = hm(data.status.override.until - Date.now());
+  if (cd && ov && ov.until != null) cd.textContent = hm(ov.until - Date.now());
+  const panel = document.querySelector('#w .dur');
+  if (!panel) return;
+  if (touched || chosenDur != null || !ov) showDur(panel, curDur(data.status)); // gekozen stand: 'tot' schuift mee met de klok
+  else if (ov.until != null) panel.querySelector('.cd').textContent = hm(ov.until - Date.now());
 }, 1000);
+async function commitDur(d) {
+  chosenDur = d; touched = true; openDur();
+  if (pending != null) { sendTemp(); return; } // temperatuur en duur in één keer
+  if (!(data.status.mode === 'manual' && data.status.override)) return;
+  try { data = await H.api('POST', '/action', { action: 'setDuration', duration: d }); } catch (err) { console.error(err); }
+  chosenDur = null; touched = false; render(); refreshSoon();
+}
 
 function render() {
   const w = document.getElementById('w');
@@ -274,7 +278,7 @@ function render() {
   if (durOpen && !manual && pending == null) durOpen = false; // inmiddels terug naar het schema
   let sub;
   if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span>${ICON.edit}`;
-  else if (manual) sub = `${ICON.hand}<span>Tot ${esc(timeOf(s.override.until))}</span><span class="cd">${hm(s.override.until - Date.now())}</span>${ICON.edit}`;
+  else if (manual) sub = `${ICON.hand}<span>${esc(durLabel(s, s.override.duration || 'next', s.override.until).t)}</span><span class="cd">${hm(s.override.until - Date.now())}</span>${ICON.edit}`;
   else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(s.nextBlock ? s.nextBlock.at.slice(3) : '')}</span>`;
   else if (s.nextBlock) sub = `<span>Straks ${esc(s.nextBlock.at.slice(3))} → ${fmt(s.nextBlock.temp)}</span>`;
   else sub = '';
@@ -318,17 +322,14 @@ async function load() {
 document.addEventListener('pointerdown', (e) => { if (e.target.matches('#w input[type=range]')) { sliding = true; openDur(); } });
 document.addEventListener('input', (e) => {
   if (!e.target.matches('#w input[type=range]')) return;
-  sliding = true; touched = true; openDur(); onSlide(e.target, false);
+  sliding = true; touched = true; chosenDur = durOfStop(Number(e.target.value)); openDur();
+  showDur(e.target.closest('.dur'), chosenDur);
   if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
 });
-document.addEventListener('change', async (e) => {
+document.addEventListener('change', (e) => {
   if (!e.target.matches('#w input[type=range]') || !data || !data.status) return;
-  const d = onSlide(e.target, true);
-  sliding = false; openDur();
-  if (pending != null) { sendTemp(); return; } // temperatuur en duur in één keer
-  if (!(data.status.mode === 'manual' && data.status.override)) return;
-  try { data = await H.api('POST', '/action', { action: 'setDuration', duration: d }); } catch (err) { console.error(err); }
-  chosenDur = null; touched = false; render(); refreshSoon();
+  sliding = false;
+  commitDur(durOfStop(Number(e.target.value)));
 });
 ['pointerup', 'pointercancel'].forEach((t) => document.addEventListener(t, () => { if (sliding) setTimeout(() => { sliding = false; }, 50); }));
 
@@ -344,6 +345,12 @@ async function sendTemp() {
 document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-duropen]')) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); openDur(); render(); return; }
   if (e.target.closest('[data-durclose]')) { closeDur(); return; }
+  if (e.target.closest('[data-next]') && data && data.status) {
+    if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    showDur(e.target.closest('.dur'), 'next');
+    commitDur('next');
+    return;
+  }
   const step = e.target.closest('[data-d]');
   if (step && data && data.status) {
     const base = pending != null ? pending : data.status.thermostatTarget;
