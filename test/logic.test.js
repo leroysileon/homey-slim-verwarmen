@@ -246,3 +246,19 @@ test('standaardduur uit de instellingen geldt ook voor draaien aan de knop', asy
   await c.setManual(22); // nieuwe stand: standaard 2 uur
   assert.match(c.status.modeLabel, /tot 14:01$/);
 });
+
+test('status meldt of de thermostaat de nieuwe temperatuur heeft bevestigd', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  assert.equal(c.status.targetConfirmed, true);
+  const realWrite = c.io.writeTarget;
+  c.io.writeTarget = async () => {}; // thermostaat neemt het nog niet over
+  await c.setManual(21);
+  assert.equal(c.status.thermostatTarget, 21);
+  assert.equal(c.status.targetConfirmed, false);
+  c.io.writeTarget = realWrite;
+  sim.target = 21; // nu wel overgenomen
+  sim.now = at('12:00') + 5000;
+  await c.tick();
+  assert.equal(c.status.targetConfirmed, true);
+});

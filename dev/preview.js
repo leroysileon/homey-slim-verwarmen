@@ -15,16 +15,16 @@ const store = {
     sat: [{ time: '10:00', temp: 18 }, { time: '23:00', temp: 15 }],
     sun: [{ time: '10:00', temp: 18 }, { time: '23:00', temp: 15 }],
   },
-  config: { thermostatId: 'tado', outdoorDeviceId: 'knmi', outdoorCapability: 'current_temp', ecoTemp: 16, maxPreheat: 180, preheat: true },
+  config: { thermostatId: 'thermostaat', outdoorDeviceId: 'knmi', outdoorCapability: 'current_temp', ecoTemp: 16, maxPreheat: 180, preheat: true },
 };
 let mode = 'schedule';
-let manualTemp = 21;
+let manualTemp = 21; let confirmedAt = 0;
 let manualDur = 'next';
 const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 466 * 60000 : Date.now() + d * 60000);
 let manualUntil = untilOf('next');
 const now = Date.now();
 const status = () => ({
-  updatedAt: Date.now(), mode, thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5,
+  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5,
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
@@ -37,7 +37,7 @@ const status = () => ({
   error: null,
 });
 const devices = [
-  { id: 'tado', name: 'Tado X', zone: 'Woonkamer', thermostat: true, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
+  { id: 'thermostaat', name: 'Thermostaat', zone: 'Woonkamer', thermostat: true, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
   { id: 'plan', name: 'Plan Weekprogramma', zone: 'Woonkamer', thermostat: true, tempCaps: [] },
   { id: 'knmi', name: 'KNMI weather', zone: 'Tuin', thermostat: false, tempCaps: [{ id: 'current_temp', title: 'Temperatuur' }] },
   { id: 'kk', name: 'Temp. sensor', zone: 'Kinderkamer', thermostat: false, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
@@ -66,6 +66,7 @@ http.createServer((req, res) => {
     const url = req.url.split('?')[0];
     if (url === '/' || url === '/index.html') return send(200, fs.readFileSync(path.join(__dirname, '..', 'settings', 'index.html'), 'utf8'), 'text/html');
     if (url === '/homey.js') return send(200, mockHomey, 'text/javascript');
+    if (url === '/variants') return send(200, fs.readFileSync(path.join(__dirname, 'variants.html'), 'utf8'), 'text/html');
     if (url === '/widget') {
       const html = fs.readFileSync(path.join(__dirname, '..', 'widgets', 'verwarming', 'public', 'index.html'), 'utf8')
         .replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1"><style>html{background:#000}body{max-width:380px;margin:16px auto;padding:0 12px}</style><script src="/widget-homey.js"></script></head>');
@@ -87,7 +88,7 @@ http.createServer((req, res) => {
       const b = JSON.parse(data || '{}');
       if (b.action === 'setTemp') {
         if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
-        mode = 'manual'; manualTemp = b.temp;
+        mode = 'manual'; manualTemp = b.temp; confirmedAt = Date.now() + 6000;
       } else if (b.action === 'setDuration') { manualDur = b.duration; manualUntil = untilOf(b.duration); } else if (b.action === 'resume') mode = 'schedule';
       return send(200, { status: status(), schedule: store.schedule });
     }

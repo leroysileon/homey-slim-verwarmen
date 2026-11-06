@@ -2,8 +2,8 @@
   "title": { "en": "Set temperature until…", "nl": "Zet temperatuur tot…" },
   "titleFormatted": { "en": "Set [[temp]]° [[duration]]", "nl": "Zet [[temp]]° [[duration]]" },
   "hint": {
-    "en": "Overrides the schedule like the tado app does. For a fixed number of hours, use 'Set temporary temperature'.",
-    "nl": "Overschrijft het schema, zoals in de tado-app. Voor een vast aantal uur: gebruik 'Tijdelijke temperatuur'."
+    "en": "Overrides the schedule until the chosen moment. For a fixed number of hours, use 'Set temporary temperature'.",
+    "nl": "Overschrijft het schema tot het gekozen moment. Voor een vast aantal uur: gebruik 'Tijdelijke temperatuur'."
   },
   "args": [
     { "type": "number", "name": "temp", "min": 5, "max": 28, "step": 0.5, "placeholder": { "en": "20", "nl": "20" } },

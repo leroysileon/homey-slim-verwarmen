@@ -111,7 +111,7 @@ class SlimVerwarmenApp extends Homey.App {
     }
   }
 
-  /** Eerste start: kies zelf de Tado en de KNMI-buitentemperatuur als die er zijn. */
+  /** Eerste start: kies zelf een thermostaat en een buitentemperatuur als die er zijn. */
   async autoDetect() {
     const cfg = { ...(this.homey.settings.get('config') || {}) };
     let changed = false;
@@ -120,7 +120,8 @@ class SlimVerwarmenApp extends Homey.App {
     if (!cfg.thermostatId) {
       const thermostats = devices.filter((d) => (d.capabilities || []).includes('target_temperature')
         && (d.capabilities || []).includes('measure_temperature'));
-      const pick = thermostats.find((d) => /tado/i.test(d.name)) || thermostats[0];
+      // Voorkeur: een echte thermostaat die ook luchtvochtigheid meet (virtuele schema-apparaten doen dat niet).
+      const pick = thermostats.find((d) => (d.capabilities || []).includes('measure_humidity')) || thermostats[0];
       if (pick) { cfg.thermostatId = pick.id; changed = true; }
     }
     if (!cfg.outdoorDeviceId) {

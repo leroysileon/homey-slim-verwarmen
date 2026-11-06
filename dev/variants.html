@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Widget: kleurvarianten</title>
+  <style>
+    :root { --bg: #f2f2f5; --text: #17171a; --muted: #6c6c72; }
+    body { margin: 0; padding: 24px; background: var(--bg) !important; color: var(--text);
+      font: 15px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body.dark { --bg: #000; --text: #f2f2f2; --muted: #a1a1a6; }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    p { margin: 0 0 20px; color: var(--muted); }
+    .bar { display: flex; gap: 8px; margin-bottom: 20px; }
+    .bar button { font: inherit; padding: 8px 14px; border-radius: 999px; border: 1px solid #c8c8cc; background: transparent; color: inherit; cursor: pointer; }
+    .bar button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(345px, 1fr)); gap: 24px 20px; }
+    .v h2 { font-size: 16px; margin: 0 0 2px; }
+    .v small { display: block; color: var(--muted); margin-bottom: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    .v iframe { width: 345px; height: 214px; border: 0; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Widget: kleurvarianten</h1>
+  <p>Dezelfde widget met verschillende kleuren voor de rustige stand. De laatste toont ter vergelijking "aan het opwarmen".</p>
+  <div class="bar"><button data-mode="light" class="on">Licht</button><button data-mode="knoppen">Knoppen</button><button data-mode="dark">Donker</button></div>
+  <div class="grid" id="grid"></div>
+
+<script>
+// Elke variant: achtergrond en kleur van de ronde knoppen in de rustige stand.
+const VARIANTS = {
+  light: [
+    { n: 'A · Wit (gekozen)', bg: '#ffffff', pill: 'rgba(0,0,0,.06)' },
+    { n: 'B · Helder lichtgeel', bg: '#fffbeb', pill: 'rgba(245,180,0,.16)' },
+    { n: 'C · Citroengeel, heel licht', bg: '#fefce8', pill: 'rgba(234,179,8,.16)' },
+    { n: 'D · Gebroken wit, warm', bg: '#fffdf8', pill: 'rgba(0,0,0,.05)' },
+    { n: 'E · Wit met gele knoppen', bg: '#ffffff', pill: 'rgba(255,184,0,.18)' },
+    { n: 'F · Zachtgeel, iets meer kleur', bg: '#fff4c7', pill: 'rgba(255,170,0,.20)' },
+    { n: 'Ter vergelijking · aan het opwarmen', heat: true },
+  ],
+  knoppen: [
+    { n: '1 · Lichtgrijs (gekozen)', bg: '#ffffff', pill: 'rgba(0,0,0,.06)' },
+    { n: '2 · Fris citroengeel', bg: '#ffffff', pill: '#fff4b3' },
+    { n: '3 · Wit met gele rand', bg: '#ffffff', pill: '#ffffff', css: '#w .ctrl button, #w .resume { box-shadow: inset 0 0 0 1.5px #ffc21a; }' },
+    { n: '4 · Zacht geel, helder', bg: '#ffffff', pill: '#fff8d6' },
+    { n: '5 · Warm geel, licht', bg: '#ffffff', pill: '#ffe680' },
+    { n: '6 · Lichtgeel transparant', bg: '#ffffff', pill: 'rgba(255,184,0,.18)' },
+  ],
+  dark: [
+    { n: 'A · Neutraal grijs (gekozen)', bg: '#2a2b30', pill: 'rgba(255,255,255,.10)' },
+    { n: 'B · Warm donkergrijs', bg: '#2f2b22', pill: 'rgba(255,255,255,.10)' },
+    { n: 'C · Bijna zwart', bg: '#1f2023', pill: 'rgba(255,255,255,.09)' },
+    { n: 'D · Donker met gele knoppen', bg: '#2a2b30', pill: 'rgba(255,184,0,.18)' },
+    { n: 'Ter vergelijking · aan het opwarmen', heat: true },
+  ],
+};
+
+let mode = 'light';
+let widgetHtml = null;
+/** Widget-HTML die zelf licht of donker tekent, los van de instelling van je scherm. */
+function variantHtml(v, dark) {
+  let h = widgetHtml.replace(/@media \(prefers-color-scheme: dark\)/g, dark ? '@media all' : '@media not all');
+  const force = `<script>(function(){const mm=window.matchMedia.bind(window);window.matchMedia=(q)=>q.includes('prefers-color-scheme: dark')?{matches:${dark},media:q,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}}:mm(q);})();<\/script>`;
+  const style = v.heat ? '' : `<style>#w:not(.heat):not(.cold):not(.humid){background-color:${v.bg} !important;--pill:${v.pill} !important;}${v.css || ''}</style>`;
+  const page = `<style>html{background:${dark ? '#000' : '#f2f2f5'} !important}</style>`;
+  return h.replace('<head>', `<head>${force}`).replace('</head>', `${style}${page}</head>`);
+}
+async function draw() {
+  if (!widgetHtml) widgetHtml = await fetch('/widget').then((r) => r.text());
+  const dark = mode === 'dark';
+  document.body.classList.toggle('dark', dark);
+  const grid = document.getElementById('grid');
+  grid.innerHTML = VARIANTS[mode].map((v, i) => `
+    <div class="v"><h2>${v.n}</h2><small>${v.heat ? '#ffb300' : `${v.bg} · knoppen ${v.pill}`}</small>
+      <iframe data-i="${i}"></iframe></div>`).join('');
+  grid.querySelectorAll('iframe').forEach((f) => {
+    const v = VARIANTS[mode][f.dataset.i];
+    f.srcdoc = variantHtml(v, dark);
+    if (v.heat) f.addEventListener('load', () => setTimeout(() => {
+      f.contentWindow.eval('if (data && data.status) { data.status = { ...data.status, thermostatTarget: 21 }; render(); }');
+    }, 1500));
+  });
+}
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+  mode = b.dataset.mode;
+  document.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('on', x === b));
+  draw();
+}));
+draw();
+</script>
+</body>
+</html>

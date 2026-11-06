@@ -203,8 +203,8 @@
           "nl": "Zet [[temp]]° [[duration]]"
         },
         "hint": {
-          "en": "Overrides the schedule like the tado app does. For a fixed number of hours, use 'Set temporary temperature'.",
-          "nl": "Overschrijft het schema, zoals in de tado-app. Voor een vast aantal uur: gebruik 'Tijdelijke temperatuur'."
+          "en": "Overrides the schedule until the chosen moment. For a fixed number of hours, use 'Set temporary temperature'.",
+          "nl": "Overschrijft het schema tot het gekozen moment. Voor een vast aantal uur: gebruik 'Tijdelijke temperatuur'."
         },
         "args": [
           {
@@ -367,7 +367,7 @@
         "en": "Heating",
         "nl": "Verwarming"
       },
-      "height": 192,
+      "height": 198,
       "settings": [],
       "api": {
         "getStatus": {

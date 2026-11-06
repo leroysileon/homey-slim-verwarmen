@@ -3,42 +3,50 @@
 <head>
   <meta charset="utf-8">
   <style>
+    /* Kleur = toestand van de kamer (zelfde als de statustegel in de instellingen):
+       groen = rust (basis), geel = opwarmen, blauw = te koud, blauwgroen = te vochtig. Licht en donker gelijk. */
     #w {
-      --heat: linear-gradient(160deg, #f3b25f, #e58a2c); --idle: linear-gradient(160deg, #cfe3e4, #b7d3d6);
-      --t-heat: #3a1f02; --t-idle: #0f3a3d; --pill: rgba(0,0,0,.09); --solid: #3a1f02; --solid-text: #f6c27a;
-      border-radius: 12px; padding: 14px 16px 14px; background: var(--idle); color: var(--t-idle);
+      --fg: #ffffff; --pill: rgba(0,0,0,.14); --solid: rgba(0,0,0,.22); --solid-text: #ffffff;
+      border-radius: 12px; padding: 14px 16px 14px; background-color: #45c08f; color: var(--fg);
       font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
       display: flex; flex-direction: column; gap: 8px; -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    #w { box-sizing: border-box; position: relative; isolation: isolate; overflow: hidden; transition: color .9s ease; }
-    #w::before { content: ''; position: absolute; inset: 0; z-index: -2; background: var(--heat); opacity: 0; transition: opacity .9s ease; }
-    #w.heat::before { opacity: 1; }
-    #w.heat { color: var(--t-heat); }
-    /* Verwarmen zoals in de tado-app: fel geel-oranje met witte tekst, ook in donkere modus. */
-    #w.heat, #w.heat * { --t-heat: #ffffff; --pill: rgba(0,0,0,.14); --solid: rgba(0,0,0,.22); --solid-text: #ffffff; }
-    #w.heat::before { background: linear-gradient(170deg, #ffcf1f 0%, #ffb300 55%, #ffa000 100%); }
-    #w.heat .bar { box-shadow: 0 0 0 1px rgba(255,255,255,.35); }
+    #w { box-sizing: border-box; position: relative; isolation: isolate; overflow: hidden; transition: background-color .9s ease; }
+    #w { box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 3px 8px -3px rgba(0,0,0,.12); }
+    @media (prefers-color-scheme: dark) { #w { box-shadow: none; } }
+    #w.heat { background-color: #f7b52c; }
+    #w.cold { background-color: #3b8cf0; }
+    #w.humid { background-color: #2f9fb8; }
+    /* Zachte glans. */
+    #w::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+      background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,0) 55%, rgba(0,0,0,.05)); }
     #w::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
       background: radial-gradient(120% 90% at 20% 30%, rgba(255,255,255,.28), transparent 70%); }
     #w.flash::after { animation: w-flash 1.2s ease-out; }
     @keyframes w-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
     @media (prefers-reduced-motion: reduce) { #w, #w::before { transition: none; } #w.flash::after { animation: none; } }
-    @media (prefers-color-scheme: dark) {
-      #w { --heat: linear-gradient(160deg, #6b4210, #4a2c08); --idle: linear-gradient(160deg, #163b3f, #0e2a2e);
-        --t-heat: #f6b45a; --t-idle: #5fd0c6; --pill: rgba(255,255,255,.12); --solid: #f2a23a; --solid-text: #1d1203; }
-    }
     /* Niet scrollen of 'meeveren' als je de widget met je vinger versleept. */
     html, body { margin: 0; padding: 0; height: 100%; background: transparent; overflow: hidden; overscroll-behavior: none; }
-    body { position: fixed; inset: 0; touch-action: manipulation; -webkit-user-select: none; }
+    body { position: fixed; inset: 0; touch-action: manipulation; -webkit-user-select: none; padding: 0 1px 6px; box-sizing: border-box; }
     #w * { box-sizing: border-box; }
     #w .top { display: flex; justify-content: space-between; align-items: center; gap: 6px; height: 32px; flex: none; }
     #w .chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--pill); font-size: 13px; font-weight: 600; white-space: nowrap; }
     #w .chip svg { width: 15px; height: 15px; }
-    #w .left { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-    #w .hum { padding: 0 8px; gap: 3px; }
-    #w .hum svg { width: 13px; height: 13px; }
-    #w .waves { display: inline-flex; width: 18px; height: 18px; margin-left: -2px; opacity: 0; transition: opacity .6s; }
+    /* Info als gewone tekst met icoontjes, zodat het niet op knoppen lijkt. */
+    #w .info { display: inline-flex; align-items: center; gap: 12px; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; }
+    #w .info .mode { font-weight: 600; }
+    #w .info .it { display: inline-flex; align-items: center; gap: 3px; opacity: .8; }
+    #w .info .it svg { width: 13px; height: 13px; flex: none; }
+    #w .info .it.high { opacity: 1; font-weight: 700; }
+    /* Golfjes los boven het getal, zodat ze de rij niet verschuiven. */
+    /* Golfjes naast de huidige temperatuur: 'het wordt warmer'. */
+    #w .tw { position: relative; display: inline-flex; align-items: center; }
+    #w .waves { display: inline-flex; width: 18px; height: 18px; margin-left: 6px; align-self: center; opacity: 0; transition: opacity .6s; pointer-events: none; }
     #w.heat .waves { opacity: 1; }
+    /* Knipperen zolang de thermostaat de nieuwe temperatuur nog niet heeft bevestigd. */
+    #w.heat .waves.blink { animation: w-blink 1s ease-in-out infinite; }
+    @keyframes w-blink { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+    @media (prefers-reduced-motion: reduce) { #w.heat .waves.blink { animation: none; opacity: .5; } }
     #w .waves svg { width: 18px; height: 18px; }
     #w .mid { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 56px; flex: none; }
     #w .temp { display: inline-flex; align-items: flex-start; font-weight: 600; line-height: .9; letter-spacing: -.03em; }
@@ -47,36 +55,49 @@
     #w .temp .pt { position: absolute; right: 100%; bottom: 0; }
     #w .temp .deg { font-size: 26px; line-height: 1; }
     #w .temp .d { font-size: 23px; line-height: 1; position: relative; align-self: flex-start; }
-    #w .ctrl { display: flex; align-items: center; gap: 6px; }
+    #w .ctrl { display: flex; align-items: center; gap: 2px; }
     #w button { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       border-radius: 999px; background: var(--pill); color: inherit; font: inherit; font-weight: 600; transition: transform .06s; }
     #w button:active { transform: scale(.94); }
-    #w .ctrl button { width: 40px; height: 40px; font-size: 22px; }
-    #w .ctrl output { min-width: 56px; text-align: center; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #w .ctrl button { width: 40px; height: 40px; padding: 0; flex: none; }
+    #w .ctrl button svg { width: 18px; height: 18px; display: block; }
+    #w .ctrl .val { position: relative; width: 60px; text-align: center; }
+    #w .ctrl output { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
     #w .sub { display: flex; align-items: center; gap: 6px; font-size: 14px; height: 20px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #w .sub svg { width: 17px; height: 17px; flex: none; }
-    #w .bar { position: relative; display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 1px; margin-top: 2px; }
+    #w .bar { position: relative; display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin-top: 2px; }
     #w .bar i { display: block; height: 100%; }
+    /* Handmatige periode: omlijning om dat stuk van de balk, met afgeronde hoeken (tekstkleur: zwart in lichte modus). */
+    #w .barwrap .manual { position: absolute; top: -2px; height: 14px; margin-left: -2px; padding: 0; box-sizing: content-box;
+      border: 2px solid currentColor; border-radius: 8px; pointer-events: none; }
     #w .barwrap { position: relative; height: 12px; flex: none; }
-    #w .now { position: absolute; top: -3px; width: 3px; height: 16px; border-radius: 2px; background: currentColor; transform: translateX(-1px); }
+    /* Nu-streepje verticaal gecentreerd op de balk, horizontaal precies op het tijdstip. */
+    #w .now { position: absolute; top: -1px; width: 3px; height: 16px; border-radius: 2px; background: currentColor; transform: translateX(-1.5px); }
     #w .ticks { display: flex; justify-content: space-between; font-size: 11px; line-height: 14px; height: 14px; opacity: .7; margin-top: -2px; flex: none; }
-    #w .resume { height: 32px; padding: 0 12px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
+    #w .resume { flex: none; white-space: nowrap; height: 32px; padding: 0 12px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
     #w .resume svg { width: 16px; height: 16px; }
     #w .err { font-size: 13px; }
     #w button.busy { opacity: .7; pointer-events: none; animation: w-pulse 1s ease-in-out infinite; }
     @keyframes w-pulse { 50% { opacity: .45; } }
     #w .right { display: inline-flex; align-items: center; gap: 6px; }
-    /* Hoe lang geldt de handmatige stand? Schuifbalk zoals in de tado-app, ∞ aan het eind.
+    /* Hoe lang geldt de handmatige stand? Schuifbalk, ∞ aan het eind.
        Neemt precies de plek van regel + dagbalk in, zodat de widget niet verspringt. */
     #w button.sub { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 14px; height: 20px; flex: none;
       white-space: nowrap; overflow: hidden; cursor: pointer; color: inherit; }
     #w button.sub .cd { font-variant-numeric: tabular-nums; opacity: .75; }
     #w button.sub .edit { width: 15px; height: 15px; opacity: .75; }
-    #w .dur { height: 60px; flex: none; display: flex; flex-direction: column; gap: 8px; animation: w-in .25s ease-out; }
-    #w .dur .q { display: flex; align-items: center; gap: 8px; height: 22px; font-size: 14px; white-space: nowrap; }
+    #w .dur { height: 60px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+    #w .dur .q { display: flex; align-items: center; gap: 8px; height: 26px; font-size: 14px; white-space: nowrap; }
     #w .dur .q b { font-weight: 600; }
     #w .dur .q .cd { opacity: .75; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
-    #w .dur .q button { margin-left: auto; width: 26px; height: 22px; font-size: 13px; background: none; opacity: .7; flex: none; }
+    /* Sluitknop: rond, duidelijk icoon, groter tikvlak dan zichtbaar. */
+    #w .dur .q .x { position: relative; margin-left: auto; width: 26px; height: 26px; flex: none; background: var(--pill); }
+    #w .dur .q .x svg { width: 13px; height: 13px; display: block; }
+    #w .dur .q .x::after { content: ''; position: absolute; inset: -9px; }
+    /* Rustige overgang, alleen bij openen/sluiten van het duurpaneel. */
+    #w .enter { animation: w-enter .28s cubic-bezier(.2, .8, .2, 1) both; }
+    @keyframes w-enter { from { opacity: 0; transform: translateY(5px); } }
+    @media (prefers-reduced-motion: reduce) { #w .enter { animation: none; } }
     #w .dur .sl { display: flex; align-items: center; gap: 10px; height: 30px; }
     #w .dur .nx { flex: none; height: 30px; padding: 0 11px; font-size: 13px; white-space: nowrap; }
     #w .dur .nx.on { background: var(--solid); color: var(--solid-text); }
@@ -88,8 +109,8 @@
     #w input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--pill); }
     #w input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: currentColor; }
     #w input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 50%;
-      background: var(--solid); border: 3px solid var(--solid-text); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
-    #w input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--solid); border: 3px solid var(--solid-text); }
+      background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+    #w input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
     /* Skeleton: zelfde opbouw en maten als de echte widget, zodat er bij het laden niets verspringt. */
     #w .sk { display: block; border-radius: 999px; background: var(--pill); position: relative; overflow: hidden; }
     #w .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
@@ -124,6 +145,10 @@
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd' };
 const ICON = {
+  cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>',
   drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
   waves: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5c-1.5 2 1.5 3.5 0 5.5S7 14 7 16m5-11c-1.5 2 1.5 3.5 0 5.5s0 3.5 0 5.5m5-11c-1.5 2 1.5 3.5 0 5.5s0 3.5 0 5.5"/></svg>',
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
@@ -132,6 +157,9 @@ const ICON = {
   flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg>',
 };
 
+let confirmPoll = null;
+const COLD_BELOW = 16; // °C: kouder dan dit = blauw
+const HUMID_FROM = 65; // %: vanaf dit = te vochtig
 let H; let data = null; let loaded = false;
 // Keuzerij 'hoe lang?': open/dicht, en een keuze die nog met de temperatuur mee moet.
 let durOpen = false; let durTimer = null; let chosenDur = null; let sliding = false; let touched = false; let prevKey = null; let pending = null; let sendTimer = null;
@@ -144,15 +172,19 @@ function bigTemp(v) {
   const [i, d] = Number(v).toFixed(1).split('.');
   return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d"><span class="pt">.</span>${d}</span></span></span>`;
 }
+/** Gedeeld palet (zelfde als het weekschema): laag = turquoise-groen, 16–18 = geel, 18–20 = oranje, 20+ = rood-oranje. */
+const PALETTE = { low: '#45c08f', mild: '#f7b52c', warm: '#ee8a35', hot: '#e5603a' };
+/** Heldere kleuren voor de balk: normaal = licht mint, verwarmen = zonnig geel, warm = oranje, heel warm = koraal. */
+// 'low' is een wit laagje over de achtergrond, zodat het past bij groen, geel en blauw.
+const TINT = { low: 'rgba(255,255,255,.5)', mild: '#ffd84d', warm: '#ff9f43', hot: '#ff6a4d' };
 function segColor(t) {
-  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-  if (t == null) return 'rgba(127,127,127,.3)';
-  if (t < 16) return dark ? '#2f6e70' : '#4fa39b';
-  if (t < 18) return dark ? '#b8862a' : '#e3b23c';
-  if (t < 20) return dark ? '#d07a25' : '#e8892b';
-  return dark ? '#d9532b' : '#e0562a';
+  if (t == null) return 'rgba(255,255,255,.3)';
+  if (t < 16) return TINT.low;
+  if (t < 18) return TINT.mild;
+  if (t < 20) return TINT.warm;
+  return TINT.hot;
 }
-function todayBar(schedule) {
+function todayBar(schedule, st) {
   const idx = new Date().getDay();
   let carry = null;
   for (let s = 1; s <= 7 && carry === null; s++) {
@@ -164,7 +196,19 @@ function todayBar(schedule) {
   for (const b of blocks) { const m = toMin(b.time); if (m > start) segs.push([start, m, temp]); start = m; temp = Number(b.temp); }
   segs.push([start, 1440, temp]);
   const n = new Date(); const nowPct = ((n.getHours() * 60 + n.getMinutes()) / 14.4).toFixed(2);
-  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}"></i>`).join('')}</div><span class="now" style="left:${nowPct}%"></span></div>
+  // Handmatig vak: van instellen tot einde handmatige stand, gestreept in de kleur van de ingestelde temperatuur.
+  let manualBox = '';
+  const o = st && st.mode === 'manual' && st.override;
+  if (o) {
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    const toM = (ms) => Math.max(0, Math.min(1440, (ms - dayStart.getTime()) / 60000));
+    const from = toM(o.since || Date.now());
+    const to = o.until == null ? 1440 : toM(o.until);
+    if (to > from) {
+      manualBox = `<span class="manual" style="left:${(from / 14.4).toFixed(2)}%;width:${((to - from) / 14.4).toFixed(2)}%" title="Handmatig ${deg(o.temp)}"></span>`;
+    }
+  }
+  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}"></i>`).join('')}</div>${manualBox}<span class="now" style="left:${nowPct}%"></span></div>
     <div class="ticks"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>`;
 }
 /** Temperatuur die het schema nu voorschrijft (voor directe feedback op 'Schema'). */
@@ -181,11 +225,24 @@ function scheduledNow(schedule) {
   }
   return temp;
 }
-function timeOf(ms) {
-  const d = new Date(ms);
-  const same = d.toDateString() === new Date().toDateString();
-  return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', ...(same ? {} : { weekday: 'short' }) });
+// ---- Tijden in gewone taal: "08:30 uur", met "morgen" of de dag als het niet vandaag is ----
+const clock = (ms) => `${new Date(ms).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })} uur`;
+function dayWord(ms) {
+  const d = new Date(ms); const today = new Date();
+  const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
+  if (d.toDateString() === today.toDateString()) return '';
+  if (d.toDateString() === tomorrow.toDateString()) return 'morgen';
+  return d.toLocaleDateString('nl-NL', { weekday: 'long' });
 }
+const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+/** "08:30 uur", "morgen 08:30 uur" of "zaterdag 08:30 uur" (na 'Tot'). */
+function timeOf(ms) { const w = dayWord(ms); return `${w ? `${w} ` : ''}${clock(ms)}`; }
+/** "om 08:30 uur", "morgen om 08:30 uur" of "zaterdag om 08:30 uur". */
+function whenAt(ms) { const w = dayWord(ms); return `${w ? `${w} ` : ''}om ${clock(ms)}`; }
+/** Tijdstip (ms) van het volgende blok in het schema. */
+const nextBlockAt = (s) => (s.nextBlock && s.nextBlock.inMinutes != null ? (s.updatedAt || Date.now()) + s.nextBlock.inMinutes * 60000 : null);
+/** 17° of 17.5° (zonder overbodige .0). */
+const deg = (v) => `${Number(v) % 1 ? Number(v).toFixed(1) : Number(v).toFixed(0)}°`;
 
 // ---- Duur van de handmatige stand ----
 // Knop 'Tot 08:30' = tot het volgende moment in het schema. Schuifbalk = vaste duur, ∞ aan het eind.
@@ -198,12 +255,14 @@ function stopIndex(d) {
   STOPS.forEach((v, j) => { if (Math.abs(v - m) < Math.abs(STOPS[best] - m)) best = j; });
   return best;
 }
+/** Resterende tijd in uren en minuten, zonder seconden. Naar boven afgerond: nooit '0m' zolang er nog tijd is. */
 function hm(ms) {
-  const t = Math.max(0, Math.round(ms / 1000)); const h = Math.floor(t / 3600); const m = Math.floor((t % 3600) / 60); const sec = t % 60;
-  return h ? `${h}u ${m}m ${sec}s` : `${m}m ${sec}s`;
+  if (ms <= 0) return '0m';
+  const t = Math.ceil(ms / 60000); const h = Math.floor(t / 60); const m = t % 60;
+  return h ? `${h}u ${m}m` : `${m}m`;
 }
 /** Tijd van het volgende blok zoals in het schema staat ("08:30"). */
-const nextAt = (s) => (s.nextBlock && s.nextBlock.at ? s.nextBlock.at.slice(3) : '');
+const nextAt = (s) => (nextBlockAt(s) ? timeOf(nextBlockAt(s)) : '');
 function untilOf(s, d) { return d === 'manual' ? null : d === 'next' ? s.nextChangeAt : Date.now() + d * 60000; }
 /** "Tot 03:41" + aftellen, of "Tot je het schema hervat". */
 function durLabel(s, d, until) {
@@ -211,11 +270,13 @@ function durLabel(s, d, until) {
   return { t: `Tot ${d === 'next' && nextAt(s) ? nextAt(s) : timeOf(until)}`, cd: hm(until - Date.now()) };
 }
 function openDur() {
+  if (!durOpen) enterPanel = true;
   durOpen = true;
   clearTimeout(durTimer);
   durTimer = setTimeout(() => { if (!sliding) closeDur(); else openDur(); }, 8000); // niets gekozen: standaard laten staan
 }
-function closeDur() { clearTimeout(durTimer); durOpen = false; sliding = false; touched = false; render(); }
+let enterPanel = false; let enterRow = false; // alleen bij openen/sluiten animeren, niet bij elke verversing
+function closeDur() { clearTimeout(durTimer); if (durOpen) enterRow = true; durOpen = false; sliding = false; touched = false; render(); }
 function curDur(s) {
   if (chosenDur != null) return chosenDur;
   if (s.mode === 'manual' && s.override) return s.override.duration || 'next'; // + of − houdt de eindtijd vast
@@ -227,10 +288,11 @@ function durPanel(s) {
   const sameAsNow = s.mode === 'manual' && s.override && chosenDur == null;
   const l = durLabel(s, d, sameAsNow ? s.override.until : untilOf(s, d));
   const i = isNext ? stopIndex(Math.max(1, ((s.nextChangeAt || Date.now()) - Date.now()) / 60000)) : stopIndex(d);
-  return `<div class="dur">
-      <div class="q"><b class="dl">${esc(l.t)}</b><span class="cd">${esc(l.cd)}</span><button data-durclose aria-label="Klaar">✕</button></div>
+  const enter = enterPanel ? ' enter' : ''; enterPanel = false;
+  return `<div class="dur${enter}">
+      <div class="q"><b class="dl">${esc(l.t)}</b><span class="cd">${esc(l.cd)}</span><button class="x" data-durclose aria-label="Klaar">${ICON.x}</button></div>
       <div class="sl">
-        <button class="nx${isNext ? ' on' : ''}" data-next aria-pressed="${isNext}">${esc(nextAt(s) ? `Tot ${nextAt(s)}` : 'Tot schema')}</button>
+        <button class="nx${isNext ? ' on' : ''}" data-next aria-pressed="${isNext}">Volgend tijdsblok</button>
         <input class="${isNext ? 'off' : ''}" type="range" min="0" max="${STOPS.length - 1}" step="1" value="${i}" style="--p:${(i / (STOPS.length - 1)) * 100}%" aria-label="Hoe lang geldt deze temperatuur">
         <span class="inf" aria-hidden="true">∞</span>
       </div>
@@ -282,7 +344,12 @@ function render() {
   const s = data.status;
   const target = pending != null ? pending : s.thermostatTarget;
   const heating = target != null && s.indoor != null && target > s.indoor + 0.2;
+  // Toestand: verwarmen gaat voor, dan te koud, dan te vochtig.
+  const cold = !heating && s.indoor != null && s.indoor < COLD_BELOW;
+  const humid = !heating && !cold && s.humidity != null && s.humidity >= HUMID_FROM;
   w.classList.toggle('heat', heating);
+  w.classList.toggle('cold', cold);
+  w.classList.toggle('humid', humid);
   const key = JSON.stringify([s.mode, s.thermostatTarget, s.indoor, s.override && s.override.until]);
   if (prevKey !== null && key !== prevKey && pending == null) { w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
   prevKey = key;
@@ -291,32 +358,39 @@ function render() {
   let sub;
   if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span>${ICON.edit}`;
   else if (manual) sub = `${ICON.hand}<span>${esc(durLabel(s, s.override.duration || 'next', s.override.until).t)}</span><span class="cd">${hm(s.override.until - Date.now())}</span>${ICON.edit}`;
-  else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(s.nextBlock ? s.nextBlock.at.slice(3) : '')}</span>`;
-  else if (s.nextBlock) sub = `<span>Straks ${esc(s.nextBlock.at.slice(3))} → ${fmt(s.nextBlock.temp)}</span>`;
+  else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(nextAt(s))}</span>`;
+  else if (s.nextBlock && nextBlockAt(s)) sub = `<span>${esc(cap(whenAt(nextBlockAt(s))))} → ${deg(s.nextBlock.temp)}</span>`;
   else sub = '';
+  const waiting = heating && (pending == null) && s.targetConfirmed === false;
+  clearTimeout(confirmPoll); if (waiting) confirmPoll = setTimeout(load, 3000); // wacht op bevestiging: vaker kijken
   w.innerHTML = `
     <div class="top">
-      <span class="left"><span class="chip">${esc(MODES[s.mode] || s.mode)}</span>${s.humidity != null ? `<span class="chip hum" aria-label="Luchtvochtigheid">${ICON.drop}${s.humidity}%</span>` : ''}</span>
-      <span class="right">${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Schema</button>` : `<span class="chip">${fmt(s.outdoor)} buiten</span>`}</span>
+      <span class="info">
+        <span class="mode">${esc(MODES[s.mode] || s.mode)}</span>
+        ${s.humidity != null ? `<span class="it${s.humidity >= HUMID_FROM ? ' high' : ''}" aria-label="Luchtvochtigheid ${s.humidity}%${s.humidity >= HUMID_FROM ? ', te vochtig' : ''}">${ICON.drop}${s.humidity}%</span>` : ''}
+        ${s.outdoor != null && s.mode !== 'manual' ? `<span class="it" aria-label="Buiten ${fmt(s.outdoor)}">${ICON.cloud}${fmt(s.outdoor)}</span>` : ''}
+      </span>
+      ${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>` : ''}
     </div>
     <div class="mid">
-      ${bigTemp(s.indoor)}
+      <span class="tw">${bigTemp(s.indoor)}<span class="waves${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></span>
       <div class="ctrl">
-        <button data-d="-0.5" aria-label="Kouder">−</button>
-        <output aria-label="Ingesteld">${fmt(target)}</output><span class="waves" aria-hidden="true">${ICON.waves}</span>
-        <button data-d="0.5" aria-label="Warmer">+</button>
+        <button data-d="-0.5" aria-label="Kouder">${ICON.minus}</button>
+        <span class="val"><output aria-label="Ingesteld">${fmt(target)}</output></span>
+        <button data-d="0.5" aria-label="Warmer">${ICON.plus}</button>
       </div>
     </div>
     ${durOpen ? durPanel(s)
     : `${manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`}
-    ${todayBar(data.schedule || {})}`}`;
+    ${todayBar(data.schedule || {}, s)}`}`;
+  if (enterRow && !durOpen) { w.querySelectorAll('.sub, .barwrap, .ticks').forEach((el) => el.classList.add('enter')); enterRow = false; }
   setTimeout(fitHeight, 0);
 }
 
 // Widgethoogte = gemeten inhoud, zodat er niets wordt afgesneden en er niets te scrollen valt.
-let lastHeight = 192;
+let lastHeight = 198;
 function fitHeight() {
-  const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height);
+  const h = Math.ceil(document.getElementById('w').getBoundingClientRect().height) + 6; // + ruimte voor de schaduw
   if (!H || !h) return;
   if (Math.abs(h - lastHeight) > 1 && typeof H.setHeight === 'function') {
     lastHeight = h; Promise.resolve(H.setHeight(h)).catch(() => {});
@@ -367,7 +441,7 @@ document.addEventListener('click', async (e) => {
   if (step && data && data.status) {
     const base = pending != null ? pending : data.status.thermostatTarget;
     pending = Math.min(28, Math.max(5, Math.round((base + Number(step.dataset.d)) * 2) / 2));
-    openDur(); // net als tado: meteen vragen hoe lang, maar zonder keuze geldt de standaard
+    openDur(); // meteen vragen hoe lang, maar zonder keuze geldt de standaard
     render();
     // Even wachten zodat meerdere tikken één wijziging worden.
     clearTimeout(sendTimer);
