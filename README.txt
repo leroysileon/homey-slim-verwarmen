@@ -14,7 +14,10 @@ Every time the heating has to warm up, the app measures how long your boiler nee
 Home and away
 Use the Flow cards to switch to an eco temperature when everyone has left and back to the schedule when someone comes home.
 
+Look back
+See per day how the temperature went, what was set and when you changed it yourself.
+
 Widget and Climate
-Add the Heating widget to your Home screen to see the temperature, nudge it up or down and see today's schedule at a glance. Add the Smart Heating device to see the schedule in Homey's Climate overview.
+Add the Heating widget to your Home screen to see the temperature, nudge it up or down, see today's schedule and swipe to see how today went. The waves show how long warming up will still take. Add the Smart Heating device to see the schedule in Homey's Climate overview.
 
 Note: the settings page is currently in Dutch.

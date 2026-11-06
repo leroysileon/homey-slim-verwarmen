@@ -266,7 +266,7 @@
 
 
     /* Snelmenu: app-icoon links, daarnaast een tekstbalk die je opzij kunt vegen. Blijft bovenaan staan tijdens scrollen. */
-    #sv .qnav { position: -webkit-sticky; position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 8px;
+    #sv .qnav { position: -webkit-sticky; position: sticky; top: 10px; /* vastgezet: wat meer lucht erboven */ z-index: 6; display: flex; align-items: center; gap: 8px;
       margin: -4px -8px 12px; padding: 8px; background: transparent; pointer-events: none;
       /* Glas zoals iOS: half doorzichtig, wazig en iets verzadigd wat eronder langs scrolt, met een dun licht randje. */
       --glass: color-mix(in srgb, var(--card) 62%, transparent);
@@ -274,6 +274,16 @@
     @media (prefers-color-scheme: dark) { #sv .qnav { --glass: color-mix(in srgb, var(--card) 55%, transparent);
       --glass-edge: inset 0 0 0 .5px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.08), 0 2px 10px rgba(0,0,0,.3); } }
     #sv .qnav > * { pointer-events: auto; }
+    /* Vastgezet: van de bovenrand tot halverwege het menu een vervaging die van sterk naar zwak afloopt.
+       Gestapelde lagen met steeds sterkere blur over een steeds kleiner bovenstuk geven een vloeiend verloop. */
+    #sv .qnav > .qblur { position: absolute; left: 0; right: 0; top: -10px; height: 40px; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .2s; }
+    #sv .qnav.stuck > .qblur { opacity: 1; }
+    #sv .qblur i { position: absolute; inset: 0; }
+    #sv .qblur i:nth-child(1) { -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px); -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+    #sv .qblur i:nth-child(2) { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); -webkit-mask-image: linear-gradient(#000 40%, transparent 80%); mask-image: linear-gradient(#000 40%, transparent 80%); }
+    #sv .qblur i:nth-child(3) { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); -webkit-mask-image: linear-gradient(#000 25%, transparent 60%); mask-image: linear-gradient(#000 25%, transparent 60%); }
+    #sv .qblur i:nth-child(4) { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); -webkit-mask-image: linear-gradient(#000 10%, transparent 40%); mask-image: linear-gradient(#000 10%, transparent 40%);
+      background: linear-gradient(color-mix(in srgb, var(--bg) 60%, transparent), transparent); }
     #sv .qnav .qlogo, #sv .qscroll { background: var(--glass); -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%); box-shadow: var(--glass-edge); }
     /* Homey geeft knoppen eigen breedte/padding: hier alles vastzetten zodat het een echt rondje blijft. */
     #sv .qnav .qlogo { flex: 0 0 44px; box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; max-width: 44px; min-height: 44px; max-height: 44px; aspect-ratio: 1; padding: 0; margin: 0; border: 0; line-height: 0; border-radius: 50%; color: var(--text); display: grid; place-items: center; }
@@ -289,7 +299,7 @@
     #sv .qscroll button { flex: none; min-height: 38px; padding: 0 14px; margin: 0; font-size: 14px; background: transparent; color: var(--text); white-space: nowrap;
       transition: background-color .2s, color .2s; }
     #sv .qscroll button.on { background: var(--text); color: var(--card); }
-    #sv #secWeek, #sv #secHist, #sv #secLearn, #sv #secCfg { scroll-margin-top: 84px; }
+    #sv #secWeek, #sv #secHist, #sv #secLearn, #sv #secCfg { scroll-margin-top: 94px; }
 
     /* Verloop groot */
     /* Lange ruimtenaam: inkorten met '…'; vergroot-icoon en dagknoppen blijven altijd zichtbaar. */
@@ -384,6 +394,7 @@
   <div id="setup"></div>
   <div id="main">
   <nav class="qnav" id="qnav" aria-label="Snel naar">
+    <div class="qblur" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <button class="qlogo" id="qtop" aria-label="Naar boven"><svg viewBox="0 0 960 960" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M270 460 480 270l210 190v230H270z" stroke-width="60"/><circle cx="772" cy="282" r="58" stroke-width="48"/></svg></button>
     <div class="qscroll" id="qscroll"><button data-go="secWeek">Schema</button><button data-go="secHist">Terugkijken</button><button data-go="secLearn">Opwarmtijd</button><button data-go="secCfg">Instellingen</button></div>
   </nav>
@@ -1136,6 +1147,7 @@ window.addEventListener('resize', navShadow);
 navShadow();
 let navCur = null;
 function markNav() {
+  const nav = $('qnav'); nav.classList.toggle('stuck', window.scrollY > 0 && nav.getBoundingClientRect().top <= 10.5); // vastgezet bovenaan
   const ids = ['secWeek', 'secHist', 'secLearn', 'secCfg'];
   let cur = null; // bovenaan (status) is geen menuknop actief
   ids.forEach((id) => { const el = $(id); if (el && el.getBoundingClientRect().top < 120) cur = id; });

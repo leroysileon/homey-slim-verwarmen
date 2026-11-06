@@ -14,5 +14,9 @@
   "1.2.0": {
     "en": "Easy first setup: nothing changes until you tap Start. The settings page shows the same tile as the widget, with Away and Pause. Room name, a weather icon that matches the weather outside, humidity and outdoor temperature alternate when space is short. Choose how long a manual temperature lasts. Weekly schedule: tap a block to change start, end and temperature. Learns faster how quickly your home heats up.",
     "nl": "Makkelijk beginnen: er verandert niets tot je op Start tikt. De instellingenpagina toont dezelfde tegel als de widget, met Afwezig en Pauzeren. Ruimtenaam, een weericoon dat past bij het weer buiten, luchtvochtigheid en buitentemperatuur wisselen elkaar af als er weinig ruimte is. Kies hoe lang een handmatige temperatuur geldt. Weekschema: tik op een blok om begin, eind en temperatuur aan te passen. Leert sneller hoe snel je huis opwarmt."
+  },
+  "1.3.0": {
+    "en": "Look back: see per day how the temperature went, what was set and when you changed it yourself; hold the chart for details or open it full screen. Widget: swipe to see how today went. The waves next to the temperature show how long warming up will still take; tap them for a short explanation. New menu at the top of the settings page to jump to Schedule, Look back, Warm-up time and Settings.",
+    "nl": "Terugkijken: zie per dag hoe de temperatuur verliep, wat er ingesteld was en wanneer je het zelf veranderde; houd je vinger op de grafiek voor details of open hem op volledig scherm. Widget: veeg opzij voor het verloop van vandaag. De golfjes naast de temperatuur laten zien hoe lang het opwarmen nog duurt; tik erop voor korte uitleg. Nieuw menu bovenaan de instellingen om snel naar Schema, Terugkijken, Opwarmtijd en Instellingen te gaan."
   }
 }

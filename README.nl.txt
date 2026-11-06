@@ -14,5 +14,8 @@ Elke keer dat de verwarming moet opwarmen, meet de app hoe lang je cv nodig heef
 Thuis en afwezig
 Met de flowkaarten gaat de verwarming naar een eco-temperatuur als iedereen weg is, en terug naar het schema als er iemand thuiskomt.
 
+Terugkijken
+Zie per dag hoe de temperatuur verliep, wat er ingesteld was en wanneer je het zelf veranderde.
+
 Widget en Klimaat
-Zet de widget Verwarming op je Home-scherm: temperatuur, snel hoger of lager, en het schema van vandaag. Voeg het apparaat Slim verwarmen toe om het schema in het Klimaat-overzicht van Homey te zien.
+Zet de widget Verwarming op je Home-scherm: temperatuur, snel hoger of lager, het schema van vandaag en, met een veeg, het verloop van vandaag. De golfjes laten zien hoe lang het opwarmen nog duurt. Voeg het apparaat Slim verwarmen toe om het schema in het Klimaat-overzicht van Homey te zien.
