@@ -66,7 +66,6 @@ http.createServer((req, res) => {
     const url = req.url.split('?')[0];
     if (url === '/' || url === '/index.html') return send(200, fs.readFileSync(path.join(__dirname, '..', 'settings', 'index.html'), 'utf8'), 'text/html');
     if (url === '/homey.js') return send(200, mockHomey, 'text/javascript');
-    if (url === '/variants') return send(200, fs.readFileSync(path.join(__dirname, 'variants.html'), 'utf8'), 'text/html');
     if (url === '/widget') {
       const html = fs.readFileSync(path.join(__dirname, '..', 'widgets', 'verwarming', 'public', 'index.html'), 'utf8')
         .replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1"><style>html{background:#000}body{max-width:380px;margin:16px auto;padding:0 12px}</style><script src="/widget-homey.js"></script></head>');
