@@ -474,3 +474,14 @@ test('widget: grafiekkaart met kosten en ballonnetje tekent zonder fouten', () =
   vm.runInContext("hist = sample; costInfo = true; globalThis.p1 = document.querySelector('.p1'); chartPage(p1, document.querySelector('.p0'));", ctx);
   assert.ok(String(ctx.p1.innerHTML).includes('cpop'), 'ballonnetje getekend');
 });
+
+test('tegel in de instellingen gebruikt hetzelfde kleurschema (geen wit vlak op desktop)', () => {
+  const fs = require('fs'); const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'widgets/verwarming/public/index.html'), 'utf8');
+  assert.ok(html.includes("if (IN_SETTINGS) document.documentElement.style.colorScheme = 'light dark';"));
+  // Laadbeeld in de instellingen = knoppen i.p.v. dagbalk, en dezelfde schaduwruimte als fitHeight.
+  assert.ok(html.includes('<div class="acts"><span class="sk ab"></span><span class="sk ab"></span></div>'));
+  assert.ok(html.includes('lastHeight = sk ? sk + 6 : lastHeight;'));
+  const settings = fs.readFileSync(path.join(__dirname, '..', 'settings/index.html'), 'utf8');
+  assert.ok(settings.includes('#tileframe { display: block; width: 100%; height: 242px;'), 'start op de hoogte van de geladen tegel');
+});

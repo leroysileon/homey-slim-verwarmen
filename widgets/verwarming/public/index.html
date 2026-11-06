@@ -265,6 +265,7 @@
     #w .sk.btn { width: 40px; height: 40px; }
     #w .sk.out { width: 56px; height: 22px; }
     #w .sk.line { width: 150px; height: 14px; }
+    #w .sk.ab { width: auto; height: 42px; } /* knop in het laadbeeld van de instellingen */
     #w .bar.sk { border-radius: 5px; }
     #w .ticks.sk-t { opacity: .35; }
     #w.in > * { animation: w-in .35s ease-out; }
@@ -338,6 +339,16 @@ function stepTick() {
   try { switchEl.click(); } catch (e) { /* geen tikje */ }
 }
 if (IN_SETTINGS) document.documentElement.classList.add('in-settings');
+// Zelfde kleurschema als de instellingenpagina, anders zet Chrome (Homey op desktop) in donkere modus een wit vlak achter de tegel.
+if (IN_SETTINGS) document.documentElement.style.colorScheme = 'light dark';
+// Laadbeeld in de instellingen: geen dagbalk maar twee knoppen, net als de geladen tegel (zelfde hoogte, niets springt).
+if (IN_SETTINGS) {
+  const p = document.querySelector('#w.loading .p0');
+  if (p) {
+    p.querySelectorAll('.barwrap, .ticks').forEach((el) => el.remove());
+    p.insertAdjacentHTML('beforeend', '<div class="acts"><span class="sk ab"></span><span class="sk ab"></span></div>');
+  }
+}
 const ICON_ACT = {
   away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>',
@@ -1049,7 +1060,8 @@ document.addEventListener('click', async (e) => {
 function onHomeyReady(Homey) {
   H = Homey;
   // Meteen de hoogte van de skeleton doorgeven: die is gelijk aan de geladen widget.
-  lastHeight = Math.ceil(document.getElementById('w').getBoundingClientRect().height) || lastHeight;
+  const sk = Math.ceil(document.getElementById('w').getBoundingClientRect().height);
+  lastHeight = sk ? sk + 6 : lastHeight; // + 6: zelfde schaduwruimte als fitHeight, anders springt hij na het laden
   Homey.ready({ height: lastHeight });
   load();
   if (!IN_SETTINGS) setTimeout(loadHist, 1500); // verloop alvast klaarzetten, zodat de tweede kaart gevuld binnenschuift
