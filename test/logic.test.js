@@ -119,6 +119,33 @@ test('leert opwarmsnelheid en dode tijd', () => {
   assert.equal(l.samples.length, 1);
 });
 
+test('onderbroken opwarmen telt mee als de stijging lang genoeg duurde', () => {
+  const l = new Learner();
+  l.observe({ now: 0, target: 21, indoor: 18, outdoor: 5 });
+  for (let m = 1; m <= 60; m++) { // 10 min dode tijd, daarna 2 °C/uur
+    const indoor = m < 10 ? 18 : 18 + (m - 10) * (2 / 60);
+    l.observe({ now: m * MIN, target: 21, indoor: Math.round(indoor * 10) / 10, outdoor: 5 });
+  }
+  const s = l.observe({ now: 61 * MIN, target: 19, indoor: 19.7, outdoor: 5 }); // iemand verandert de knop
+  assert.ok(s, 'meting opgeslagen');
+  assert.ok(Math.abs(s.rate - 2) < 0.3, `rate ${s.rate}`);
+  assert.equal(l.samples.length, 1);
+});
+
+test('kort onderbroken opwarmen telt niet mee', () => {
+  const l = new Learner();
+  l.observe({ now: 0, target: 21, indoor: 18, outdoor: 5 });
+  for (let m = 1; m <= 20; m++) l.observe({ now: m * MIN, target: 21, indoor: 18 + Math.max(0, m - 5) * 0.04, outdoor: 5 });
+  assert.equal(l.observe({ now: 21 * MIN, target: 19, indoor: 18.6, outdoor: 5 }), null);
+  assert.equal(l.samples.length, 0);
+});
+
+test('meting begint al bij 0,8° verschil', () => {
+  const l = new Learner();
+  l.observe({ now: 0, target: 18, indoor: 17.2, outdoor: 5 });
+  assert.ok(l.session, 'sessie gestart');
+});
+
 test('kouder buiten = langer voorverwarmen', () => {
   const samples = [];
   for (let i = 0; i < 10; i++) {
