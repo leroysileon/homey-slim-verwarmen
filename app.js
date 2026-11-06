@@ -4,9 +4,11 @@ const Homey = require('homey');
 const { HomeyAPI } = require('homey-api');
 const { Controller } = require('./lib/controller');
 const { weatherOf } = require('./lib/weather');
+const { presenceOf, PresenceWatcher } = require('./lib/presence');
+const { usageOf } = require('./lib/usage');
 
 const TICK_MS = 60 * 1000;
-const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig' };
+const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig', limit: 'maximumtemperatuur' };
 
 class SlimVerwarmenApp extends Homey.App {
 
@@ -25,6 +27,7 @@ class SlimVerwarmenApp extends Homey.App {
         readThermostat: () => this.readThermostat(),
         readOutdoor: () => this.readOutdoor(),
         weather: () => this.lastWeather || null,
+        presence: () => ({ auto: this.config.autoPresence === true, home: this.lastPresence ? this.lastPresence.home : null, count: this.lastPresence ? this.lastPresence.count : 0 }),
         writeTarget: (temp) => this.writeTarget(temp),
       },
       store: this.homey.settings,
@@ -35,7 +38,23 @@ class SlimVerwarmenApp extends Homey.App {
     this.registerFlowCards();
     await this.autoDetect();
 
+    // Aanwezigheid: wie er thuis is volgens de Homey-app. Werkt alleen als 'Automatisch thuis en afwezig' aan staat.
+    this.presence = new PresenceWatcher();
+    this.autoPresenceOn = this.config.autoPresence === true;
+    try {
+      await this.api.users.connect();
+      this.api.users.on('user.update', () => this.checkPresence().catch(this.error));
+    } catch (err) {
+      this.error('Gebruikers niet realtime te volgen, val terug op elke minuut controleren:', err.message);
+    }
+    await this.checkPresence().catch(this.error);
+
     this.homey.settings.on('set', (key) => {
+      if (key === 'config') {
+        const on = this.config.autoPresence === true;
+        if (on && !this.autoPresenceOn) this.checkPresence(true).catch(this.error); // net aangezet: meteen volgen
+        this.autoPresenceOn = on;
+      }
       if (key === 'schedule' || key === 'config') {
         this.watchThermostat().catch(this.error);
         this.controller.tick();
@@ -43,13 +62,30 @@ class SlimVerwarmenApp extends Homey.App {
     });
 
     await this.watchThermostat();
-    this.homey.setInterval(() => this.controller.tick(), TICK_MS);
+    this.homey.setInterval(() => { this.checkPresence().catch(this.error); this.controller.tick(); }, TICK_MS);
     await this.controller.tick();
     this.log('Slim verwarmen gestart');
   }
 
   get config() {
     return this.controller.config;
+  }
+
+  // ---------- Aanwezigheid ----------
+
+  /** Iedereen weg = afwezig, eerste thuis = terug naar het schema. apply=true: huidige stand meteen toepassen. */
+  async checkPresence(apply = false) {
+    const users = await this.api.users.getUsers();
+    const p = presenceOf(users);
+    if (!p.count) return; // geen gebruikers te zien: niets doen
+    this.lastPresence = p;
+    const change = this.presence.update(p.anyHome);
+    if (this.config.autoPresence !== true) return;
+    if (apply) { await this.controller.setAway(!p.anyHome); return; }
+    if (change) {
+      this.log(`Aanwezigheid: ${change === 'home' ? 'iemand thuis' : 'iedereen weg'}`);
+      await this.controller.setAway(change === 'away');
+    }
   }
 
   // ---------- Apparaten ----------
@@ -146,6 +182,11 @@ class SlimVerwarmenApp extends Homey.App {
       const knmi = devices.find((d) => (d.capabilities || []).includes('current_temp'));
       if (knmi) { cfg.outdoorDeviceId = knmi.id; cfg.outdoorCapability = 'current_temp'; changed = true; }
     }
+    if (cfg.meterId === undefined) {
+      // Slimme meter (P1) met gas: die gebruiken voor het verbruik per dag. Geen gevonden = niets tonen.
+      const p1 = devices.find((d) => (d.capabilities || []).includes('meter_gas'));
+      cfg.meterId = p1 ? p1.id : null; cfg.meterCapability = p1 ? 'meter_gas' : null; changed = true;
+    }
     if (changed) this.homey.settings.set('config', cfg);
   }
 
@@ -168,9 +209,12 @@ class SlimVerwarmenApp extends Homey.App {
           zone: zones[d.zone] ? zones[d.zone].name : '',
           thermostat: (d.capabilities || []).includes('target_temperature'),
           tempCaps: tempCaps.map((c) => ({ id: c, title: (capsObj[c] && capsObj[c].title) || c })),
+          // Oplopende meterstanden voor gas (m³) of stroom (kWh), zonder dag-, tarief- of terugleverwaarden.
+          meterCaps: (d.capabilities || []).filter((c) => /^meter_(gas|power)(\.|$)/.test(c) && !/today|export|tariff|phase/i.test(c))
+            .map((c) => ({ id: c, title: (capsObj[c] && capsObj[c].title) || c })),
         };
       })
-      .filter((d) => d.thermostat || d.tempCaps.length)
+      .filter((d) => d.thermostat || d.tempCaps.length || d.meterCaps.length)
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -204,17 +248,21 @@ class SlimVerwarmenApp extends Homey.App {
       return [];
     };
     const dev = this.config.thermostatId ? `homey:device:${this.config.thermostatId}` : null;
-    const [indoor, target, humidity, outdoor] = await Promise.all([
+    const cfg = this.config;
+    const [indoor, target, humidity, outdoor, meter] = await Promise.all([
       dev ? read(dev, 'measure_temperature') : [],
       dev ? read(dev, 'target_temperature') : [],
       dev ? read(dev, 'measure_humidity') : [],
       read('homey:manager:weather', 'temperature'),
+      cfg.usage === true && cfg.meterId && cfg.meterCapability ? read(`homey:device:${cfg.meterId}`, cfg.meterCapability) : [],
     ]);
+    // Verbruik van die dag (gas of stroom) en wat het kostte, als er een meter is gekozen.
+    const usage = cfg.usage === true && cfg.meterId && cfg.meterCapability ? usageOf(meter, cfg.meterCapability, cfg.price) : null; // alleen als 'Verbruik en kosten' aan staat
     const log = this.controller.modeLog || [];
     const before = log.filter((x) => x.t < start).pop();
     const modes = [...(before ? [{ t: start, m: before.m }] : []), ...log.filter((x) => x.t >= start && x.t < end)];
     if (!indoor.length && errors.length) this.error('Inzichten:', errors.join(' | '));
-    return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, modes, errors: indoor.length ? [] : errors.slice(0, 2) };
+    return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, modes, usage, errors: indoor.length ? [] : errors.slice(0, 2) };
   }
 
   async runAction({ action, duration, temp } = {}) {
@@ -245,6 +293,13 @@ class SlimVerwarmenApp extends Homey.App {
     flow.getActionCard('set_temporary').registerRunListener(({ temp, hours }) => c.setOverride(temp, hours));
     flow.getActionCard('set_manual').registerRunListener(({ temp, duration }) => c.setManual(temp, duration));
     flow.getActionCard('set_enabled').registerRunListener(({ state }) => c.setEnabled(state === 'on'));
+    // Prijs per m³/kWh vanuit een flow (bijv. met een tag van de app van je energieleverancier), zodat de kosten actueel blijven.
+    flow.getActionCard('set_price').registerRunListener(({ price }) => {
+      const p = Math.round(Number(price) * 1000) / 1000;
+      if (!Number.isFinite(p) || p < 0) throw new Error('Ongeldige prijs');
+      this.homey.settings.set('config', { ...(this.homey.settings.get('config') || {}), price: p });
+      return true;
+    });
 
     flow.getConditionCard('is_manual').registerRunListener(() => !!c.state.override);
     flow.getConditionCard('is_preheating').registerRunListener(() => c.status.mode === 'preheat');
@@ -270,6 +325,13 @@ class SlimVerwarmenApp extends Homey.App {
       const driver = this.homey.drivers.getDriver('thermostat');
       for (const device of driver.getDevices()) await device.showStatus(data).catch(this.error);
       return;
+    }
+    // Boven het maximum teruggezet: melding in de Homey-tijdlijn, zodat je ziet dat er is ingegrepen.
+    if (event === 'setpoint_changed' && data.reason === 'limit') {
+      const f = (v) => `${String(v).replace('.', ',')}°`;
+      await this.homey.notifications.createNotification({
+        excerpt: `Slim verwarmen: thermostaat teruggezet van ${f(data.from)} naar ${f(data.temp)} (maximumtemperatuur).`,
+      }).catch(this.error);
     }
     const card = this.triggers && this.triggers[event];
     if (!card) return;

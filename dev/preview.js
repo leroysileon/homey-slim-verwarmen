@@ -15,7 +15,7 @@ const store = {
     sat: [{ time: '10:00', temp: 18 }, { time: '23:00', temp: 15 }],
     sun: [{ time: '10:00', temp: 18 }, { time: '23:00', temp: 15 }],
   },
-  config: { thermostatId: 'thermostaat', outdoorDeviceId: 'knmi', outdoorCapability: 'current_temp', ecoTemp: 16, maxPreheat: 180, preheat: true },
+  config: { usage: true, meterId: 'p1', meterCapability: 'meter_gas', price: 1.4, thermostatId: 'thermostaat', outdoorDeviceId: 'knmi', outdoorCapability: 'current_temp', ecoTemp: 16, maxPreheat: 180, preheat: true },
 };
 let mode = 'schedule';
 let manualTemp = 21; let confirmedAt = 0;
@@ -24,7 +24,7 @@ const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 466 
 let manualUntil = untilOf('next');
 const now = Date.now();
 const status = () => ({
-  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, setupDone: mode !== 'setup', thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5, weather: 'partly', room: 'Woonkamer',
+  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, setupDone: mode !== 'setup', thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5, weather: 'partly', room: 'Woonkamer', presence: { auto: store.config.autoPresence === true, home: ['Leroy Sileon'], count: 3 },
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
@@ -41,6 +41,7 @@ const devices = [
   { id: 'plan', name: 'Plan Weekprogramma', zone: 'Woonkamer', thermostat: true, tempCaps: [] },
   { id: 'knmi', name: 'KNMI weather', zone: 'Tuin', thermostat: false, tempCaps: [{ id: 'current_temp', title: 'Temperatuur' }] },
   { id: 'kk', name: 'Temp. sensor', zone: 'Kinderkamer', thermostat: false, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
+  { id: 'p1', name: 'P1-meter', zone: 'Meterkast', thermostat: false, tempCaps: [], meterCaps: [{ id: 'meter_gas', title: 'Totaal gasverbruik' }, { id: 'meter_power.imported', title: 'Totale geïmporteerde energie' }] },
 ];
 
 const mockHomey = `
@@ -65,6 +66,7 @@ http.createServer((req, res) => {
   req.on('end', () => {
     const url = req.url.split('?')[0];
     if (url === '/' || url === '/index.html') return send(200, fs.readFileSync(path.join(__dirname, '..', 'settings', 'index.html'), 'utf8'), 'text/html');
+    if (url === '/states') { delete require.cache[require.resolve('./states')]; return send(200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">${require('./states').build()}`, 'text/html'); } // alle toestanden van de widget
     if (url === '/homey.js') return send(200, mockHomey, 'text/javascript');
     if (url === '/tile.html') return send(200, fs.readFileSync(path.join(__dirname, '..', 'settings', 'tile.html'), 'utf8'), 'text/html');
     if (url === '/widget') {
@@ -108,7 +110,8 @@ http.createServer((req, res) => {
         t += sp > t ? 0.08 : -0.02; indoor.push([k, Math.round(t * 10) / 10]); target.push([k, sp]); outdoor.push([k, 2 + 5 * Math.sin((hr - 8) / 24 * Math.PI * 2)]); humidity.push([k, Math.round(60 + 4 * Math.sin(hr / 3))]);
       }
       const modes = [{ t: start, m: 'schedule' }, { t: start + 12 * 3600000, m: 'manual' }, { t: start + 14 * 3600000, m: 'schedule' }].filter((m) => m.t < upto);
-      return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, humidity, modes });
+      const usage = store.config.usage && store.config.meterId ? { amount: 2.3, unit: 'm³', price: store.config.price || 1.4, cost: Math.round(2.3 * (store.config.price || 1.4) * 100) / 100 } : null;
+      return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, humidity, modes, usage });
     }
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/action') {

@@ -229,8 +229,8 @@
               {
                 "id": "next",
                 "title": {
-                  "en": "until the next schedule change",
-                  "nl": "tot het volgende moment in het schema"
+                  "en": "until the next schedule block",
+                  "nl": "tot het volgende blok in het schema"
                 }
               },
               {
@@ -281,6 +281,34 @@
           }
         ],
         "id": "set_presence"
+      },
+      {
+        "title": {
+          "en": "Set energy price",
+          "nl": "Energieprijs instellen"
+        },
+        "titleFormatted": {
+          "en": "Set price to € [[price]] per unit",
+          "nl": "Zet prijs op € [[price]] per eenheid"
+        },
+        "hint": {
+          "en": "Price per m³ gas (or per kWh for an electricity meter) used for 'Usage and costs'. Use a tag from your energy provider's app to keep it up to date.",
+          "nl": "Prijs per m³ gas (of per kWh bij een stroommeter) voor 'Verbruik en kosten'. Gebruik een tag van de app van je energieleverancier, dan blijft hij actueel."
+        },
+        "args": [
+          {
+            "type": "number",
+            "name": "price",
+            "min": 0,
+            "max": 10,
+            "step": 0.001,
+            "placeholder": {
+              "en": "1.40",
+              "nl": "1,40"
+            }
+          }
+        ],
+        "id": "set_price"
       },
       {
         "title": {

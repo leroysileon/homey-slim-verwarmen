@@ -8,25 +8,29 @@
   <style>
     /* Alles hangt onder #sv: een ID wint van de standaardopmaak die Homey over knoppen en velden legt. */
     #sv {
-      --bg: #f2f1ef; --card: #ffffff; --card-2: #f4f3f1; --text: #17171a; --muted: #6c6c72; --line: #e2e0dc;
+      --bg: #f2f2f7; --card: #ffffff; --card-2: #f2f2f6; --text: #17171a; --muted: #6c6c72; --line: #e3e3e8; /* zelfde grijs als de Homey-app */
       --link: #1f6fe5; --warm: #ee8a35; --warm-text: #b45f12; --cold-bg: #d6ecea; --cold-text: #1f6f69;
       --tile-heat: linear-gradient(160deg, #f3b25f, #e58a2c); --tile-idle: linear-gradient(160deg, #cfe3e4, #b7d3d6);
-      --tile-text-heat: #3a1f02; --tile-text-idle: #0f3a3d; --pill: rgba(0,0,0,.08); --press: #ebeae7;
+      --tile-text-heat: #3a1f02; --tile-text-idle: #0f3a3d; --pill: rgba(0,0,0,.08); --press: #e9e9ee;
       background: var(--bg); color: var(--text); min-height: 100vh; padding: 8px 8px 110px; overflow-x: clip; /* clip i.p.v. hidden: anders werkt het vaste snelmenu niet */
       font: 400 17px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
       -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     }
     @media (prefers-color-scheme: dark) {
-      #sv { --bg: #000; --card: #242528; --card-2: #2e2f33; --text: #f5f5f5; --muted: #9a9aa0; --line: #3a3b40;
+      #sv { --bg: #14151a; --card: #22232b; --card-2: #2c2d36; --text: #f5f5f5; --muted: #9a9ba3; --line: #363742; /* blauwzwart zoals de Homey-app */
         --link: #3d8bff; --warm: #f2a23a; --warm-text: #f6b45a; --cold-bg: #23484b; --cold-text: #5fd0c6;
         --tile-heat: linear-gradient(160deg, #6b4210, #4a2c08); --tile-idle: linear-gradient(160deg, #163b3f, #0e2a2e);
         --tile-text-heat: #f6b45a; --tile-text-idle: #5fd0c6; --pill: rgba(255,255,255,.12); --press: #333438; }
     }
     /* Achtergrond tot in de onderrand (ook de ruimte die iOS vrijhoudt en bij doorscrollen). */
     /* Homey zet standaard binnenruimte om de pagina; die halen we weg, de pagina regelt zelf de marge. */
-    html, body { margin: 0 !important; padding: 0 !important; background: #000 !important; min-height: 100%; }
-    @media (prefers-color-scheme: light) { html, body { background: #f2f1ef !important; } }
-    #sv { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+    /* Naar beneden trekken mag geen wit vlak tonen: geen 'verend' scrollen, en de standaard achtergrond volgt licht/donker. */
+    html { color-scheme: light dark; touch-action: manipulation; } /* snel twee keer tikken = twee tikken, niet inzoomen of verschuiven */
+    html, body { margin: 0 !important; padding: 0 !important; background: #14151a !important; min-height: 100%; overscroll-behavior-y: none; }
+    @media (prefers-color-scheme: light) { html, body { background: #f2f2f7 !important; } }
+    /* Onderaan alleen ruimte voor de opslaan-balk als die er is. */
+    #sv { padding-bottom: calc(24px + env(safe-area-inset-bottom)); transition: padding-bottom .2s; }
+    #sv.has-savebar { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
     #sv * { box-sizing: border-box; }
     #sv h1 { all: unset; display: block; font-size: 32px; font-weight: 700; letter-spacing: -.01em; margin: 0 4px 16px; }
     #sv h2 { all: unset; display: block; font-size: 22px; font-weight: 700; margin: 30px 4px 12px; }
@@ -140,17 +144,18 @@
     #sv .slot .se .sh.oh .to { font-size: 15px; color: var(--ink); opacity: 1; padding: 0 5px 0 4px; }
     #sv .slot .se .sh.oh .stepper { margin-left: auto; gap: 0; }
     #sv .slot .se .sh.oh .stepper button { width: 32px; min-height: 32px; height: 32px; }
+    /* Maximumtemperatuur: 'max' als labeltje in de balk en de kop, en als rondje in plaats van + bij bewerken. */
+    #sv .mx { margin-left: 4px; padding: 1px 5px; border-radius: 999px; background: rgba(0,0,0,.12); font-size: 10px; font-weight: 700; vertical-align: 1px; }
+    #sv .slot .stepper .maxs { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; font-size: 11px; font-weight: 700; padding: 0; opacity: .8; }
     #sv .slot .se .sh.oh .stepper output { min-width: 50px; padding: 0 8px; font-size: 18px; }
-    #sv .slot .se .sh.oh .chevbtn { margin-left: 6px; }
     /* Verwijderen: brede, lichtrode knop met rode tekst (destructief, maar rustig) */
     #sv .slot .ed button.danger { flex: 1; min-height: 44px; border-radius: 999px; font-size: 15px; font-weight: 500; background: #fbe7e3; color: #cc3a1f; }
     @media (prefers-color-scheme: dark) { #sv .slot .ed button.danger { background: #4a2420; color: #ff8a75; } }
     #sv .slot .sh .endfix { padding-left: 0; }
-    #sv .slot .sh .chevbtn { width: 20px; min-height: 40px; padding: 0; background: none; color: var(--ink); }
-    /* Groter tikvlak (44×44) rond het kleine pijltje, zonder dat het pijltje verschuift */
-    #sv .slot .sh .chevbtn { position: relative; }
-    #sv .slot .sh .chevbtn::before { content: ''; position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
-    #sv .slot .ed .lbl { font-size: 13px; opacity: .75; white-space: nowrap; }
+    /* Inklappen: pijltje omhoog rechts naast Verwijderen (44×44 tikvlak). */
+    #sv .slot .ed { gap: 8px; }
+    #sv .slot .ed button.up { flex: none; width: 44px; min-height: 44px; margin-right: -10px; padding: 0; border-radius: 999px; background: transparent; color: var(--ink); display: grid; place-items: center; }
+    #sv .slot .ed button.up svg.chev { width: 20px; height: 20px; transform: rotate(180deg); opacity: .6; } /* zelfde als de pijltjes in de kop */
     #sv .slot.opening .ed { animation: slotGrow .22s ease both; }
     #sv .slot.closing .ed { animation: slotShrink .18s ease both; }
     #sv .slot.closing .se .sh svg.chev { transform: none; }
@@ -184,6 +189,8 @@
 
     /* Eerste keer instellen */
     #sv.setup:not(.show-main) #main { display: none; }
+    /* Opslaan gaat vanzelf; de knop is er alleen om tijdens het eerste instellen terug te gaan naar de stappen. */
+    #sv #setupBack { display: none; } #sv.setup.show-main #setupBack { display: block; }
     #sv.setup #status, #sv.setup .fresh { display: none; }
     #setup .hello h2 { all: unset; display: block; font-size: 21px; font-weight: 700; margin: 2px 0 4px; }
     #setup .hello p, #setup .sub { margin: 0; color: var(--muted); }
@@ -232,9 +239,21 @@
     #sv button.harr { width: 36px; min-height: 36px; height: 36px; padding: 0; color: var(--muted); display: grid; place-items: center; }
     #sv button.harr svg { width: 18px; height: 18px; display: block; }
     #sv button.harr:disabled { opacity: .35; }
-    #sv .hsum { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 12.5px; color: var(--muted); margin: 8px 2px 0; }
+    /* Onderrand: cijfers links, vergroten rechtsonder. */
+    #sv .hfoot { display: flex; align-items: flex-end; gap: 8px; margin: 8px 0 0 2px; }
+    #sv .hsum { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; font-size: 12.5px; color: var(--muted); }
     #sv .hsum span { display: flex; flex-direction: column; }
     #sv .hsum b { font-size: 16px; color: var(--text); font-weight: 600; }
+    #sv .hsum .ul { font-style: normal; display: flex; flex-direction: row; align-items: center; white-space: nowrap; }
+    #sv .hsum .info { margin: -8px -8px -8px 0; }
+    /* .ucost erbij: anders wint de algemene i-regel verderop (16px) door gelijke specificiteit. */
+    #sv .hsum .ucost .info svg { width: 9px; height: 9px; stroke-width: 2.6; } /* klein, iets dikkere lijn zodat het leesbaar blijft */
+    #sv .hsum .info { width: 20px; margin: -8px -6px -8px -2px; }
+    /* Het hele bedrag is aantikbaar; open = i-tje in de selectiekleur. */
+    #sv .hsum button.ucost { all: unset; display: flex; flex-direction: column; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    #sv .hsum button.ucost:focus-visible { outline: 2px solid var(--link); border-radius: 6px; }
+    #sv .hsum .ucost[aria-expanded="true"] .info { color: var(--link); }
+    #sv .hnote { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; line-height: 1.4; color: var(--text); }
     #sv .hempty { text-anchor: middle; font-size: 13px; fill: var(--muted); }
     #sv svg#hChart { display: block; width: 100%; height: auto; touch-action: manipulation; cursor: crosshair; } /* niet de 22px van icoontjes */
     /* Details bij vasthouden/schuiven: lijn, stip en een kaartje */
@@ -266,7 +285,7 @@
 
 
     /* Snelmenu: app-icoon links, daarnaast een tekstbalk die je opzij kunt vegen. Blijft bovenaan staan tijdens scrollen. */
-    #sv .qnav { position: -webkit-sticky; position: sticky; top: 10px; /* vastgezet: wat meer lucht erboven */ z-index: 6; display: flex; align-items: center; gap: 8px;
+    #sv .qnav { position: -webkit-sticky; position: sticky; top: 10px; /* vastgezet: wat meer lucht erboven */ z-index: 6; display: flex; align-items: center; gap: 4px;
       margin: -4px -8px 12px; padding: 8px; background: transparent; pointer-events: none;
       /* Glas zoals iOS: half doorzichtig, wazig en iets verzadigd wat eronder langs scrolt, met een dun licht randje. */
       --glass: color-mix(in srgb, var(--card) 62%, transparent);
@@ -286,9 +305,11 @@
       background: linear-gradient(color-mix(in srgb, var(--bg) 60%, transparent), transparent); }
     #sv .qnav .qlogo, #sv .qscroll { background: var(--glass); -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%); box-shadow: var(--glass-edge); }
     /* Homey geeft knoppen eigen breedte/padding: hier alles vastzetten zodat het een echt rondje blijft. */
-    #sv .qnav .qlogo { flex: 0 0 44px; box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; max-width: 44px; min-height: 44px; max-height: 44px; aspect-ratio: 1; padding: 0; margin: 0; border: 0; line-height: 0; border-radius: 50%; color: var(--text); display: grid; place-items: center; }
-    #sv .qnav .qlogo svg { width: 30px; height: 30px; }
-    #sv .qscroll { position: relative; flex: 0 1 auto; margin-left: auto; min-width: 0; display: flex; gap: 2px; padding: 3px; border-radius: 999px;
+    #sv .qnav .qlogo { flex: 0 0 40px; box-sizing: border-box; width: 40px; height: 40px; min-width: 40px; max-width: 40px; min-height: 40px; max-height: 40px; aspect-ratio: 1; padding: 0; margin: 0; border: 0; line-height: 0; border-radius: 50%; color: var(--text); display: grid; place-items: center; }
+    #sv .qnav .qlogo.qcfg svg { width: 22px; height: 22px; }
+    #sv .qnav .qcfg.on { background: var(--text); color: var(--card); } /* actief: zoals de gekozen tekstknop */
+    #sv .qnav .qlogo svg { width: 27px; height: 27px; }
+    #sv .qscroll { position: relative; flex: 0 1 auto; margin-left: auto; min-width: 0; display: flex; gap: 0; padding: 3px 1px; border-radius: 999px;
       overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
     #sv .qscroll::-webkit-scrollbar { display: none; }
     /* Binnenschaduw aan de kant waar nog meer menu-items zitten. */
@@ -296,8 +317,10 @@
     #sv .qscroll.more-r { box-shadow: var(--glass-edge), inset -14px 0 12px -12px rgba(0,0,0,.14); }
     #sv .qscroll.more-l { box-shadow: var(--glass-edge), inset 14px 0 12px -12px rgba(0,0,0,.14); }
     #sv .qscroll.more-l.more-r { box-shadow: var(--glass-edge), inset -14px 0 12px -12px rgba(0,0,0,.14), inset 14px 0 12px -12px rgba(0,0,0,.14); }
-    #sv .qscroll button { flex: none; min-height: 38px; padding: 0 14px; margin: 0; font-size: 14px; background: transparent; color: var(--text); white-space: nowrap;
+    #sv .qscroll button { flex: none; min-height: 38px; padding: 0 12px; margin: 0 -2px; /* knopvlak groeit om het woord heen en overlapt de ruimte ertussen */ font-size: 13.5px; background: transparent; color: var(--text); white-space: nowrap;
       transition: background-color .2s, color .2s; }
+    #sv .qscroll button:first-child { margin-left: 0; } #sv .qscroll button:last-child { margin-right: 0; }
+    #sv .qscroll button.on { position: relative; z-index: 1; } /* actieve knop ligt bovenop zijn buren */
     #sv .qscroll button.on { background: var(--text); color: var(--card); }
     #sv #secWeek, #sv #secHist, #sv #secLearn, #sv #secCfg { scroll-margin-top: 94px; }
 
@@ -344,13 +367,31 @@
     #sv input[type=checkbox] { all: revert; width: 24px; height: 24px; accent-color: var(--warm); flex: none; }
     #sv label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
     #sv label:first-child { margin-top: 0; }
-    #sv #preWrap > label { margin-top: 16px; } /* eerste in zijn blok, maar staat onder de schakelaar: wel ruimte */
+    #sv #preWrap > label, #sv #priceWrap > label, #sv #usageWrap > label { margin-top: 16px; }
+    /* Groepen in de instellingen: geen lijnen, maar een duidelijk kopje met ruimte erboven. */
+    #sv .cg { all: unset; display: block; font-size: 17px; font-weight: 700; margin: 34px 2px 0; }
+    #sv .cg:first-of-type { margin-top: 0; }
+    #sv .cg + label, #sv .cg + label.toggle { margin-top: 10px; }
+    /* Blok met schakelaar waarin de extra velden verschijnen (Verbruik en kosten). */
+    #sv .tsec { margin-top: 34px; } /* los blok: zelfde ruimte als een nieuwe groep */
+    #sv .tblock { border-radius: 14px; background: var(--card-2); }
+    #sv .tblock > label.toggle { margin: 0; background: transparent; }
+    #sv .tblock #usageWrap, #sv .tblock #preWrap, #sv .tblock #limitWrap { padding: 0 14px 14px; }
+    #sv .tblock #usageWrap > label, #sv .tblock #preWrap > label, #sv .tblock #limitWrap > label { margin-top: 2px; }
+    #sv .tblock.tgap { margin-top: 22px; }
+    #sv .tblock select, #sv .tblock .fstep { background-color: var(--card); } /* alleen de kleur: de chevron van de keuzelijst is een achtergrondafbeelding */
+    #sv label .lh { opacity: .7; } /* korte toelichting achter een label */ /* eerste in zijn blok, maar staat onder de schakelaar: wel ruimte */
     /* Homey zet labels standaard in hoofdletters; hier niet. */
     #sv label, #sv label *, #sv small, #sv h1, #sv h2, #sv h3 { text-transform: none !important; letter-spacing: normal !important; }
     #sv .fstep { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 52px; padding: 0 6px; border-radius: 12px; background: var(--card-2); }
     #sv .fstep output { flex: 1; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
-    #sv .fstep button { width: 40px; min-height: 40px; padding: 0; flex: none; }
+    #sv .fstep button { width: 44px; min-height: 44px; padding: 0; flex: none; background: transparent; } /* geen rondje: − en + spreken voor zich */
+    #sv .fstep button:active { background: var(--press); }
     #sv label.toggle { display: flex; align-items: center; gap: 14px; margin: 22px 0 0; padding: 14px; border-radius: 14px; background: var(--card-2); cursor: pointer; color: var(--text); }
+    /* Icoon in een neutraal rondje voor de schakelaar, zoals in de Homey-instellingen (geen accentkleur). */
+    #sv .toggle .ti { flex: none; align-self: flex-start; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+      background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+    #sv .toggle .ti svg { display: block; width: 16px; height: 16px; }
     #sv .toggle .tt { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     #sv .toggle .tt b { font-size: 17px; font-weight: 600; }
     #sv .toggle .tt small { font-size: 14px; line-height: 1.35; font-weight: 500; }
@@ -360,11 +401,14 @@
     #sv .toggle input:checked + .knob { background: var(--warm); }
     #sv .toggle input:checked + .knob::after { transform: translateX(20px); }
     #sv .toggle input:focus-visible + .knob { outline: 3px solid var(--link); outline-offset: 2px; }
-    #sv .fresh { display: flex; align-items: center; gap: 8px; margin: 6px 4px 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    #sv .fresh { display: flex; align-items: center; gap: 8px; margin: 0 4px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+      max-height: 0; opacity: 0; overflow: hidden; transform: translateY(-4px); transition: max-height .3s ease, opacity .3s ease, transform .3s ease, margin .3s ease; }
+    #sv .fresh.show { max-height: 40px; opacity: 1; transform: none; margin-top: 6px; }
+    @media (prefers-reduced-motion: reduce) { #sv .fresh { transition: none; } }
     #sv .fresh #fresh { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #sv .fresh button.link { min-height: 32px; font-size: 14px; white-space: nowrap; flex: none; padding: 0 2px; }
     #sv .fresh .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .6; transition: background .3s; }
-    #sv .fresh .dot.live { background: var(--warm); opacity: 1; }
+    #sv .fresh .dot { background: var(--warm); opacity: 1; } /* melding: oranje stip */
     #sv .fresh .dot.ping { animation: sv-ping 1s ease-out; }
     @keyframes sv-ping { 0% { box-shadow: 0 0 0 0 rgba(242,162,58,.7); } 100% { box-shadow: 0 0 0 9px rgba(242,162,58,0); } }
     #sv .switch { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
@@ -375,19 +419,32 @@
     #sv .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
     #sv .stats span { display: block; font-size: 14px; font-weight: 500; color: var(--muted); }
     #sv .stats b { font-size: 20px; font-weight: 600; }
+    /* Klein i-knopje achter een label; tikken toont/verbergt een korte uitleg onder de cijfers. */
+    #sv :is(.stats, .hsum) .info { all: unset; display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -6px -6px -6px -2px; vertical-align: middle; color: var(--muted); cursor: pointer; border-radius: 50%; }
+    #sv :is(.stats, .hsum) .info svg { width: 16px; height: 16px; }
+    #sv :is(.stats, .hsum) .info[aria-expanded="true"] { color: var(--link); }
+    #sv :is(.stats, .hsum) .info:focus-visible { outline: 2px solid var(--link); }
+    #sv .stats .note { grid-column: 1 / -1; margin: -4px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--text); }
     #sv .rows { margin-top: 16px; }
-    #sv .rows .r span:last-child { white-space: nowrap; text-align: right; }
-    #sv .rows .r { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; font-weight: 500; }
+    #sv .rows .r { padding: 9px 0; border-top: 1px solid var(--line); }
+    #sv .rows .r1 { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 500; }
+    #sv .rows .r1 b { white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .rows .r2 { font-size: 13px; color: var(--muted); margin-top: 1px; }
 
     /* Opslaan-balk */
     #sv .savebar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px;
       padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line);
       transform: translateY(110%); transition: transform .2s; z-index: 5; }
     #sv .savebar.show { transform: none; }
-    #sv .savebar span { flex: 1; font-weight: 600; }
-    #sv .toast { position: fixed; left: 16px; right: 16px; bottom: 90px; background: var(--text); color: var(--bg); font-weight: 600;
-      padding: 14px 16px; border-radius: 16px; text-align: center; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 6; }
-    #sv .toast.show { opacity: 1; }
+    #sv .savebar span { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* één regel */
+    /* Zelfde maat als 'Tijdsblok verwijderen'. */
+    #sv .savebar button { flex: none; min-height: 44px; padding: 0 20px; border-radius: 999px; font-size: 15px; }
+    /* Melding: klein pilletje onderaan, valt weinig op en verdwijnt vanzelf. */
+    #sv .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 8px); z-index: 20;
+      padding: 8px 14px; border-radius: 999px; background: color-mix(in srgb, var(--text) 88%, transparent); color: var(--bg); font-size: 14px; font-weight: 600;
+      white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s, transform .2s; }
+    #sv .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (prefers-reduced-motion: reduce) { #sv .toast { transition: none; } }
   </style>
 </head>
 <body>
@@ -397,24 +454,28 @@
   <nav class="qnav" id="qnav" aria-label="Snel naar">
     <div class="qblur" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <button class="qlogo" id="qtop" aria-label="Naar boven"><svg viewBox="0 0 960 960" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M270 460 480 270l210 190v230H270z" stroke-width="60"/><circle cx="772" cy="282" r="58" stroke-width="48"/></svg></button>
-    <div class="qscroll" id="qscroll"><button data-go="secWeek">Schema</button><button data-go="secHist">Terugkijken</button><button data-go="secLearn">Opwarmtijd</button><button data-go="secCfg">Instellingen</button></div>
+    <div class="qscroll" id="qscroll"><button data-go="secHist">Terugkijken</button><button data-go="secWeek">Schema</button><button data-go="secLearn">Opwarmtijd</button></div>
+    <!-- Instellingen apart rechts: altijd met één tik bereikbaar, ook als de tekstbalk niet past. -->
+    <button class="qlogo qcfg" data-go="secCfg" aria-label="Instellingen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
   </nav>
   <div id="status">
     <!-- De statustegel ís de widget (tile.html = kopie van het widgetbestand), zodat ze altijd gelijk zijn. -->
     <iframe id="tileframe" src="tile.html?in=settings" title="Verwarming" scrolling="no"></iframe>
   </div>
-  <div class="fresh"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh">Laden…</span><button class="link" id="refresh">Nu ophalen</button></div>
-
-  <div class="h2row" id="secWeek"><h2>Schema</h2><button id="goToday">Vandaag</button></div>
-  <div id="week"></div>
+  <!-- Alleen zichtbaar als het ophalen een tijd niet lukt. -->
+  <div class="fresh" id="freshRow" role="status"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh"></span><button class="link" id="refresh">Opnieuw proberen</button></div>
 
   <div class="h2row" id="secHist"><h2>Terugkijken</h2></div>
   <div class="card" id="hist">
-    <div class="hhd"><span class="hroom"><span id="hRoom"></span><button class="harr hexp" id="hFull" aria-label="Verloop groot bekijken"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button></span>
+    <div class="hhd"><span class="hroom"><span id="hRoom"></span></span>
       <span class="hnav"><button class="harr" id="hPrev" aria-label="Dag eerder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg></button><b id="hDay">Vandaag</b><button class="harr" id="hNext" aria-label="Dag later"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></svg></button></span></div>
     <div class="hwrap"> <svg id="hChart" class="hchart" width="100%" viewBox="0 0 340 196" role="img" aria-label="Temperatuurverloop. Houd ingedrukt en schuif voor details."></svg><div class="htip" id="hTip" hidden></div></div>
-    <div class="hsum" id="hSum"></div>
+    <div class="hfoot"><div class="hsum" id="hSum"></div><button class="harr hexp" id="hFull" aria-label="Verloop groot bekijken"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button></div>
+    <p class="hnote" id="usageNote" hidden></p>
   </div>
+
+  <div class="h2row" id="secWeek"><h2>Schema</h2><button id="goToday">Vandaag</button></div>
+  <div id="week"></div>
 
   <h2 id="secLearn">Opwarmtijd</h2>
   <p class="pnote" id="preNote"></p>
@@ -422,12 +483,15 @@
 
   <h2 id="secCfg">Instellingen</h2>
   <div class="card">
+    <!-- Ingedeeld in groepen; 'Extra' is optioneel en klapt pas open als je hem aanzet. -->
+    <h3 class="cg">Apparaten</h3>
     <label for="thermostat">Thermostaat</label>
     <select id="thermostat"></select>
 
-    <label for="outdoor">Buitentemperatuur (om te leren hoeveel kou het opwarmen vertraagt)</label>
+    <label for="outdoor">Buitentemperatuur <span class="lh">· voor de opwarmtijd</span></label>
     <select id="outdoor"></select>
 
+    <h3 class="cg">Thuis en weg</h3>
     <label id="ecoLbl">Temperatuur als niemand thuis is</label>
     <div class="fstep" role="group" aria-labelledby="ecoLbl">
       <button data-cfg="ecoTemp" data-d="-0.5" aria-label="Kouder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
@@ -435,17 +499,43 @@
       <button data-cfg="ecoTemp" data-d="0.5" aria-label="Warmer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
     </div>
 
-    <label for="overrideDefault">Als je zelf de temperatuur verandert, geldt die</label>
+    <label class="toggle" for="autoPres" id="presToggle">
+      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5 3.8 10.3c-.8.3-.7 1.4.1 1.6l6.6 1.6 1.6 6.6c.2.8 1.3.9 1.6.1z"/></svg></span>
+      <span class="tt"><b>Thuis/Afwezig-detectie</b><small>Iedereen de deur uit? Dan zakt de temperatuur naar de stand hierboven.<span id="presNow" hidden></span></small></span>
+      <input id="autoPres" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
+    </label>
+
+    <h3 class="cg">Verwarmen</h3>
+    <label for="overrideDefault">Handmatige bediening temperatuur actief</label>
     <select id="overrideDefault">
-      <option value="next">tot het volgende moment in het schema</option>
+      <!-- Zelfde keuzes als de snelkeuzes in de widget. -->
+      <option value="next">tot volgend blok</option>
       <option value="60">1 uur</option>
       <option value="120">2 uur</option>
       <option value="180">3 uur</option>
-      <option value="240">4 uur</option>
       <option value="manual">tot je het schema hervat</option>
     </select>
 
+    <!-- Maximumtemperatuur: niemand kan warmer zetten dan dit (schema, widget, knop op de thermostaat). -->
+    <div class="tblock tgap">
+    <label class="toggle" for="limitOn" id="limitToggle">
+      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M18 4h3M18 8h3"/></svg></span>
+      <span class="tt"><b>Maximumtemperatuur</b><small>Niemand kan de verwarming hoger zetten, ook niet via de knop op de thermostaat.</small></span>
+      <input id="limitOn" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
+    </label>
+    <div id="limitWrap" hidden>
+      <label id="limitLbl">Nooit warmer dan</label>
+      <div class="fstep" role="group" aria-labelledby="limitLbl">
+        <button data-cfg="maxTemp" data-d="-0.5" aria-label="Lager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+        <output id="maxTempOut"></output>
+        <button data-cfg="maxTemp" data-d="0.5" aria-label="Hoger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+      </div>
+    </div>
+    </div>
+
+    <div class="tblock tgap">
     <label class="toggle" for="preheat" id="preToggle">
+      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg></span>
       <span class="tt"><b>Op tijd warm</b><small>Begint vanzelf eerder met verwarmen, zodat het op het ingestelde tijdstip al warm is. Uit: de verwarming begint pas op dat tijdstip.</small></span>
       <input id="preheat" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
@@ -458,8 +548,31 @@
         <button data-cfg="maxPreheat" data-d="15" aria-label="Langer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
       </div>
     </div>
+    </div>
 
-    <div class="actions"><button class="solid" id="saveConfig">Instellingen opslaan</button></div>
+    <!-- Optioneel: na aanzetten verschijnen meter en prijs ín hetzelfde blok. -->
+    <div class="tsec"><div class="tblock">
+    <label class="toggle" for="usageOn" id="usageToggle">
+      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg></span>
+      <span class="tt"><b>Verbruik en kosten</b><small>Laat bij Terugkijken zien hoeveel gas of stroom er die dag is gebruikt en wat dat kostte. Werkt met een slimme meter in Homey.</small></span>
+      <input id="usageOn" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
+    </label>
+    <div id="usageWrap" hidden>
+      <label for="meter">Meter</label>
+      <select id="meter"></select>
+      <div id="priceWrap" hidden>
+        <label id="priceLbl">Prijs per m³</label>
+        <div class="fstep" role="group" aria-labelledby="priceLbl">
+          <button data-cfg="price" data-d="-0.05" aria-label="Lager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+          <output id="priceOut"></output>
+          <button data-cfg="price" data-d="0.05" aria-label="Hoger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+        </div>
+
+      </div>
+    </div>
+    </div></div>
+
+    <div class="actions" id="setupBack"><button class="solid" id="saveConfig">Terug naar de stappen</button></div>
   </div>
 
   </div><!-- /main -->
@@ -473,7 +586,7 @@
   </div>
   <div class="savebar" id="savebar" role="region" aria-live="polite">
     <span>Schema gewijzigd</span>
-    <button id="undo">Annuleren</button>
+    <button id="undo">Herstel</button>
     <button class="solid" id="saveSchedule">Opslaan</button>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -506,13 +619,15 @@ const WX = (() => {
   };
 })();
 const wxIcon = (k) => WX[k] || WX.cloudy;
+// i-knopje voor uitleg (Opwarmtijd en Terugkijken).
+const INFO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
 const ICON = {
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg>',
   cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg>',
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
-  away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8"/><path d="m9 21 3-6 3 2v4m-6-9 2-3 4 1 2 3m-8-1-3 1"/></svg>',
+  away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7M5 10v10h14V10"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg>',
@@ -522,7 +637,7 @@ const ICON = {
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>',
 };
 
-let H; let schedule = {}; let saved = '{}'; let config = {}; let devices = [];
+let H; let schedule = {}; let saved = '{}'; let config = {}; let lastSaved = {}; let devices = [];
 const todayKey = DAY_KEYS[(new Date().getDay() + 6) % 7];
 const open = new Set([todayKey]);
 let copyOpen = null;
@@ -551,7 +666,7 @@ function toast(msg) {
 /** Kleuren per temperatuur: koel = mintgroen, warmer = geel/oranje. */
 function tempStyle(t) {
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-  if (t == null) return dark ? 'background:#2e2f33;color:#9a9aa0' : 'background:#e7e5e1;color:#6c6c72';
+  if (t == null) return dark ? 'background:#2c2d36;color:#9a9ba3' : 'background:#e6e6eb;color:#6c6c72';
   if (t < 16) return dark ? 'background:#1c4636;color:#6fdcae' : 'background:#d7f3e6;color:#1d6f4f';
   if (t < 18) return dark ? 'background:#5a4512;color:#f7c75a' : 'background:#fdecc0;color:#7a5306';
   if (t < 20) return dark ? 'background:#5f3612;color:#f5a560' : 'background:#fbdcbf;color:#87440d';
@@ -614,10 +729,16 @@ function slots(key) {
   return out.filter((x) => x.to > x.from || x.idx !== null);
 }
 
+/** Ingestelde maximumtemperatuur (of null) en wat een schema-blok daardoor echt wordt. */
+const maxOf = () => (config.limit === true && Number.isFinite(Number(config.maxTemp)) ? Number(config.maxTemp) : null);
+const capped = (t) => { const m = maxOf(); return m != null && t != null && Number(t) > m ? m : null; };
+const MAXTAG = '<span class="mx">max</span>';
 function dayCard(key, i) {
   const bar = segments(key).map((s) => {
     const w = (s.to - s.from) / 14.4;
-    return `<i style="flex:${(s.to - s.from)} 0 0;${tempStyle(s.temp)}">${w >= 11 && s.temp != null ? `${Number(s.temp).toFixed(1)}°` : ''}</i>`;
+    // Boven het maximum: toon (en kleur) wat er echt wordt verwarmd, met 'max' erbij.
+    const c = capped(s.temp); const shown = c != null ? c : s.temp;
+    return `<i style="flex:${(s.to - s.from)} 0 0;${tempStyle(shown)}">${w >= 11 && s.temp != null ? `${Number(shown).toFixed(1)}°${c != null && w >= 22 ? MAXTAG : ''}` : ''}</i>`; // 'max' alleen als het past
   }).join('');
   const isToday = key === todayKey;
   const nowMark = isToday ? `<span class="now" style="left:${(nowMin() / 14.4).toFixed(2)}%"></span>` : '';
@@ -638,7 +759,7 @@ function dayCard(key, i) {
     const isOpen = editing === id;
     // Kop: tijd, temperatuur en een pijltje. Tik om open of dicht te klappen.
     const sh = `<button class="sh" data-slot="${id}" aria-expanded="${isOpen}" aria-label="${isOpen ? 'Sluit' : 'Wijzig'} tijdvak ${range} uur, ${Number(b.temp).toFixed(1)} graden">
-        <span class="range">${range} uur${nowTag}</span><span class="tv">${Number(b.temp).toFixed(1)}°</span>${ICON.chev}</button>`;
+        <span class="range">${range} uur${nowTag}</span><span class="tv">${Number(capped(b.temp) ?? b.temp).toFixed(1)}°${capped(b.temp) != null ? MAXTAG : ''}</span>${ICON.chev}</button>`;
     if (!isOpen) return `${head}<div class="se">${sh}</div></div>`;
     // Open: de kop wordt de tijden zelf (begin – eind); daaronder temperatuur en verwijderen.
     const next = list[n + 1];
@@ -651,12 +772,12 @@ function dayCard(key, i) {
         <span class="to">–</span>${endField}
         <div class="stepper">
           <button data-step="-0.5" data-day="${key}" data-i="${sl.idx}" aria-label="Kouder">${ICON.minus}</button>
-          <output>${Number(b.temp).toFixed(1)}°</output>
-          <button data-step="0.5" data-day="${key}" data-i="${sl.idx}" aria-label="Warmer">${ICON.plus}</button>
+          <output>${Number(capped(b.temp) ?? b.temp).toFixed(1)}°</output>
+          ${maxOf() != null && Number(b.temp) >= maxOf() ? '<button class="maxs" data-maxs aria-label="Maximumtemperatuur bereikt">max</button>' : `<button data-step="0.5" data-day="${key}" data-i="${sl.idx}" aria-label="Warmer">${ICON.plus}</button>`}
         </div>
-        <button class="chevbtn" data-slot="${id}" aria-expanded="true" aria-label="Sluit tijdvak">${ICON.chev}</button>
       </div><div class="ed">
         <button class="danger" data-del="${sl.idx}" data-day="${key}">Tijdsblok verwijderen</button>
+        <button class="up" data-slot="${id}" aria-expanded="true" aria-label="Tijdsblok inklappen">${ICON.chev}</button>
       </div></div>
     </div>`;
   }).join('') : '';
@@ -698,8 +819,11 @@ setInterval(() => {
 let lastActive = null;
 
 function renderWeek() {
+  // Schema opnieuw tekenen zonder dat de pagina verspringt: scrollpositie vasthouden.
+  const y = window.scrollY;
   $('week').innerHTML = DAY_KEYS.map(dayCard).join('');
-  $('savebar').classList.toggle('show', dirty());
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  $('savebar').classList.toggle('show', dirty()); $('sv').classList.toggle('has-savebar', dirty());
 }
 
 
@@ -712,6 +836,15 @@ function setEditing(id) {
   setTimeout(finish, 170);
 }
 
+// Altijd maar één tijdsblok open (geen Klaar-knop): een ander blok openen klapt het vorige in,
+// en een tik buiten het schema (behalve op het opslaan-balkje) klapt het open blok ook in.
+// Let op: het schema wordt bij een tik opnieuw getekend, waardoor e.target al uit de pagina is.
+// Daarom het pad van het moment van tikken gebruiken (composedPath), niet e.target.closest().
+document.addEventListener('click', (e) => {
+  const inside = e.composedPath().some((n) => n.id === 'week' || n.id === 'savebar' || n.id === 'haptic'); // haptic: het trilklikje zelf
+  if (editing && !inside) setEditing(null);
+});
+
 $('week').addEventListener('click', (e) => {
   const t = (sel) => e.target.closest(sel);
   let el;
@@ -721,9 +854,12 @@ $('week').addEventListener('click', (e) => {
   if ((el = t('[data-toggle]'))) {
     const k = el.dataset.toggle; open.has(k) ? open.delete(k) : open.add(k); renderWeek(); return;
   }
+  if (t('[data-maxs]')) { [0, 110, 220].forEach((ms) => setTimeout(tick, ms)); return; } // 'max': foutpatroon trillen
   if ((el = t('[data-step]'))) {
+    tick();
     const b = schedule[el.dataset.day][el.dataset.i];
-    b.temp = Math.min(28, Math.max(5, Math.round((Number(b.temp) + Number(el.dataset.step)) * 2) / 2));
+    const top = maxOf() ?? 28; // niet boven het maximum; een blok dat erboven stond, gaat vanaf het maximum omlaag
+    b.temp = Math.min(top, Math.max(5, Math.round((Math.min(Number(b.temp), top) + Number(el.dataset.step)) * 2) / 2));
     renderWeek(); return;
   }
   if ((el = t('[data-del]'))) { schedule[el.dataset.day].splice(Number(el.dataset.del), 1); editing = null; renderWeek(); return; }
@@ -788,7 +924,8 @@ $('week').addEventListener('focusout', (e) => {
     renderWeek();
   }, 200);
 });
-$('undo').addEventListener('click', () => { schedule = JSON.parse(saved); renderWeek(); });
+// Herstel: terug naar het opgeslagen schema. Alleen het open tijdsblok klapt in; open dagen blijven open.
+$('undo').addEventListener('click', () => { schedule = JSON.parse(saved); editing = null; renderWeek(); });
 $('saveSchedule').addEventListener('click', async () => {
   for (const k of DAY_KEYS) {
     schedule[k] = (schedule[k] || []).filter((b) => /^\d{2}:\d{2}$/.test(b.time) && Number.isFinite(Number(b.temp)))
@@ -825,15 +962,13 @@ function schedulePoll() {
   pollAt = Date.now() + POLL_MS;
   pollTimer = setTimeout(loadStatus, POLL_MS);
 }
+const pageStart = Date.now();
 function tickFresh() {
   const el = $('fresh'); if (!el) return;
-  const left = Math.max(0, Math.ceil((pollAt - Date.now()) / 1000));
-  if (!lastAt) { el.textContent = `Ophalen over ${left} s`; return; }
-  const sec = Math.max(0, Math.round((Date.now() - lastAt) / 1000));
-  const ago = sec < 5 ? 'zojuist' : sec < 60 ? `${sec} s geleden` : `${Math.floor(sec / 60)} min geleden`;
-  el.textContent = `Bijgewerkt ${ago} · nog ${left} s`;
-  el.title = `Laatst bijgewerkt om ${new Date(lastAt).toLocaleTimeString('nl-NL')}${lastVia === 'live' ? ' (live)' : ''}`;
-  $('dot').classList.toggle('live', lastVia === 'live');
+  // Alles gaat goed (elke 15 s nieuw): niets tonen. Pas als het ruim een halve minuut niet lukt, een melding.
+  const stale = lastAt ? Date.now() - lastAt > 45000 : Date.now() - pageStart > 20000;
+  $('freshRow').classList.toggle('show', stale); // schuift zacht in en uit
+  if (stale) el.textContent = lastAt ? `Niet bijgewerkt sinds ${new Date(lastAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}` : 'Homey reageert nog niet';
 }
 async function loadStatus() {
   const s = await call('api', 'GET', '/status', null).catch(() => null);
@@ -856,12 +991,31 @@ function renderStatus(s) {
   if (!s || !s.updatedAt) return;
   tileListeners.forEach((cb) => cb(s)); // live naar de tegel (widget)
 
-  const l = s.learned;
-  const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r"><span>${new Date(r.at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })} · ${fmt(r.from)} → ${fmt(r.to)}${r.outdoor != null ? ` <small>(buiten ${fmt(r.outdoor)})</small>` : ''}</span><span>${fmt(r.rate, '°/u')} · ${r.deadTime} min</span></div>`).join('');
+  renderLearned(s.learned);
+  // Wie er nu thuis is, onder de schakelaar 'Automatisch thuis en afwezig'.
+  const home = s.presence && s.presence.home;
+  const pr = $('presNow'); pr.hidden = home == null;
+  if (home != null) pr.textContent = ` Nu thuis: ${home.length} van ${s.presence.count || home.length}.`;
+}
+
+/** Datum van een meting: vandaag/gisteren, anders '4 nov'; uit een ander jaar met jaartal ('4 nov 2025'). */
+function logDate(ms) {
+  const d = new Date(ms); const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((today - new Date(d).setHours(0, 0, 0, 0)) / 86400000);
+  if (days === 0) return 'Vandaag'; if (days === 1) return 'Gisteren';
+  const o = { day: 'numeric', month: 'short' }; if (d.getFullYear() !== today.getFullYear()) o.year = 'numeric';
+  return d.toLocaleDateString('nl-NL', o);
+}
+/** Opwarmtijd-kaart: geleerde cijfers en de laatste metingen. */
+function renderLearned(l) {
+  // Per meting twee regels: wanneer en van/naar, met de snelheid rechts; daaronder klein de details.
+  const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r"><div class="r1"><span>${logDate(r.at)} · ${fmt(r.from)} → ${fmt(r.to)}</span><b>${fmt(r.rate, '°/u')}</b></div>`
+    + `<div class="r2">${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}cv op gang in ${Math.round(r.deadTime)} min</div></div>`).join('');
   $('learned').innerHTML = `
     <div class="stats">
       <div><span>Opwarmen</span><b>${fmt(l.rate, '°')}</b> <small>per uur</small></div>
-      <div><span>Opstarttijd cv</span><b>${l.deadTime}</b> <small>min</small></div>
+      <div><span>Opstarttijd cv<button class="info" data-info="dead" aria-label="Wat is opstarttijd cv?" aria-expanded="${infoOpen === 'dead'}" aria-controls="deadNote">${INFO_ICON}</button></span><b>${Math.round(l.deadTime)}</b> <small>min</small></div>
+      ${infoOpen === 'dead' ? '<p class="note" id="deadNote">De tijd tussen het hoger zetten en het moment dat het in de kamer echt warmer wordt. In die tijd slaat de ketel aan en worden de radiatoren of de vloer warm. Bij radiatoren is dat meestal 10 tot 20 minuten, bij vloerverwarming vaak langer. De app telt dit mee om op tijd te beginnen.</p>' : ''}
       <div><span>Metingen</span><b>${l.samples}</b> ${l.samples < 3 ? '<small>nog aan het leren</small>' : ''}</div>
       <div><span>Nu aan het meten</span><b>${l.heatingNow ? 'ja' : 'nee'}</b></div>
     </div>
@@ -869,6 +1023,14 @@ function renderStatus(s) {
     <div class="actions" style="margin-top:12px"><button class="link" data-act="resetLearning">Opnieuw leren</button></div>`;
 }
 
+// Uitleg-knopjes (Opwarmtijd en Terugkijken): open blijft open bij het verversen van de status.
+let infoOpen = null;
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-info]'); if (!b) return;
+  infoOpen = infoOpen === b.dataset.info ? null : b.dataset.info;
+  if (lastStatus && lastStatus.learned) renderLearned(lastStatus.learned);
+  if (lastHist) renderHistory(lastHist);
+});
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-act]'); if (!btn) return;
   const act = btn.dataset.act;
@@ -890,8 +1052,11 @@ document.addEventListener('click', async (e) => {
 });
 
 // ---------- Instellingen ----------
-const cfgVals = { ecoTemp: 16, maxPreheat: 180 };
-const CFG_RANGE = { ecoTemp: [5, 25], maxPreheat: [0, 360] };
+const cfgVals = { ecoTemp: 16, maxPreheat: 180, price: 1.4, maxTemp: 21 };
+const CFG_RANGE = { ecoTemp: [5, 25], maxPreheat: [0, 360], price: [0, 5], maxTemp: [15, 28] };
+const euro = (v) => `€ ${Number(v).toFixed(2).replace('.', ',')}`;
+/** Gas in m³, stroom in kWh (zelfde regel als in de app). */
+const unitOfCap = (cap) => (/^meter_gas/.test(String(cap)) ? 'm³' : 'kWh');
 function duration(min) {
   if (min === 0) return '0 min';
   const h = Math.floor(min / 60); const m = min % 60;
@@ -901,12 +1066,17 @@ function duration(min) {
 function renderCfgVals() {
   $('ecoTempOut').textContent = fmt(cfgVals.ecoTemp);
   $('maxPreheatOut').textContent = duration(cfgVals.maxPreheat);
+  $('priceOut').textContent = euro(cfgVals.price);
+  $('maxTempOut').textContent = fmt(cfgVals.maxTemp);
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-cfg]'); if (!b) return;
+  tick();
   const k = b.dataset.cfg; const [lo, hi] = CFG_RANGE[k];
-  cfgVals[k] = Math.min(hi, Math.max(lo, Math.round((cfgVals[k] + Number(b.dataset.d)) * 2) / 2));
+  const r = k === 'price' ? 100 : 2; // prijs per cent, de rest per halve stap
+  cfgVals[k] = Math.min(hi, Math.max(lo, Math.round((cfgVals[k] + Number(b.dataset.d)) * r) / r));
   renderCfgVals();
+  autoSave(); // na de laatste tik vanzelf opslaan
 });
 
 function renderConfig() {
@@ -919,16 +1089,44 @@ function renderConfig() {
     outOpts.push(`<option value="${v}" ${sel}>${esc(d.name)} – ${esc(c.title)}</option>`);
   }));
   $('outdoor').innerHTML = '<option value="">Geen (niet meenemen)</option>' + outOpts.join('');
+  // Meter voor verbruik en kosten (gas of stroom). Geen meter = geen kosten tonen.
+  const mOpts = [];
+  devices.forEach((d) => (d.meterCaps || []).forEach((c) => {
+    const sel = d.id === config.meterId && c.id === config.meterCapability ? 'selected' : '';
+    mOpts.push(`<option value="${d.id}|${c.id}" ${sel}>${esc(d.name)} – ${esc(c.title)}</option>`);
+  }));
+  $('meter').innerHTML = '<option value="">Geen (niet tonen)</option>' + mOpts.join('');
+  cfgVals.price = config.price != null ? Number(config.price) : (unitOfCap(config.meterCapability) === 'm³' ? 1.4 : 0.3);
+  renderMeter();
   cfgVals.ecoTemp = config.ecoTemp != null ? Number(config.ecoTemp) : 16;
   cfgVals.maxPreheat = config.maxPreheat != null ? Number(config.maxPreheat) : 180;
+  cfgVals.maxTemp = config.maxTemp != null ? Number(config.maxTemp) : 21;
   renderCfgVals();
   $('overrideDefault').value = String(config.overrideDefault || 'next');
   if (!$('overrideDefault').value) $('overrideDefault').value = 'next';
   $('preheat').checked = config.preheat !== false;
+  $('autoPres').checked = config.autoPresence === true;
+  $('usageOn').checked = config.usage === true;
+  $('limitOn').checked = config.limit === true;
+  $('limitWrap').hidden = !$('limitOn').checked;
+  $('usageWrap').hidden = !$('usageOn').checked;
   renderPreNote();
   $('preWrap').hidden = !$('preheat').checked;
 }
-$('preheat').addEventListener('change', () => { $('preWrap').hidden = !$('preheat').checked; });
+$('preheat').addEventListener('change', () => { $('preWrap').hidden = !$('preheat').checked; autoSave(0); });
+$('autoPres').addEventListener('change', () => autoSave(0));
+$('limitOn').addEventListener('change', () => { $('limitWrap').hidden = !$('limitOn').checked; autoSave(0); });
+/** Prijs alleen tonen als er een meter is; eenheid volgt de meter (m³ of kWh). */
+function renderMeter() {
+  const cap = ($('meter').value || '|').split('|')[1];
+  $('priceWrap').hidden = !cap; $('priceLbl').textContent = `Prijs per ${unitOfCap(cap)}`;
+}
+$('usageOn').addEventListener('change', () => { $('usageWrap').hidden = !$('usageOn').checked; autoSave(0); });
+$('meter').addEventListener('change', () => {
+  const cap = ($('meter').value || '|').split('|')[1];
+  if (cap && config.price == null) cfgVals.price = unitOfCap(cap) === 'm³' ? 1.4 : 0.3; // nog niets ingevuld: gangbare prijs
+  renderCfgVals(); renderMeter();
+});
 /** Uitleg bij Opwarmtijd: waarvoor de gegevens dienen en of 'Op tijd warm' (opgeslagen) aan staat. */
 function renderPreNote() {
   const on = config.preheat !== false;
@@ -940,8 +1138,10 @@ $('preNote').addEventListener('click', (e) => {
   const t = $('preToggle'); t.scrollIntoView({ behavior: 'smooth', block: 'center' });
   t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
 });
-$('saveConfig').addEventListener('click', async () => {
+/** Alle instellingen bewaren. Gebeurt vanzelf na elke wijziging; alleen bij een fout een melding. */
+async function saveAll() {
   const [outId, outCap] = ($('outdoor').value || '|').split('|');
+  const [meterId, meterCap] = ($('meter').value || '|').split('|');
   config = {
     ...config,
     thermostatId: $('thermostat').value || null,
@@ -949,17 +1149,36 @@ $('saveConfig').addEventListener('click', async () => {
     outdoorCapability: outCap || null,
     ecoTemp: cfgVals.ecoTemp,
     maxPreheat: cfgVals.maxPreheat,
+    maxTemp: cfgVals.maxTemp,
+    limit: $('limitOn').checked,
+    usage: $('usageOn').checked,
+    meterId: meterId || null,
+    meterCapability: meterCap || null,
+    price: cfgVals.price,
     preheat: $('preheat').checked,
+    autoPresence: $('autoPres').checked,
     overrideDefault: /^\d+$/.test($('overrideDefault').value) ? Number($('overrideDefault').value) : $('overrideDefault').value,
   };
   try {
-    await call('set', 'config', config);
-    toast('Instellingen opgeslagen');
+    // Eén keer opnieuw proberen: een korte hapering van Homey moet niet meteen een fout geven.
+    await call('set', 'config', config).catch(() => new Promise((r) => setTimeout(r, 700)).then(() => call('set', 'config', config)));
+    lastSaved = clone(config);
+    renderWeek(); // schema toont het maximum meteen
     renderPreNote(); // uitleg bij Opwarmtijd bijwerken (aan/uit)
-    // Tijdens het eerste instellen: terug naar de stappen.
-    if (inSetup() && !setupState.done) { $('sv').classList.remove('show-main'); renderSetup(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    setTimeout(loadStatus, 1500);
-  } catch (err) { H.alert(`Opslaan mislukt: ${err.message || err}`); }
+    clearTimeout(saveAll.st); saveAll.st = setTimeout(loadStatus, 1500);
+  } catch (err) {
+    // Niet gelukt: terug naar wat er wél is opgeslagen, zodat het scherm klopt met de app.
+    config = clone(lastSaved); renderConfig(); renderPreNote();
+    toast('Opslaan lukte niet');
+  }
+}
+/** Even wachten na de laatste tik (bijv. meerdere keren op +), dan in één keer opslaan. */
+function autoSave(ms = 500) { clearTimeout(autoSave.t); autoSave.t = setTimeout(saveAll, ms); }
+['thermostat', 'outdoor', 'meter', 'overrideDefault'].forEach((id) => $(id).addEventListener('change', () => autoSave(0)));
+// Tijdens het eerste instellen: knop om terug te gaan naar de stappen (opslaan gebeurt al vanzelf).
+$('saveConfig').addEventListener('click', async () => {
+  clearTimeout(autoSave.t); await saveAll();
+  if (inSetup() && !setupState.done) { $('sv').classList.remove('show-main'); renderSetup(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 });
 
 
@@ -970,7 +1189,7 @@ let histDay = 0; let histModel = null; let fsModel = null;
 const BAND_ICON = {
   schedule: '<path d="M4 11 12 4l8 7v9H4z"/>',
   manual: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/>',
-  away: '<circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 2 2 3M12 15l-1-4"/>',
+  away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
 };
 const MODE_BAND = { schedule: ['schedule', 'Thuis · schema'], preheat: ['schedule', 'Thuis · schema'], manual: ['manual', 'Handmatig'],
@@ -986,8 +1205,31 @@ async function loadHistory() {
   const h = await call('api', 'GET', `/history?day=${histDay}`, null).catch(() => null);
   renderHistory(h);
 }
+/**
+ * Rustiger verloop. Homey bewaart per 5 minuten een gemiddelde: een wissel van 15° naar 20° wordt dan één keer 17,3°.
+ * Die tussenwaarde wordt de stand die erna kwam. Daarna tellen standen en modi van hooguit 5 minuten mee bij de vorige.
+ */
+function calmHistory(h) {
+  if (!h || h.calm) return h;
+  const half = (v) => Math.abs(v * 2 - Math.round(v * 2)) < 0.01;
+  const r2 = (v) => Math.round(v * 2) / 2;
+  const tg = (h.target || []).map(([t, v], i, a) => {
+    if (half(v)) return [t, r2(v)];
+    const n = a.slice(i + 1).find((r) => half(r[1]));
+    return [t, n ? r2(n[1]) : r2(v)];
+  });
+  for (let i = 1; i < tg.length - 1; i++) if (tg[i][1] !== tg[i - 1][1] && tg[i + 1][1] !== tg[i][1]) tg[i] = [tg[i][0], tg[i - 1][1]];
+  const until = Math.min(h.now, h.end); const modes = [];
+  (h.modes || []).forEach((m, i, a) => {
+    const end = i + 1 < a.length ? a[i + 1].t : until;
+    if (modes.length && (end - m.t <= 300000 || modes[modes.length - 1].m === m.m)) return;
+    modes.push(m);
+  });
+  return { ...h, target: tg, modes, calm: true };
+}
 /** Grafiek tekenen in svg-coördinaten W×H (plotgebied), met standbalk en uren eronder. Geeft svg-tekst + model terug. */
-function chartSvg(h, W, H) {
+function chartSvg(raw, W, H) {
+  const h = calmHistory(raw);
   const X0 = 0; const Y0 = 14; // graden staan ín de grafiek: volle breedte
   const all = [...h.indoor.map((r) => r[1]), ...h.target.map((r) => Math.round(r[1] * 2) / 2)];
   const TMIN = Math.min(15, Math.floor(Math.min(...all, 99))); const TMAX = Math.max(21, Math.ceil(Math.max(...all, 0)));
@@ -1001,10 +1243,13 @@ function chartSvg(h, W, H) {
     if (h.errors && h.errors.length) s += `<text class="hempty" x="${(X0 + W) / 2}" y="${H / 2 + 16}" style="font-size:9px">${esc(String(h.errors[0]).slice(0, 70))}</text>`;
   } else {
     const tgt = new Map(h.target.map(([t, v]) => [Math.round(t / step), Math.round(v * 2) / 2]));
+    // Verwarmde stukken als één vlak per aaneengesloten periode (losse vakjes overlappen en geven streepjes).
+    let run = null; const flush = () => { if (run) s += `<rect class="hheat" x="${x(run[0])}" y="${Y0}" width="${Math.max(0, x(run[1]) - x(run[0]))}" height="${H - Y0}"/>`; run = null; };
     h.indoor.forEach(([t, v]) => {
       const sp = tgt.get(Math.round(t / step));
-      if (sp != null && sp > v + 0.2) { heatMin += 5; s += `<rect class="hheat" x="${x(t)}" y="${Y0}" width="${Math.max(0, x(Math.min(t + step, h.now)) - x(t) + 0.3)}" height="${H - Y0}"/>`; }
+      if (sp != null && sp > v + 0.2) { heatMin += 5; const e = Math.min(t + step, h.now); if (run && t - run[1] <= step / 2) run[1] = e; else { flush(); run = [t, e]; } }
     });
+    flush();
     if (h.target.length) {
       let d = '';
       h.target.forEach(([t, v], i) => { const vv = Math.round(v * 2) / 2; d += i ? `H${x(t)}V${y(vv)}` : `M${x(t)} ${y(vv)}`; });
@@ -1030,6 +1275,15 @@ function chartSvg(h, W, H) {
   return { s, model, heatMin, viewH: by + 18 };
 }
 let lastHist = null;
+/** Uitleg bij het verbruik: het is de meter van het hele huis, niet alleen de verwarming. */
+function usageNote(u, today) {
+  const price = `${euro(u.price)} per ${u.unit}`;
+  const what = u.unit === 'm³'
+    ? 'Dit is het gasverbruik van het hele huis, zoals je slimme meter het doorgeeft. Douchen, koken op gas en de verwarming in andere kamers tellen dus ook mee.'
+    : 'Dit is wat de gekozen meter aan stroom telde. Is dat de meter van het hele huis, dan telt alles mee wat stroom gebruikt, zoals koken, wassen of laden. Een aparte meter voor de warmtepomp geeft een eerlijker beeld.';
+  return `${what} Het bedrag is het verbruik × ${price}, zonder vaste kosten. De prijs pas je aan bij Instellingen.`
+    + (today ? ` Vandaag is het verbruik tot nu toe${u.unit === 'm³' ? '; een slimme meter geeft gas vaak maar eens per uur door' : ''}.` : '');
+}
 function renderHistory(h) {
   const svg = $('hChart');
   if (!h) { svg.innerHTML = '<text class="hempty" x="170" y="90">Verloop kon niet worden geladen.</text>'; $('hSum').innerHTML = ''; return; }
@@ -1042,8 +1296,13 @@ function renderHistory(h) {
   svg.innerHTML = c.s;
   if (h.indoor.length) {
     const avg = h.indoor.reduce((a, r) => a + r[1], 0) / h.indoor.length;
-    $('hSum').innerHTML = `<span>Verwarmd<b>${Math.floor(c.heatMin / 60)}u ${c.heatMin % 60}m</b></span><span>Gemiddeld<b>${fmt(avg)}</b></span>`;
+    const u = h.usage; // verbruik van die dag uit de gas- of stroommeter (als die is gekozen)
+    $('hSum').innerHTML = `<span>Verwarmd<b>${Math.floor(c.heatMin / 60)}u ${c.heatMin % 60}m</b></span><span>Gemiddeld<b>${fmt(avg)}</b></span>`
+      + (u ? `<button class="ucost" data-info="usage" aria-label="${u.unit === 'm³' ? 'Gas' : 'Stroom'} ${euro(u.cost)}: waar komt dit bedrag vandaan?" aria-expanded="${infoOpen === 'usage'}" aria-controls="usageNote"><em class="ul">${u.unit === 'm³' ? 'Gas' : 'Stroom'} · ${String(u.amount).replace('.', ',')} ${u.unit}<span class="info">${INFO_ICON}</span></em><b>${euro(u.cost)}</b></button>` : '');
   } else $('hSum').innerHTML = '';
+  const note = $('usageNote');
+  note.hidden = !(h.indoor.length && h.usage && infoOpen === 'usage');
+  if (!note.hidden) note.textContent = usageNote(h.usage, h.now < h.end);
   if (!$('hFs').hidden) renderFs();
 }
 // Vasthouden en schuiven over de grafiek: lijn, stip en kaartje met de waarden op dat moment.
@@ -1055,6 +1314,17 @@ const TIP_ICON = {
 };
 /** Stand op tijdstip t (uit de standlog): 'manual' = met de hand ingesteld, anders volgens schema. */
 function modeAt(h, t) { let m = null; (h.modes || []).forEach((x) => { if (x.t <= t) m = x.m; }); return m; }
+/**
+ * Kort tikje (trilmotor). Homey biedt dat op een instellingenpagina niet aan; iOS geeft wel een tikje
+ * als een schakelaar (input switch) omgaat, dus we laten een onzichtbare schakelaar omklikken. Werkt het niet, dan gebeurt er niets.
+ */
+const tick = (() => {
+  const l = document.createElement('label'); l.id = 'haptic'; l.setAttribute('aria-hidden', 'true');
+  l.style.cssText = 'position:fixed;left:-9999px;top:50%;width:1px;height:1px;overflow:hidden'; // fixed: focus laat de pagina niet springen
+  l.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+  document.body.appendChild(l);
+  return () => { try { l.click(); } catch (e) { /* geen tikje */ } };
+})();
 // Detail-kaartje bij tik/slepen, voor de kaart (MAIN) en het grote scherm (FS, mogelijk gedraaid).
 const MAIN = { svg: 'hChart', tip: 'hTip', model: () => histModel, rotated: () => false };
 const FS = { svg: 'fsChart', tip: 'fsTip', model: () => fsModel, rotated: () => $('hFs').classList.contains('rot') };
@@ -1075,8 +1345,10 @@ function scrubAt(ctx, clientX, clientY) {
   const heat = sp != null && sp > v + 0.2;
   // Zelfde 1, 2 of 3 golfjes als in de widget: hoe lang het vanaf dat moment nog opwarmen was.
   const L = lastStatus && lastStatus.learned; const gap = heat ? sp - v : 0;
-  const mins = L && L.samples > 0 && L.rate > 0 ? (gap / L.rate) * 60 : null;
-  const lvl = !heat ? '' : mins != null ? (mins < 30 ? 'l1' : mins < 90 ? 'l2' : 'l3') : (gap < 1 ? 'l1' : gap < 2 ? 'l2' : 'l3');
+  // Zelfde schatting als de widget: met minder dan 3 metingen gemengd met 1° per uur.
+  const n = Math.min(3, (L && L.rate > 0 && L.samples) || 0); const rate = (n * (n ? L.rate : 0) + (3 - n) * 1) / 3;
+  const mins = (gap / rate) * 60;
+  const lvl = !heat ? '' : mins < 30 ? 'l1' : mins < 90 ? 'l2' : 'l3';
   const tip = $(ctx.tip); tip.hidden = false;
   tip.innerHTML = `<div class="tt">${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
     <div class="tv">${fmt(v)}${heat ? `<span class="hw ${lvl}">${TIP_ICON.waves}</span>` : ''}</div>
@@ -1149,7 +1421,7 @@ navShadow();
 let navCur = null;
 function markNav() {
   const nav = $('qnav'); nav.classList.toggle('stuck', window.scrollY > 0 && nav.getBoundingClientRect().top <= 10.5); // vastgezet bovenaan
-  const ids = ['secWeek', 'secHist', 'secLearn', 'secCfg'];
+  const ids = ['secHist', 'secWeek', 'secLearn', 'secCfg']; // in de volgorde van de pagina
   let cur = null; // bovenaan (status) is geen menuknop actief
   ids.forEach((id) => { const el = $(id); if (el && el.getBoundingClientRect().top < 120) cur = id; });
   // Helemaal onderaan: laatste kiezen.
@@ -1159,7 +1431,7 @@ function markNav() {
   // Actieve knop zichtbaar houden in de veegbalk (alleen de balk scrollt, niet de pagina).
   if (!cur && navCur) $('qscroll').scrollTo({ left: 0, behavior: 'smooth' }); // terug bovenaan: balk naar het begin
   navCur = cur;
-  if (changed) { const sc = $('qscroll'); sc.scrollTo({ left: changed.offsetLeft - (sc.clientWidth - changed.offsetWidth) / 2, behavior: 'smooth' }); }
+  if (changed && changed.closest('#qscroll')) { const sc = $('qscroll'); sc.scrollTo({ left: changed.offsetLeft - (sc.clientWidth - changed.offsetWidth) / 2, behavior: 'smooth' }); }
 }
 window.addEventListener('scroll', () => requestAnimationFrame(markNav), { passive: true });
 
@@ -1168,7 +1440,7 @@ window.addEventListener('scroll', () => requestAnimationFrame(markNav), { passiv
 const tileListeners = [];
 function tileData(st) { let sch; try { sch = JSON.parse(saved); } catch (e) { sch = schedule; } return { status: st, schedule: sch }; }
 const tileHomey = {
-  ready(o) { if (o && o.height) $('tileframe').style.height = `${o.height}px`; }, hapticFeedback() {},
+  ready(o) { if (o && o.height) $('tileframe').style.height = `${o.height}px`; }, hapticFeedback() { tick(); },
   setHeight(h) { $('tileframe').style.height = `${h}px`; return Promise.resolve(); },
   on(ev, cb) { if (ev === 'status') tileListeners.push(cb); },
   async api(method, path, body) {
@@ -1302,6 +1574,7 @@ async function onHomeyReady(Homey) {
   DAY_KEYS.forEach((k) => { schedule[k] = schedule[k] || []; });
   saved = JSON.stringify(schedule);
   config = (await call('get', 'config').catch(() => null)) || {};
+  lastSaved = clone(config); // terugvallen als opslaan mislukt
   renderWeek();
   Homey.ready();
   loadStatus();

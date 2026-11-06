@@ -309,3 +309,168 @@ test('tegel op de instellingenpagina is gelijk aan de widget', () => {
   const b = fs.readFileSync(path.join(root, 'settings/tile.html'), 'utf8');
   assert.equal(b, a, 'voer node dev/sync-tile.js uit');
 });
+
+test('aanwezigheid: alleen een echte wissel telt, uitgeschakelde gebruikers niet', () => {
+  const { presenceOf, PresenceWatcher } = require('../lib/presence');
+  const users = {
+    a: { name: 'Leroy', present: false, enabled: true },
+    b: { name: 'Marleen', present: true, enabled: true },
+    c: { name: 'Gast', present: true, enabled: false },
+  };
+  assert.deepEqual(presenceOf(users), { anyHome: true, home: ['Marleen'], count: 2 });
+  const w = new PresenceWatcher();
+  assert.equal(w.update(true), null); // opstarten: alleen beginstand
+  assert.equal(w.update(true), null);
+  assert.equal(w.update(false), 'away'); // laatste vertrekt
+  assert.equal(w.update(false), null);
+  assert.equal(w.update(true), 'home'); // eerste komt thuis
+});
+
+test('trage thermostaat na Hervat schema wordt niet als handmatig gezien', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 19.5 });
+  await c.tick();
+  await c.setManual(22);
+  sim.now += 60000; await c.tick();
+  // Thermostaat neemt een nieuwe waarde pas na 2 minuten over.
+  c.io.writeTarget = async (t) => { const at0 = sim.now; sim.writes.push({ t, at: at0 }); sim.later = { t, at: at0 + 120000 }; };
+  await c.clearOverride();
+  assert.equal(c.status.mode, 'schedule');
+  for (let i = 0; i < 4; i++) {
+    sim.now += 30000;
+    if (sim.later && sim.now >= sim.later.at) { sim.target = sim.later.t; sim.later = null; }
+    await c.tick();
+    assert.equal(c.status.mode, 'schedule', `na ${(i + 1) * 30} s`);
+  }
+  assert.equal(sim.target, 20);
+});
+
+test('trage thermostaat zet een handmatige wijziging niet terug', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 19.5 });
+  await c.tick();
+  // Thermostaat neemt een nieuwe waarde pas na 2 minuten over.
+  c.io.writeTarget = async (t) => { sim.writes.push({ t, at: sim.now }); sim.later = { t, at: sim.now + 120000 }; };
+  await c.setManual(21.5, 60);
+  for (let i = 0; i < 6; i++) {
+    sim.now += 30000;
+    if (sim.later && sim.now >= sim.later.at) { sim.target = sim.later.t; sim.later = null; }
+    await c.tick();
+    assert.equal(c.status.mode, 'manual');
+    assert.equal(c.state.override.temp, 21.5, `na ${(i + 1) * 30} s`);
+    assert.equal(c.status.thermostatTarget, 21.5);
+  }
+});
+
+test('scripts van widget en instellingenpagina zijn geldige JavaScript', () => {
+  const fs = require('fs'); const path = require('path'); const vm = require('vm');
+  const root = path.join(__dirname, '..');
+  for (const f of ['widgets/verwarming/public/index.html', 'settings/index.html']) {
+    const html = fs.readFileSync(path.join(root, f), 'utf8');
+    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    assert.ok(scripts.length, `${f}: geen script gevonden`);
+    // Alleen inlezen (niet uitvoeren): een tikfout laat de hele pagina hangen op 'laden'.
+    scripts.forEach((code) => assert.doesNotThrow(() => new vm.Script(code, { filename: f }), `${f} bevat een syntaxfout`));
+  }
+});
+
+test('verbruik per dag uit een oplopende meterstand, met kosten', () => {
+  const { usageOf, unitOf } = require('../lib/usage');
+  const rows = [[1, 1000.0], [2, 1000.4], [3, 1001.1], [4, 1002.3]];
+  assert.deepEqual(usageOf(rows, 'meter_gas', 1.5), { amount: 2.3, unit: 'm³', price: 1.5, cost: 3.45 });
+  assert.equal(unitOf('meter_power'), 'kWh');
+  // Meter teruggezet halverwege: de daling telt niet mee.
+  assert.equal(usageOf([[1, 50], [2, 51], [3, 0.2], [4, 1.2]], 'meter_gas', 1).amount, 2);
+  assert.equal(usageOf([[1, 5]], 'meter_gas', 1), null); // te weinig gegevens
+  assert.equal(usageOf(rows, 'meter_power').price, 0.3); // geen prijs: standaard
+});
+
+test('maximumtemperatuur begrenst schema, widget en draaien aan de knop', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, config: { limit: true, maxTemp: 19 } });
+  const { c, sim, events } = setup({ now: at('12:00'), target: 16, indoor: 17, store });
+  await c.tick();
+  assert.equal(sim.target, 19); // schema zegt 20, maximum 19
+  await c.setManual(23);
+  assert.equal(sim.target, 19); // widget: niet hoger dan het maximum
+  assert.equal(c.status.maxTemp, 19);
+  // Iemand draait aan de knop naar 22: na de wachttijd terug naar 19, handmatige stand blijft.
+  sim.now += 60000; sim.target = 22; await c.tick();
+  assert.equal(sim.target, 19);
+  assert.equal(c.state.override.temp, 19);
+  // Melding voor de tijdlijn: van welke waarde naar het maximum.
+  assert.ok(events.some((e) => e.e === 'setpoint_changed' && e.d.reason === 'limit' && e.d.from === 22 && e.d.temp === 19));
+  // Maximum uit: dan geldt het schema weer gewoon.
+  store.set('config', { limit: false, maxTemp: 19 });
+  await c.clearOverride();
+  assert.equal(sim.target, 20);
+});
+
+test('schema: geen Klaar-knop, een tik buiten het schema klapt het open blok in', () => {
+  const fs = require('fs'); const path = require('path');
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root, 'settings/index.html'), 'utf8');
+  assert.ok(!html.includes('>Klaar</button>'), 'Klaar-knop hoort weg te zijn');
+  // Pad van het tikmoment gebruiken: e.target.closest() faalt omdat het schema intussen opnieuw getekend is.
+  assert.ok(html.includes("e.composedPath().some((n) => n.id === 'week' || n.id === 'savebar' || n.id === 'haptic')"), 'tik buiten het schema klapt in, maar het trilklikje niet');
+  assert.ok(html.includes("l.id = 'haptic'"), 'trilklikje heeft id haptic');
+  assert.ok(!html.includes("e.target.closest('#week, #savebar')"), 'niet e.target.closest gebruiken voor buiten-tik');
+  assert.ok(html.includes('<button class="up" data-slot="${id}"'), 'pijltje omhoog naast Verwijderen klapt in');
+});
+
+test('verbruik in Terugkijken heeft een i-knopje met uitleg over de meter van het hele huis', () => {
+  const fs = require('fs'); const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'settings/index.html'), 'utf8');
+  assert.ok(html.includes('<button class="ucost" data-info="usage"'), 'het hele bedrag is aantikbaar');
+  assert.ok(html.includes('.ucost[aria-expanded="true"] .info { color: var(--link); }'), 'open: i-tje in selectiekleur');
+  assert.ok(html.includes('id="usageNote"'), 'plek voor de uitleg');
+  assert.ok(/Douchen, koken op gas en de verwarming in andere kamers/.test(html), 'gas: ook douchen en koken tellen mee');
+  assert.ok(/zonder vaste kosten/.test(html), 'vaste kosten niet meegeteld');
+  // Specifiek genoeg om van de algemene i-regel (16px) te winnen.
+  assert.ok(html.includes('#sv .hsum .ucost .info svg { width: 9px; height: 9px;'), 'i-tje bij de kosten is 9px');
+  // INFO_ICON moet boven het eerste gebruik staan (anders een fout bij het laden).
+  assert.ok(html.indexOf('const INFO_ICON') < html.indexOf('${INFO_ICON}'));
+});
+
+test('Herstel klapt alleen het open tijdsblok in, niet de dagen', () => {
+  const fs = require('fs'); const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'settings/index.html'), 'utf8');
+  const line = html.split('\n').find((l) => l.includes("$('undo').addEventListener"));
+  assert.ok(line && line.includes('editing = null'), 'open tijdsblok klapt in');
+  assert.ok(!line.includes('open.clear()'), 'open dagen blijven open');
+});
+
+test('widget: kosten hebben een klein i-tje met een kort ballonnetje', () => {
+  const fs = require('fs'); const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'widgets/verwarming/public/index.html'), 'utf8');
+  assert.ok(html.includes('data-costinfo'), 'kosten zijn aantikbaar');
+  assert.ok(html.includes('Gas van het hele huis, dus ook douchen en koken. Zonder vaste kosten.'));
+  assert.ok(/button\.cost \.ci \{ width: 10px; height: 10px;/.test(html), 'i-tje is heel klein');
+  // Variabelen staan boven de functie die ze gebruikt (anders fout bij het laden).
+  assert.ok(html.indexOf('let costInfo') < html.indexOf('function chartPage'));
+  assert.ok(html.indexOf('const INFO_ICON') < html.indexOf('function chartPage'));
+});
+
+// Draait het widgetscript echt (met een nep-DOM) en tekent de grafiekkaart met een open kosten-ballonnetje.
+// Vangt fouten die pas bij het uitvoeren optreden, zoals een variabele buiten zijn blok (ReferenceError).
+test('widget: grafiekkaart met kosten en ballonnetje tekent zonder fouten', () => {
+  const fs = require('fs'); const path = require('path'); const vm = require('vm');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'widgets/verwarming/public/index.html'), 'utf8');
+  const code = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  const rect = () => ({ left: 0, top: 0, right: 300, bottom: 200, width: 300, height: 200 });
+  const el = () => new Proxy(function stub() {}, {
+    get: (t, k) => {
+      if (k === 'offsetWidth' || k === 'offsetHeight') return 300;
+      if (k === Symbol.toPrimitive) return () => 0;
+      if (k === 'getBoundingClientRect') return rect;
+      return k in t ? t[k] : el();
+    },
+    set: (t, k, v) => { t[k] = v; return true; },
+    apply: () => el(),
+  });
+  const mm = () => ({ matches: false, addEventListener() {} });
+  const doc = { querySelector: () => el(), querySelectorAll: () => [], getElementById: () => el(), addEventListener() {}, createElement: () => el(), body: el(), documentElement: el() };
+  const ctx = vm.createContext({ document: doc, window: { addEventListener() {}, matchMedia: mm, location: { search: '' } }, location: { search: '' }, navigator: {}, console, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {}, requestAnimationFrame: () => 0, matchMedia: mm, URLSearchParams, Date, Math, JSON });
+  vm.runInContext(code, ctx);
+  const now = Date.now(); const start = now - 12 * 3600e3;
+  ctx.sample = { day: 'x', start, end: start + 24 * 3600e3, now, indoor: [[start, 17], [now, 18]], target: [[start, 17]], humidity: [], outdoor: [], modes: [], usage: { amount: 2.3, unit: 'm³', price: 1.4, cost: 3.22 } };
+  vm.runInContext("hist = sample; costInfo = true; globalThis.p1 = document.querySelector('.p1'); chartPage(p1, document.querySelector('.p0'));", ctx);
+  assert.ok(String(ctx.p1.innerHTML).includes('cpop'), 'ballonnetje getekend');
+});

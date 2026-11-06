@@ -11,7 +11,7 @@
       "type": "dropdown",
       "name": "duration",
       "values": [
-        { "id": "next", "title": { "en": "until the next schedule change", "nl": "tot het volgende moment in het schema" } },
+        { "id": "next", "title": { "en": "until the next schedule block", "nl": "tot het volgende blok in het schema" } },
         { "id": "manual", "title": { "en": "until the schedule is resumed", "nl": "tot het schema wordt hervat" } }
       ]
     }

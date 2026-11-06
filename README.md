@@ -3,9 +3,9 @@
 Een Homey Pro-app die je thermostaat een slim weekschema geeft, **zonder abonnement**. Gemaakt voor de **tado X** via Matter, maar het werkt met elke thermostaat in Homey die `target_temperature` en `measure_temperature` heeft.
 
 - **Weekschema** met tijdsblokken per dag. Je stelt het in op de instellingenpagina van de app.
-- **Handmatig gaat voor.** Draait iemand aan de thermostaat, of past iemand de temperatuur aan in de tado-app of in Homey? Dan blijft die stand staan tot het volgende moment in het schema. Daarna neemt het schema het weer over.
+- **Handmatig gaat voor.** Draait iemand aan de thermostaat, of past iemand de temperatuur aan in de tado-app of in Homey? Dan blijft die stand staan tot het volgende blok in het schema (of 1, 2 of 3 uur, of tot je het schema hervat). Daarna neemt het schema het weer over.
 - **Op tijd warm.** Bij elk opwarmmoment leert de app hoe snel het huis warm wordt (°C per uur) en hoe lang de cv nodig heeft om op gang te komen, ook in relatie tot de buitentemperatuur. Hij begint zo vroeg dat het op het ingestelde tijdstip al warm is.
-- **Thuis/afwezig** via flowkaarten. Afwezig = eco-temperatuur (standaard 16°).
+- **Thuis/afwezig**: automatisch via de locatie in de Homey-app (zet **Automatisch thuis en afwezig** aan), of via flowkaarten. Afwezig = de temperatuur als niemand thuis is (standaard 16°).
 - **Terugkijken** op de instellingenpagina: het verloop van een dag (kamertemperatuur, ingestelde temperatuur, schema of handmatig), uit Homey Insights. Houd je vinger op de grafiek voor details, of open hem op volledig scherm.
 - **Widget** voor het Home-scherm, met de temperatuur, knoppen − en + en de balk van vandaag. Veeg opzij voor het verloop van vandaag. De golfjes naast de temperatuur laten zien hoe lang het opwarmen nog duurt (1, 2 of 3); tik erop voor uitleg.
 - **Klimaat-apparaat** "Slim verwarmen": het schema is zichtbaar in het Klimaat-overzicht van Homey.
@@ -26,14 +26,14 @@ Na installatie:
 
 1. Open **Apps → Slim verwarmen → Instellingen**. Na installatie staat de app nog op pauze en zie je een welkomstkaart. Controleer of de juiste thermostaat en buitentemperatuur gekozen zijn; de app probeert die zelf te vinden (bijvoorbeeld de KNMI-app). Bekijk het voorgestelde schema en druk op **Start slim verwarmen**.
 2. Zet andere schema-apps of flows die dezelfde thermostaat aansturen uit.
-3. Maak een flow voor aanwezigheid: *Laatste persoon vertrekt* → **Iedereen is afwezig**, en *Eerste persoon komt thuis* → **Iedereen is thuis**.
+3. Zet **Automatisch thuis en afwezig** aan in de instellingen. Wil je het liever zelf regelen, maak dan een flow: *Laatste persoon vertrekt* → **Iedereen is afwezig**, en *Eerste persoon komt thuis* → **Iedereen is thuis**.
 4. Optioneel: voeg het apparaat **Slim verwarmen** toe (voor het Klimaat-overzicht) en de widget **Verwarming** (voor het Home-scherm).
 
 ## Flowkaarten
 
 | Soort | Kaart |
 |---|---|
-| Actie | Iedereen is [thuis/afwezig] · Hervat schema · Zet [temp]° [tot wanneer] · Zet [temp]° voor [uren] uur · Zet slim verwarmen [aan/uit] |
+| Actie | Iedereen is [thuis/afwezig] · Hervat schema · Zet [temp]° [tot wanneer] · Zet [temp]° voor [uren] uur · Zet slim verwarmen [aan/uit] · Zet prijs op € [prijs] per eenheid |
 | Voorwaarde | Handmatige stand is actief · Is aan het voorverwarmen |
 | Trigger | Thermostaat is handmatig versteld (temp, tot) · Terug naar het schema · Schema heeft temperatuur aangepast · Geleerd van een opwarmmoment |
 
@@ -53,6 +53,7 @@ Na installatie:
 npm test                 # unittests van schema, leren en handmatig verstellen
 node dev/preview.js      # instellingenpagina en widget met een nep-Homey, op http://localhost:4321
 npm run sync-tile        # statustegel van de instellingen gelijkzetten met de widget
+npm run install-homey    # tegel gelijkzetten, alle tests draaien en pas daarna op je Homey installeren
 ```
 
 De kernlogica staat in `lib/` en bevat geen Homey-code, zodat hij los te testen is. `app.js` koppelt die logica aan Homey. De statustegel bovenaan de instellingen (`settings/tile.html`) is een kopie van de widget; pas alleen de widget aan en draai daarna `npm run sync-tile` (een test controleert dat ze gelijk zijn).

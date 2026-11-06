@@ -7,7 +7,7 @@
        groen = rust (basis), geel = opwarmen, blauw = te koud, blauwgroen = te vochtig. Licht en donker gelijk. */
     /* #w = houder; elke pagina (.pg) is een eigen kaart, zoals een slimme stapel. */
     #w {
-      --fg: #ffffff; --pill: rgba(0,0,0,.14); --solid: rgba(0,0,0,.22); --solid-text: #ffffff;
+      --cardbg: #45c08f; --fg: #ffffff; --pill: rgba(0,0,0,.14); --solid: rgba(0,0,0,.22); --solid-text: #ffffff;
       color: var(--fg); font: 400 15px/1.35 -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Segoe UI", "Helvetica Neue", sans-serif;
       -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; position: relative;
     }
@@ -21,6 +21,20 @@
     #w.cold .pg { background-color: #3b8cf0; }
     #w.humid .pg { background-color: #2f9fb8; }
     #w.setup .pg { background-color: #8b8f96; } /* nog niet gestart */
+    #w.heat { --cardbg: #f7b52c; } #w.cold { --cardbg: #3b8cf0; } #w.humid { --cardbg: #2f9fb8; } #w.setup { --cardbg: #8b8f96; }
+    /* Donkere modus: donkere tint van de toestandskleur met felle tekst in dezelfde kleur (rustiger en beter leesbaar
+       dan wit op een felle kaart). Knoppen en balk volgen de tekstkleur. */
+    @media (prefers-color-scheme: dark) {
+      #w { --fg: #5ee3a8; --solid-text: var(--fg);
+        --pill: color-mix(in srgb, var(--fg) 14%, transparent); --solid: color-mix(in srgb, var(--fg) 22%, transparent); }
+      #w.heat { --fg: #ffc24a; } #w.cold { --fg: #74b6ff; } #w.humid { --fg: #5fd3ea; } #w.setup { --fg: #c5c8ce; }
+      #w { --cardbg: #133a2b; } #w.heat { --cardbg: #3e2c0c; } #w.cold { --cardbg: #10294a; } #w.humid { --cardbg: #0e3340; } #w.setup { --cardbg: #2a2b2f; }
+      #w .p0 { background-color: #133a2b; }
+      #w.heat .p0 { background-color: #3e2c0c; } #w.cold .p0 { background-color: #10294a; }
+      #w.humid .p0 { background-color: #0e3340; } #w.setup .p0 { background-color: #2a2b2f; }
+      #w .p0::before { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,0) 60%); }
+      #w .p0::after { background: radial-gradient(120% 90% at 20% 30%, color-mix(in srgb, var(--fg) 22%, transparent), transparent 70%); }
+    }
     /* Zachte glans. */
     #w .pg::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
       background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,0) 55%, rgba(0,0,0,.05)); }
@@ -39,6 +53,17 @@
     /* Info als gewone tekst met icoontjes, zodat het niet op knoppen lijkt. */
     #w .info { display: inline-flex; align-items: center; gap: 12px; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; }
     #w .info .mode { font-weight: 600; }
+    #w .top .cost { flex: none; font-size: 13px; white-space: nowrap; opacity: .85; font-variant-numeric: tabular-nums; }
+    #w .top .cost b { font-weight: 700; opacity: 1; }
+    /* Kosten zijn aantikbaar: heel klein i-tje erachter, tik toont een kort ballonnetje. */
+    #w .top button.cost { all: unset; flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: 13px; white-space: nowrap; opacity: .85; font-variant-numeric: tabular-nums; cursor: pointer; padding: 8px 0; margin: -8px 0; -webkit-tap-highlight-color: transparent; }
+    #w .top button.cost .ci { width: 10px; height: 10px; flex: none; opacity: .7; }
+    #w .top button.cost[aria-expanded="true"] .ci { color: #1f6fe5; opacity: 1; } /* open: i-tje in de selectiekleur */
+    @media (prefers-color-scheme: dark) { #w .top button.cost[aria-expanded="true"] .ci { color: #3d8bff; } }
+    /* .wpop.cpop: specifieker dan de regels van het golfjes-ballonnetje verderop. */
+    #w .wpop.cpop { left: auto; right: 10px; max-width: 220px; }
+    #w .wpop.cpop .t { white-space: normal; overflow: visible; font-size: 13px; }
+    #w .top button.cost[aria-expanded="true"] { position: relative; z-index: 5; opacity: 1; } /* boven de grijze laag, zoals de golfjes */
     #w .info .it { display: inline-flex; align-items: center; gap: 3px; opacity: .8; }
     #w .info .it svg { width: 13px; height: 13px; flex: none; }
     #w .info .it.high { opacity: 1; font-weight: 700; }
@@ -69,17 +94,18 @@
       box-shadow: 0 6px 20px rgba(0,0,0,.22); cursor: pointer; }
     #w .wpop::before { content: ''; position: absolute; top: -6px; left: var(--ax, 40px); width: 12px; height: 12px; margin-left: -6px; background: inherit; transform: rotate(45deg); border-radius: 2px; }
     #w .wpop .t { font-size: 13.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #w .wpop .n { font-size: 12px; opacity: .65; margin-top: 1px; white-space: nowrap; }
     #w .wpop .t b { font-weight: 700; }
     #w .wpop .lg { display: flex; gap: 2px; margin: 5px -6px 0; }
     #w .wpop .lg > span { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 8px; font-size: 12.5px; color: #3a3d42; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    #w .wpop .lg > span.cur { background: #f7b52c; color: #17171a; font-weight: 700; }
+    #w .wpop .lg > span.cur { background: #ececf0; color: #17171a; font-weight: 700; } /* neutraal: past bij elke kaartkleur */
     #w .wpop .lg .waves { margin: 0; align-self: center; width: 12px; height: 16px; color: #17171a; }
     #w .wpop .lg .waves svg { width: 12px; height: 16px; }
     #w .wpop .lg .waves path { opacity: .22; } /* duidelijk verschil tussen aan en uit */
     #w .wpop .lg .waves.l1 .w1, #w .wpop .lg .waves.l2 .w1, #w .wpop .lg .waves.l2 .w2, #w .wpop .lg .waves.l3 path { opacity: 1; }
     #w .wpop.enter, #w .wscrim.enter { animation: wexp-in .18s ease; }
     @keyframes wexp-in { from { opacity: 0; } }
-    @media (prefers-color-scheme: dark) { #w .wpop { background: #2a2b2f; color: #fff; } #w .wpop .lg > span { color: #d5d7db; } #w .wpop .lg .waves { color: #fff; } }
+    @media (prefers-color-scheme: dark) { #w .wpop { background: #2a2b2f; color: #fff; } #w .wpop .lg > span { color: #d5d7db; } #w .wpop .lg > span.cur { background: rgba(255,255,255,.14); color: #fff; } #w .wpop .lg .waves { color: #fff; } }
     @media (prefers-reduced-motion: reduce) { #w .wpop.enter, #w .wscrim.enter { animation: none; } }
     #w .waves path { opacity: .35; transition: opacity .5s ease; }
     #w .waves.l1 .w1, #w .waves.l2 .w1, #w .waves.l2 .w2, #w .waves.l3 path { opacity: 1; }
@@ -104,6 +130,9 @@
     #w button:active { transform: scale(.94); }
     #w .ctrl button { width: 40px; height: 40px; padding: 0; flex: none; }
     #w .ctrl button svg { width: 18px; height: 18px; display: block; }
+    /* Op het maximum: + wordt een rondje met 'max' (tikken doet niets). */
+    #w .ctrl .maxb { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; padding: 0;
+      background: transparent; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fg) 55%, transparent); }
     #w .ctrl .val { position: relative; width: 60px; text-align: center; }
     #w .ctrl output { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
     /* Ruimte onder de grote temperatuur (zone van de thermostaat in Homey) */
@@ -114,10 +143,14 @@
     #w .bar i { display: block; height: 100%; }
     /* Handmatige periode: omlijning om dat stuk van de balk, met afgeronde hoeken (tekstkleur: zwart in lichte modus). */
     #w .barwrap .manual { position: absolute; top: -2px; height: 14px; margin-left: -2px; padding: 0; box-sizing: content-box; /* binnenrand = balkrand; placeManual zet left/width in px */
-      border: 2px solid currentColor; border-radius: 8px; pointer-events: none; }
+      border: 2px solid currentColor; border-radius: 5px; pointer-events: none; } /* iets scherper */
+    /* Open kant: de periode loopt door na middernacht (of tot je het schema hervat), of begon gisteren. */
+    #w .barwrap .manual.or { border-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    #w .barwrap .manual.ol { border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
     #w .barwrap { position: relative; height: 12px; flex: none; }
     /* Nu-streepje verticaal gecentreerd op de balk, horizontaal precies op het tijdstip. */
-    #w .now { position: absolute; top: -1px; width: 3px; height: 16px; border-radius: 2px; background: currentColor; transform: translateX(-1.5px); }
+    /* Nu-streepje met een randje in de kaartkleur: lijkt los te staan en valt óver het kader van de handmatige periode. */
+    #w .now { position: absolute; top: -1px; width: 3px; height: 16px; border-radius: 2px; background: currentColor; transform: translateX(-1.5px); z-index: 2; box-shadow: 0 0 0 2px var(--cardbg); }
     #w .ticks { display: flex; justify-content: space-between; font-size: 11px; line-height: 14px; height: 14px; opacity: .7; margin-top: -2px; flex: none; }
     #w .resume { flex: none; white-space: nowrap; height: 32px; padding: 0 12px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
     #w .resume svg { width: 16px; height: 16px; }
@@ -152,7 +185,7 @@
     #w .wtip .tr { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
     #w .wtip span { display: inline-flex; align-items: center; gap: 3px; }
     #w .wtip svg { width: 13px; height: 13px; flex: none; } #w .wtip .tv svg { width: 15px; height: 18px; opacity: .8; }
-    @media (prefers-color-scheme: dark) { #w .wtip { background: #f5f5f5; color: #17171a; } #w .chart .scrub circle { fill: #242528; } }
+    @media (prefers-color-scheme: dark) { #w .wtip { background: #f5f5f5; color: #17171a; } #w .chart .scrub circle { fill: #22232b; } }
     /* Verloopkaart: wit (donker: donkergrijs), zelfde rustige kleuren als het verloop in de instellingen */
     #w .track > .p1 { background-color: #ffffff; color: #17171a; }
     #w .p1::before, #w .p1::after { display: none; }
@@ -164,7 +197,7 @@
     #w .chart .b-schedule { fill: #d7f3e6; } #w .chart .b-manual { fill: #f7b52c; } #w .chart .b-away { fill: #8b8f96; } #w .chart .b-off { fill: #c9cbd1; }
     #w .chart .i-schedule { stroke: #1d6f4f; } #w .chart .i-manual { stroke: #4a3000; } #w .chart .i-away, #w .chart .i-off { stroke: #fff; }
     @media (prefers-color-scheme: dark) {
-      #w .track > .p1 { background-color: #242528; color: #f5f5f5; }
+      #w .track > .p1 { background-color: #22232b; color: #f5f5f5; } /* zelfde blauwgrijs als de apparaattegels in Homey */
       #w .chart .g { stroke: #3a3b40; } #w .chart .in { stroke: #f5f5f5; }
       #w .chart .heat { fill: rgba(247,181,44,.28); opacity: 1; }
       #w .chart .b-schedule { fill: #1c4636; } #w .chart .b-away { fill: #6b6f76; } #w .chart .b-off { fill: #4a4c52; }
@@ -189,6 +222,22 @@
     #w button.sub .cd { font-variant-numeric: tabular-nums; opacity: .75; }
     #w button.sub .edit { width: 15px; height: 15px; opacity: .75; }
     #w .dur { height: 60px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+    /* Dashboard: de keuzes schuiven als een laatje van onderen over de dagbalk; die blijft liggen en dimt. */
+    #w .zone { position: relative; flex: none; display: flex; flex-direction: column; overflow: hidden; margin: -3px 0; padding: 3px 0; }
+    #w .zone > .rowl { display: flex; flex-direction: column; gap: 8px; }
+    #w .zone > .rowl > :not(.sub) { transition: opacity .3s ease; }
+    #w .zone.open > .rowl > :not(.sub) { opacity: 0; pointer-events: none; } /* balk vervaagt helemaal: geen eigen vlak nodig onder de knoppen */
+    #w .zone.fresh > .rowl > :not(.sub) { animation: w-dim .3s ease; }
+    #w .zone > .dur { position: absolute; left: 0; right: 0; bottom: 3px; height: 34px; z-index: 2; display: flex; flex-direction: row; align-items: flex-end; }
+    #w .zone > .dur .ch { flex: 1; min-width: 0; }
+    #w .dur .ch .cx { flex: none; width: 34px; padding: 0; background: transparent; }
+    #w .dur .ch .cx svg { width: 18px; height: 18px; }
+    #w .zone > .dur.enter { animation: w-up .4s cubic-bezier(.3, .8, .2, 1) both; }
+    #w .zone > .dur.leave { animation: w-down .32s ease-in both; }
+    @keyframes w-dim { from { opacity: 1; } }
+    @keyframes w-up { from { transform: translateY(110%); } }
+    @keyframes w-down { to { transform: translateY(110%); } }
+    @media (prefers-reduced-motion: reduce) { #w .zone > .dur, #w .zone > .rowl { animation: none !important; transition: none; } }
     #w .dur .q { display: flex; align-items: center; gap: 8px; height: 26px; font-size: 14px; white-space: nowrap; }
     #w .dur .q b { font-weight: 600; }
     #w .dur .q .cd { opacity: .75; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
@@ -200,22 +249,11 @@
     #w .enter { animation: w-enter .28s cubic-bezier(.2, .8, .2, 1) both; }
     @keyframes w-enter { from { opacity: 0; transform: translateY(5px); } }
     @media (prefers-reduced-motion: reduce) { #w .enter { animation: none; } }
-    #w .dur .sl { display: flex; align-items: center; gap: 10px; height: 30px; }
-    #w .dur .nx { flex: none; height: 30px; padding: 0 11px; font-size: 13px; white-space: nowrap; }
-    #w .dur .nx.on { background: var(--solid); color: var(--solid-text); }
-    #w input[type=range].off { opacity: 1; }
-    #w .dur .sl .inf { font-size: 18px; line-height: 1; opacity: .8; width: 20px; text-align: center; }
-    #w input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 30px; margin: 0; background: none; touch-action: pan-y; }
-    #w input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
-      background: linear-gradient(to right, #ffffff var(--p, 0%), rgba(255,255,255,.3) var(--p, 0%)); }
-    #w input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255,255,255,.3); }
-    #w input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: #ffffff; }
-    /* 'Volgend tijdsblok' gekozen: hele balk licht, zonder grauwe doorschijnendheid */
-    #w input[type=range].off::-webkit-slider-runnable-track { background: rgba(255,255,255,.3); }
-    #w input[type=range].off::-moz-range-progress { background: rgba(255,255,255,.3); }
-    #w input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 50%;
-      background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
-    #w input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #ffffff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+    /* Snelkeuzes: hoe lang de handmatige temperatuur geldt. */
+    #w .dur .ch { display: flex; gap: 6px; height: 30px; }
+    #w .dur .ch button { flex: 1 1 auto; height: 30px; padding: 0 8px; font-size: 13px; white-space: nowrap; }
+    #w .dur .ch button.nb { flex-grow: 2; }
+    #w .dur .ch button.on { background: var(--fg); color: var(--cardbg); } /* gekozen: omgekeerd, goed zichtbaar op elke kaart */
     /* Skeleton: zelfde opbouw en maten als de echte widget, zodat er bij het laden niets verspringt. */
     #w .sk { display: block; border-radius: 999px; background: var(--pill); position: relative; overflow: hidden; }
     #w .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
@@ -285,9 +323,23 @@ let confirmPoll = null;
 // Dezelfde widget dient ook als statustegel op de instellingenpagina (tile.html?in=settings):
 // daar geen dagbalk (het weekschema staat eronder), wel de knoppen Afwezig en Pauzeren in de tegel.
 const IN_SETTINGS = new URLSearchParams(location.search).get('in') === 'settings';
+/**
+ * Tikje bij − en +. Op het dashboard via Homey; in de instellingen heeft Homey daar geen functie voor,
+ * dan laten we hier (waar je tikt) een onzichtbare iOS-schakelaar omklikken, die geeft ook een tikje.
+ */
+let switchEl = null;
+function stepTick() {
+  if (!IN_SETTINGS) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); return; }
+  if (!switchEl) {
+    switchEl = document.createElement('label'); switchEl.setAttribute('aria-hidden', 'true');
+    switchEl.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden';
+    switchEl.innerHTML = '<input type="checkbox" switch tabindex="-1">'; document.body.appendChild(switchEl);
+  }
+  try { switchEl.click(); } catch (e) { /* geen tikje */ }
+}
 if (IN_SETTINGS) document.documentElement.classList.add('in-settings');
 const ICON_ACT = {
-  away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 2 2 3M12 15l-1-4"/></svg>',
+  away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></svg>',
@@ -303,7 +355,7 @@ const COLD_BELOW = 16; // °C: kouder dan dit = blauw
 const HUMID_FROM = 65; // %: vanaf dit = te vochtig
 let H; let data = null; let loaded = false;
 // Keuzerij 'hoe lang?': open/dicht, en een keuze die nog met de temperatuur mee moet.
-let durOpen = false; let durTimer = null; let chosenDur = null; let sliding = false; let touched = false; let prevKey = null; let pending = null; let sendTimer = null;
+let durOpen = false; let durTimer = null; let chosenDur = null; let touched = false; let prevKey = null; let pending = null; let sendTimer = null;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (v) => (v == null || Number.isNaN(Number(v)) ? '–' : `${Number(v).toFixed(1)}°`);
 const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
@@ -316,10 +368,10 @@ function bigTemp(v) {
 /** Gedeeld palet (zelfde als het weekschema): laag = turquoise-groen, 16–18 = geel, 18–20 = oranje, 20+ = rood-oranje. */
 const PALETTE = { low: '#45c08f', mild: '#f7b52c', warm: '#ee8a35', hot: '#e5603a' };
 /** Heldere kleuren voor de balk: normaal = licht mint, verwarmen = zonnig geel, warm = oranje, heel warm = koraal. */
-// 'low' is een wit laagje over de achtergrond, zodat het past bij groen, geel en blauw.
-const TINT = { low: 'rgba(255,255,255,.5)', mild: '#ffd84d', warm: '#ff9f43', hot: '#ff6a4d' };
+// 'low' is een laagje in de tekstkleur (wit, of in donkere modus de felle toestandskleur), zodat het bij elke kaart past.
+const TINT = { low: 'color-mix(in srgb, var(--fg) 50%, transparent)', mild: '#ffd84d', warm: '#ff9f43', hot: '#ff6a4d' };
 function segColor(t) {
-  if (t == null) return 'rgba(255,255,255,.3)';
+  if (t == null) return 'color-mix(in srgb, var(--fg) 30%, transparent)';
   if (t < 16) return TINT.low;
   if (t < 18) return TINT.mild;
   if (t < 20) return TINT.warm;
@@ -336,7 +388,13 @@ function todayBar(schedule, st) {
   const segs = []; let start = 0; let temp = carry;
   for (const b of blocks) { const m = toMin(b.time); if (m > start) segs.push([start, m, temp]); start = m; temp = Number(b.temp); }
   segs.push([start, 1440, temp]);
-  const n = new Date(); const nowPct = ((n.getHours() * 60 + n.getMinutes()) / 14.4).toFixed(2);
+  const n = new Date(); const nowMin = n.getHours() * 60 + n.getMinutes(); const nowPct = (nowMin / 14.4).toFixed(2);
+  // Niemand thuis of gepauzeerd: het schema geldt nu niet; vanaf nu de balk vaag, zodat hij niet zegt wat er 'zou moeten'.
+  const held = st && (st.mode === 'away' || st.mode === 'paused');
+  if (held) {
+    const cut = []; segs.forEach(([a, b, t]) => { if (a < nowMin && b > nowMin) cut.push([a, nowMin, t], [nowMin, b, t]); else cut.push([a, b, t]); });
+    segs.length = 0; segs.push(...cut);
+  }
   // Handmatig vak: van instellen tot einde handmatige stand, gestreept in de kleur van de ingestelde temperatuur.
   let manualBox = '';
   const o = st && st.mode === 'manual' && st.override;
@@ -348,10 +406,12 @@ function todayBar(schedule, st) {
     const end = o.until == null ? null : ((o.duration || 'next') === 'next' && nextBlockAt(st)) || o.until;
     const to = end == null ? 1440 : toM(end);
     if (to > from) {
-      manualBox = `<span class="manual" data-from="${from}" data-to="${to}" style="left:${(from / 14.4).toFixed(2)}%;width:${((to - from) / 14.4).toFixed(2)}%" title="Handmatig ${deg(o.temp)}"></span>`;
+      // Loopt de periode door voorbij vandaag (∞, of over middernacht), of begon hij gisteren? Dan die kant open laten.
+      const cls = `${from <= 0 ? ' ol' : ''}${to >= 1440 ? ' or' : ''}`;
+      manualBox = `<span class="manual${cls}" data-from="${from}" data-to="${to}" style="left:${(from / 14.4).toFixed(2)}%;width:${((to - from) / 14.4).toFixed(2)}%" title="Handmatig ${deg(o.temp)}"></span>`;
     }
   }
-  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i data-a="${s[0]}" data-b="${s[1]}" style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}"></i>`).join('')}</div>${manualBox}<span class="now" style="left:${nowPct}%"></span></div>
+  return `<div class="barwrap"><div class="bar">${segs.filter((s) => s[1] > s[0]).map((s) => `<i data-a="${s[0]}" data-b="${s[1]}" style="flex:${s[1] - s[0]} 0 0;background:${segColor(s[2])}${held && s[0] >= nowMin ? ';opacity:.3' : ''}"></i>`).join('')}</div>${manualBox}<span class="now" style="left:${nowPct}%"></span></div>
     <div class="ticks"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>`;
 }
 /** Temperatuur die het schema nu voorschrijft (voor directe feedback op 'Schema'). */
@@ -388,16 +448,11 @@ const nextBlockAt = (s) => (s.nextBlock && s.nextBlock.inMinutes != null ? (s.up
 const deg = (v) => `${Number(v) % 1 ? Number(v).toFixed(1) : Number(v).toFixed(0)}°`;
 
 // ---- Duur van de handmatige stand ----
-// Knop 'Tot 08:30' = tot het volgende moment in het schema. Schuifbalk = vaste duur, ∞ aan het eind.
-const STOPS = [15, 30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 480, 600, 720, Infinity];
-const durOfStop = (i) => (STOPS[i] === Infinity ? 'manual' : STOPS[i]);
-function stopIndex(d) {
-  if (d === 'manual') return STOPS.length - 1;
-  const m = Number(d); // ook vrije duur (bijv. uit een flow): dichtstbijzijnde stand
-  let best = 0;
-  STOPS.forEach((v, j) => { if (Math.abs(v - m) < Math.abs(STOPS[best] - m)) best = j; });
-  return best;
-}
+// Snelkeuzes: tot het volgende blok in het schema, een vast aantal uren, of ∞ (tot je het schema hervat).
+// Pas vanaf zoveel opwarmmetingen een tijd tonen; daarvoor is één afwijkende meting te bepalend.
+const MIN_SAMPLES = 3;
+const DUR_IDLE_MS = 5000; // zo lang blijven de keuzes staan na je laatste tik
+const CHOICES = [['next', 'Volgend blok'], [60, '1 uur'], [120, '2 uur'], [180, '3 uur'], ['manual', '∞']];
 /** Resterende tijd in uren en minuten, zonder seconden. Naar boven afgerond: nooit '0m' zolang er nog tijd is. */
 function hm(ms) {
   if (ms <= 0) return '0m';
@@ -409,7 +464,7 @@ const nextAt = (s) => (nextBlockAt(s) ? timeOf(nextBlockAt(s)) : '');
 function untilOf(s, d) { return d === 'manual' ? null : d === 'next' ? s.nextChangeAt : Date.now() + d * 60000; }
 /** "Tot 03:41" + aftellen, of "Tot je het schema hervat". */
 function durLabel(s, d, until) {
-  if (until == null) return { t: 'Tot je het schema hervat', cd: '' };
+  if (until == null) return { t: 'Tot je het schema hervat', cd: '∞' }; // ∞ op de plek van de resterende tijd
   // Bij 'volgend tijdsblok' tonen we het schema-moment (bijv. 18:00), ook al begint het voorverwarmen iets eerder.
   const shown = d === 'next' && nextBlockAt(s) ? nextBlockAt(s) : until;
   return { t: `Tot ${timeOf(shown)}`, cd: hm(shown - Date.now()) };
@@ -418,10 +473,21 @@ function openDur() {
   if (!durOpen) enterPanel = true;
   durOpen = true;
   clearTimeout(durTimer);
-  durTimer = setTimeout(() => { if (!sliding) closeDur(); else openDur(); }, 8000); // niets gekozen: standaard laten staan
+  durTimer = setTimeout(closeDur, DUR_IDLE_MS); // na elke tik opnieuw: pas na een tijdje niets doen zakt het weg (of met ×)
 }
 let enterPanel = false; let enterRow = false; // alleen bij openen/sluiten animeren, niet bij elke verversing
-function closeDur() { clearTimeout(durTimer); if (durOpen) enterRow = true; durOpen = false; sliding = false; touched = false; render(); }
+function closeDur() {
+  clearTimeout(durTimer);
+  // Dashboard: het laatje met keuzes zakt eerst weg over de dagbalk, daarna pas opnieuw tekenen.
+  const zone = document.querySelector('#w .zone.open'); const panel = zone && zone.querySelector('.dur');
+  if (panel && !panel.classList.contains('leave')) {
+    panel.classList.add('leave'); zone.classList.remove('open', 'fresh');
+    setTimeout(() => { durOpen = false; touched = false; render(); }, 320);
+    return;
+  }
+  if (durOpen && IN_SETTINGS) enterRow = true;
+  durOpen = false; touched = false; render();
+}
 function curDur(s) {
   if (chosenDur != null) return chosenDur;
   if (s.mode === 'manual' && s.override) return s.override.duration || 'next'; // + of − houdt de eindtijd vast
@@ -429,37 +495,33 @@ function curDur(s) {
 }
 function durPanel(s) {
   const d = curDur(s);
-  const isNext = String(d) === 'next';
   const sameAsNow = s.mode === 'manual' && s.override && chosenDur == null;
   const l = durLabel(s, d, sameAsNow ? s.override.until : untilOf(s, d));
-  const i = isNext ? stopIndex(Math.max(1, ((s.nextChangeAt || Date.now()) - Date.now()) / 60000)) : stopIndex(d);
   const enter = enterPanel ? ' enter' : ''; enterPanel = false;
-  return `<div class="dur${enter}">
+  // In de instellingen vervangt het paneel de knoppen Afwezig/Pauzeren; iets hoger zodat de tegel niet verspringt.
+  const chips = `<div class="ch" role="group" aria-label="Hoe lang geldt deze temperatuur">${CHOICES.map(([v, t]) => `<button class="${v === 'next' ? 'nb' : ''}${String(v) === String(d) ? ' on' : ''}" data-dur="${v}" aria-pressed="${String(v) === String(d)}"${v === 'manual' ? ' aria-label="Tot je het schema hervat"' : ''}>${t}</button>`).join('')}</div>`;
+  if (!IN_SETTINGS) return `<div class="dur only${enter}">${chips.replace(/<\/div>$/, `<button class="cx" data-durclose aria-label="Klaar">${ICON.x}</button></div>`)}</div>`; // dashboard: alleen de knoppen (+ sluiten), over de dagbalk
+  return `<div class="dur${enter}" style="height:74px">
       <div class="q"><b class="dl">${esc(l.t)}</b><span class="cd">${esc(l.cd)}</span><button class="x" data-durclose aria-label="Klaar">${ICON.x}</button></div>
-      <div class="sl">
-        <button class="nx${isNext ? ' on' : ''}" data-next aria-pressed="${isNext}">Volgend tijdsblok</button>
-        <input class="${isNext ? 'off' : ''}" type="range" min="0" max="${STOPS.length - 1}" step="1" value="${i}" style="--p:${(i / (STOPS.length - 1)) * 100}%" aria-label="Hoe lang geldt deze temperatuur">
-        <span class="inf" aria-hidden="true">∞</span>
-      </div>
+      <div class="ch" role="group" aria-label="Hoe lang geldt deze temperatuur">${CHOICES.map(([v, t]) => `<button class="${v === 'next' ? 'nb' : ''}${String(v) === String(d) ? ' on' : ''}" data-dur="${v}" aria-pressed="${String(v) === String(d)}"${v === 'manual' ? ' aria-label="Tot je het schema hervat"' : ''}>${t}</button>`).join('')}</div>
     </div>`;
 }
-/** Label en balk bijwerken voor duur d, zonder opnieuw te tekenen. */
+/** Label en gekozen knop bijwerken voor duur d, zonder opnieuw te tekenen. */
 function showDur(panel, d) {
   const s = data.status;
   const l = durLabel(s, d, untilOf(s, d));
+  panel = panel.closest('.zone') || panel; // dashboard: de tekst staat in de regel boven de knoppen
   panel.querySelector('.dl').textContent = l.t; panel.querySelector('.cd').textContent = l.cd;
-  const input = panel.querySelector('input'); const nx = panel.querySelector('.nx');
-  input.classList.toggle('off', d === 'next'); nx.classList.toggle('on', d === 'next'); nx.setAttribute('aria-pressed', String(d === 'next'));
-  input.style.setProperty('--p', `${(Number(input.value) / (STOPS.length - 1)) * 100}%`);
+  panel.querySelectorAll('[data-dur]').forEach((b) => { const on = b.dataset.dur === String(d); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
 }
 // Aftellen in de regel en in het paneel, zonder de hele widget opnieuw te tekenen.
 setInterval(() => {
-  if (!data || !data.status || sliding) return;
+  if (!data || !data.status) return;
   const ov = data.status.override;
   const cd = document.querySelector('#w .sub .cd');
   const ovCd = () => durLabel(data.status, ov.duration || 'next', ov.until).cd; // tot het schema-moment, zoals de tekst
   if (cd && ov && ov.until != null) cd.textContent = ovCd();
-  const panel = document.querySelector('#w .dur');
+  const dur = document.querySelector('#w .dur'); const panel = dur && (dur.closest('.zone') || dur);
   if (!panel) return;
   if (touched || chosenDur != null || !ov) showDur(panel, curDur(data.status)); // gekozen stand: 'tot' schuift mee met de klok
   else if (ov.until != null) panel.querySelector('.cd').textContent = ovCd();
@@ -480,7 +542,7 @@ function swapInfo() {
   const r = document.querySelector('#w .rot'); if (!r) return;
   showOutdoor = !showOutdoor; r.classList.toggle('alt', showOutdoor);
 }
-function startRotate() { clearInterval(rotateTimer); rotateTimer = setInterval(() => { if (!sliding) swapInfo(); }, ROTATE_MS); }
+function startRotate() { clearInterval(rotateTimer); rotateTimer = setInterval(swapInfo, ROTATE_MS); }
 startRotate();
 function infoItems(s) {
   const hum = s.humidity != null ? `${ICON.drop}${s.humidity}%` : '';
@@ -499,18 +561,47 @@ function infoItems(s) {
  * Gebruikt de geleerde opwarmsnelheid en opstarttijd; zolang er nog niets geleerd is: graden te koud (tot 1°, tot 2°, meer).
  */
 /** Geschatte minuten tot warm, of null als er nog niets geleerd is. */
+/**
+ * Geschatte minuten tot warm. Met weinig metingen mengen we die met een gewone opwarmsnelheid
+ * (1° per uur, 15 min opstarten), zodat één afwijkende meting de schatting niet bepaalt.
+ */
 function heatMinutes(target, indoor, learned) {
-  if (!(learned && learned.samples > 0 && learned.rate > 0)) return null;
-  return ((target - indoor) / learned.rate) * 60 + (learned.heatingNow ? 0 : (learned.deadTime || 0));
+  const n = Math.min(MIN_SAMPLES, (learned && learned.rate > 0 && learned.samples) || 0);
+  const mix = (v, d) => (n * v + (MIN_SAMPLES - n) * d) / MIN_SAMPLES;
+  const rate = n ? mix(learned.rate, 1) : 1;
+  const dead = n ? mix(learned.deadTime || 0, 15) : 15;
+  return ((target - indoor) / rate) * 60 + (learned && learned.heatingNow ? 0 : dead);
 }
+/** Nog aan het leren: minder metingen dan nodig voor een betrouwbare schatting. */
+const stillLearning = (learned) => !(learned && learned.samples >= MIN_SAMPLES);
+/** Hoeveel golfjes vol: hoe lang het opwarmen nog duurt (korter dan 30 min, tot 90 min, langer). */
 function heatLevel(target, indoor, heating, learned) {
   if (!heating) return '';
-  const gap = target - indoor;
-  if (learned && learned.samples > 0 && learned.rate > 0) {
-    const min = heatMinutes(target, indoor, learned);
-    return min < 30 ? ' l1' : min < 90 ? ' l2' : ' l3';
-  }
-  return gap < 1 ? ' l1' : gap < 2 ? ' l2' : ' l3';
+  const min = heatMinutes(target, indoor, learned);
+  return min < 30 ? ' l1' : min < 90 ? ' l2' : ' l3';
+}
+
+/**
+ * Rustiger verloop. Homey bewaart per 5 minuten een gemiddelde: een wissel van 15° naar 20° wordt dan één keer 17,3°.
+ * Die tussenwaarde wordt de stand die erna kwam. Daarna tellen standen en modi van hooguit 5 minuten mee bij de vorige.
+ */
+function calmHistory(h) {
+  if (!h || h.calm) return h;
+  const half = (v) => Math.abs(v * 2 - Math.round(v * 2)) < 0.01;
+  const r2 = (v) => Math.round(v * 2) / 2;
+  const tg = (h.target || []).map(([t, v], i, a) => {
+    if (half(v)) return [t, r2(v)];
+    const n = a.slice(i + 1).find((r) => half(r[1]));
+    return [t, n ? r2(n[1]) : r2(v)];
+  });
+  for (let i = 1; i < tg.length - 1; i++) if (tg[i][1] !== tg[i - 1][1] && tg[i + 1][1] !== tg[i][1]) tg[i] = [tg[i][0], tg[i - 1][1]];
+  const until = Math.min(h.now, h.end); const modes = [];
+  (h.modes || []).forEach((m, i, a) => {
+    const end = i + 1 < a.length ? a[i + 1].t : until;
+    if (modes.length && (end - m.t <= 300000 || modes[modes.length - 1].m === m.m)) return;
+    modes.push(m);
+  });
+  return { ...h, target: tg, modes, calm: true };
 }
 
 // ---- Tweede pagina: verloop van vandaag (alleen op het dashboard) ----
@@ -518,7 +609,7 @@ let wModel = null; let page = 0; let hist = null; let histAt = 0; let drag = nul
 const BAND_ICON = {
   schedule: '<path d="M4 11 12 4l8 7v9H4z"/>',
   manual: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/>',
-  away: '<circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 2 2 3M12 15l-1-4"/>',
+  away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
 };
 const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off' };
@@ -580,6 +671,9 @@ async function loadHist() {
   try { hist = await H.api('GET', '/history'); histAt = Date.now(); } catch (e) { /* later opnieuw */ }
   renderChart();
 }
+// Kosten-uitleg in de grafiekkaart (zie costInfoPanel).
+let costInfo = false; let costTimer = null;
+const INFO_ICON = '<svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r=".8" fill="currentColor"/></svg>';
 function renderChart() {
   const p1 = document.querySelector('#w .p1'); const p0 = document.querySelector('#w .p0');
   if (p1 && p0) chartPage(p1, p0);
@@ -589,11 +683,11 @@ function chartPage(p1, p0) {
   const H0 = p0.offsetHeight; // offset*: niet beïnvloed door het verkleinen tijdens vegen
   const W = Math.max(200, p1.offsetWidth - 32); const CH = Math.max(90, H0 - 28 - 32 - 8);
   const X0 = 0; const Y0 = 13; const HH = CH - 30; // graden staan ín de grafiek: volle breedte
-  let svg = ''; let summary = '';
+  let svg = ''; let summary = ''; let cost = '';
   if (!hist) {
     svg = `<text class="l" x="${W / 2}" y="${HH / 2}" text-anchor="middle">Laden…</text>`;
   } else {
-    const h = hist; const step = 300000;
+    const h = calmHistory(hist); const step = 300000;
     const all = [...h.indoor.map((r) => r[1]), ...h.target.map((r) => Math.round(r[1] * 2) / 2)];
     const TMIN = Math.min(15, Math.floor(Math.min(...all, 99))); const TMAX = Math.max(21, Math.ceil(Math.max(...all, 0)));
     const x = (t) => X0 + ((t - h.start) / (h.end - h.start)) * (W - X0);
@@ -601,7 +695,10 @@ function chartPage(p1, p0) {
     for (let v = TMIN; v <= TMAX; v += 3) svg += `<line class="g" x1="${X0}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>${v > TMIN ? `<text class="l" x="2" y="${y(v) - 3}">${v}°</text>` : ''}`;
     const tgt = new Map(h.target.map(([t, v]) => [Math.round(t / step), Math.round(v * 2) / 2]));
     let heatMin = 0;
-    h.indoor.forEach(([t, v]) => { const sp = tgt.get(Math.round(t / step)); if (sp != null && sp > v + 0.2) { heatMin += 5; svg += `<rect class="heat" x="${x(t)}" y="${Y0}" width="${Math.max(0, x(Math.min(t + step, h.now)) - x(t) + 0.3)}" height="${HH - Y0}"/>`; } });
+    // Eén vlak per aaneengesloten verwarmde periode (losse vakjes overlappen en geven streepjes).
+    let run = null; const flush = () => { if (run) svg += `<rect class="heat" x="${x(run[0])}" y="${Y0}" width="${Math.max(0, x(run[1]) - x(run[0]))}" height="${HH - Y0}"/>`; run = null; };
+    h.indoor.forEach(([t, v]) => { const sp = tgt.get(Math.round(t / step)); if (sp != null && sp > v + 0.2) { heatMin += 5; const e = Math.min(t + step, h.now); if (run && t - run[1] <= step / 2) run[1] = e; else { flush(); run = [t, e]; } } });
+    flush();
     if (h.target.length) {
       let d = ''; h.target.forEach(([t, v], i) => { const vv = Math.round(v * 2) / 2; d += i ? `H${x(t)}V${y(vv)}` : `M${x(t)} ${y(vv)}`; });
       svg += `<path class="sp" d="${d}H${x(Math.min(h.target[h.target.length - 1][0] + step, h.now))}" fill="none" stroke-width="1.6"/>`;
@@ -622,17 +719,35 @@ function chartPage(p1, p0) {
       if (bw >= 14) svg += `<g class="i-${k}" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(${x(a) + bw / 2 - 4.8} ${by + 1.7}) scale(.4)">${BAND_ICON[k]}</g>`;
     });
     [0, 6, 12, 18, 24].forEach((hr) => { svg += `<text class="l" x="${x(h.start + hr * 3600000)}" y="${CH - 1}" text-anchor="${hr === 0 ? 'start' : hr === 24 ? 'end' : 'middle'}">${hr}</text>`; });
-    summary = `<span class="it">${ICON.waves}${Math.floor(heatMin / 60)}u ${heatMin % 60}m verwarmd</span>`;
+    // Met kosten erbij is er weinig ruimte: dan alleen golfjes + tijd (de golfjes zeggen al 'verwarmd').
+    summary = `<span class="it">${ICON.waves}${Math.floor(heatMin / 60)}u ${heatMin % 60}m${h.usage ? '' : ' verwarmd'}</span>`;
+    // Kosten van vandaag (als 'Verbruik en kosten' aan staat): rechtsboven, bedrag vet met het verbruik erachter.
+    if (h.usage) cost = `<button class="cost" data-costinfo aria-expanded="${costInfo}" aria-label="Waar komt dit bedrag vandaan?"><b>€ ${h.usage.cost.toFixed(2).replace('.', ',')}</b> · ${String(h.usage.amount).replace('.', ',')} ${h.usage.unit}${INFO_ICON}</button>`;
   }
   p1.style.height = `${H0}px`;
-  p1.innerHTML = `<div class="top"><span class="info"><span class="mode">Verloop vandaag</span>${summary}</span></div>
+  p1.innerHTML = `<div class="top"><span class="info"><span class="mode">Verloop vandaag</span>${summary}</span>${cost}</div>
     <svg class="chart" viewBox="0 0 ${W} ${CH}" style="height:${CH}px" role="img" aria-label="Temperatuurverloop vandaag. Houd vast en schuif voor details.">${svg}</svg>
-    <div class="wtip" hidden></div>`;
+    <div class="wtip" hidden></div>${hist && hist.usage && costInfo ? costInfoPanel(hist.usage) : ''}`; // hist: h bestaat alleen binnen het blok hierboven
+  placeCostInfo(p1);
+}
+
+/** Uitleg bij de kosten: kort ballonnetje onder het bedrag. De volledige uitleg staat op de instellingenpagina. */
+function costInfoPanel(u) {
+  const t = u.unit === 'm³' ? 'Gas van het hele huis, dus ook douchen en koken. Zonder vaste kosten.' : 'Stroom van de gekozen meter, ook ander verbruik. Zonder vaste kosten.';
+  return `<div class="wscrim" data-costclose></div><div class="wpop cpop enter" data-costclose role="dialog" aria-label="Uitleg kosten"><div class="t">${t}</div></div>`;
+}
+/** Ballonnetje net onder het bedrag, pijltje naar het i-tje. */
+function placeCostInfo(p1) {
+  const pop = p1.querySelector('.cpop'); const ic = p1.querySelector('.cost .ci');
+  if (!pop || !ic) return;
+  const pr = p1.getBoundingClientRect(); const r = ic.getBoundingClientRect();
+  pop.style.top = `${r.bottom - pr.top + 10}px`;
+  const left = pr.width - 10 - pop.offsetWidth; // rechts uitgelijnd
+  pop.style.setProperty('--ax', `${r.left + r.width / 2 - pr.left - left}px`);
 }
 
 function render() {
   const w = document.getElementById('w');
-  if (sliding) return; // niet onder je vinger vandaan tekenen
   if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
   const first = w.classList.contains('loading');
   w.removeAttribute('aria-busy'); w.removeAttribute('aria-label');
@@ -647,7 +762,8 @@ function render() {
   if (first) { w.className = 'in'; setTimeout(() => w.classList.remove('in'), 400); }
   const s = data.status;
   const target = pending != null ? pending : s.thermostatTarget;
-  const setup = s.mode === 'setup'; // nieuwe installatie, nog niet gestart: alleen kijken, niets bedienen
+  const setup = s.mode === 'setup';
+  const paused = s.mode === 'paused'; // gepauzeerd: − en + hebben geen zin, alleen hervatten // nieuwe installatie, nog niet gestart: alleen kijken, niets bedienen
   w.classList.toggle('setup', setup);
   const heating = !setup && target != null && s.indoor != null && target > s.indoor + 0.2;
   // Toestand: verwarmen gaat voor, dan te koud, dan te vochtig.
@@ -662,12 +778,20 @@ function render() {
   const manual = s.mode === 'manual' && s.override;
   if (durOpen && !manual && pending == null) durOpen = false; // inmiddels terug naar het schema
   let sub;
-  if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span>${ICON.edit}`;
+  if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span><span class="cd">∞</span>${ICON.edit}`;
   else if (manual) { const l = durLabel(s, s.override.duration || 'next', s.override.until); sub = `${ICON.hand}<span>${esc(l.t)}</span><span class="cd">${l.cd}</span>${ICON.edit}`; }
   else if (setup) sub = '<span>Start via de app-instellingen</span>';
+  else if (paused) sub = '<span>Schema staat stil</span>';
+  else if (s.mode === 'away') sub = `${ICON_ACT.away}<span>Tot iemand thuiskomt</span>`; // niet het volgende schema-moment: dat geldt nu niet
   else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(nextAt(s))}</span>`;
   else if (s.nextBlock && nextBlockAt(s)) sub = `<span>${esc(cap(whenAt(nextBlockAt(s))))} → ${deg(s.nextBlock.temp)}</span>`;
   else sub = '';
+  let subHtml;
+  if (durOpen && !IN_SETTINGS) {
+    const dd = curDur(s); const same = s.mode === 'manual' && s.override && chosenDur == null;
+    const lb = durLabel(s, dd, same ? s.override.until : untilOf(s, dd));
+    subHtml = `<button class="sub" data-durclose aria-label="Klaar met kiezen">${ICON.hand}<span class="dl">${esc(lb.t)}</span><span class="cd">${esc(lb.cd)}</span></button>`;
+  } else subHtml = manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`;
   const waiting = heating && (pending == null) && s.targetConfirmed === false;
   clearTimeout(confirmPoll); if (waiting) confirmPoll = setTimeout(load, 3000); // wacht op bevestiging: vaker kijken
   const p0 = frame(w);
@@ -677,21 +801,21 @@ function render() {
         <span class="mode">${esc(MODES[s.mode] || s.mode)}</span>
         ${infoItems(s)}
       </span>
-      ${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>` : ''}
+      ${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>`
+        : paused && !IN_SETTINGS ? `<button class="resume" data-act="enable">${ICON_ACT.play}Hervat</button>` : ''}
     </div>
     <div class="mid">
       <span class="tw">${bigTemp(s.indoor)}<button class="wbtn" data-waveinfo aria-label="Wat betekenen de golfjes?"><span class="waves${heatLevel(target, s.indoor, heating, s.learned)}${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></button></span>
-      ${setup ? '' : `<div class="ctrl">
+      ${setup || paused ? '' : `<div class="ctrl">
         <button data-d="-0.5" aria-label="Kouder">${ICON.minus}</button>
         <span class="val"><output aria-label="Ingesteld">${fmt(target)}</output></span>
-        <button data-d="0.5" aria-label="Warmer">${ICON.plus}</button>
+        ${s.maxTemp != null && target >= s.maxTemp ? '<button class="maxb" data-max aria-label="Maximumtemperatuur bereikt">max</button>' : `<button data-d="0.5" aria-label="Warmer">${ICON.plus}</button>`}
       </div>`}
     </div>
     ${s.room ? `<div class="room">${esc(s.room)}</div>` : ''}
-    ${durOpen ? durPanel(s)
-    : `${manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`}
-    ${IN_SETTINGS ? '' : todayBar(data.schedule || {}, s)}`}
-    ${settingsActions(s)}
+    ${IN_SETTINGS ? (durOpen ? durPanel(s) : subHtml)
+    : `<div class="zone${durOpen ? ' open' : ''}${durOpen && enterPanel ? ' fresh' : ''}"><div class="rowl">${subHtml}${todayBar(data.schedule || {}, s)}</div>${durOpen ? durPanel(s) : ''}</div>`}
+    ${durOpen && IN_SETTINGS ? '' : settingsActions(s)}
     ${waveInfo && !setup ? waveInfoPanel(s, target, heating, heating && (pending != null || s.targetConfirmed === false)) : ''}`;
   renderChart();
   placeWaveInfo(p0);
@@ -705,18 +829,22 @@ let waveInfo = false; let waveTimer = null; let waveEnter = false; // alleen bij
 function waveInfoPanel(s, target, heating, waiting) {
   const lvl = heatLevel(target, s.indoor, heating, s.learned).trim();
   const min = heating ? heatMinutes(target, s.indoor, s.learned) : null;
-  const dur = (m) => { const r = Math.max(5, Math.round(m / 5) * 5); return r < 60 ? `${r} min` : `${Math.floor(r / 60)}u${r % 60 ? ` ${r % 60}m` : ''}`; };
   // Zo kort mogelijk: niet aan het verwarmen = één regel; wel = waarde + legenda met wat de golfjes tellen.
-  let line; let rows = null;
+  let line; let rows = null; let note = '';
   // Of de cv echt brandt beslist de thermostaat (met eigen marge); daarom niets over 'uit' zeggen, alleen hoe dicht we erbij zitten.
   if (!heating) line = s.indoor != null && target != null && s.indoor < target ? '<b>Bijna op temperatuur</b>' : '<b>Op temperatuur</b>';
   else if (waiting) line = `Wacht tot de thermostaat <b>${fmt(target)}</b> overneemt`;
-  else if (min != null) { line = `Opwarmtijd: <b>nog ± ${dur(min)}</b>`; rows = [['l1', '&lt;30 min'], ['l2', '30–90 min'], ['l3', '&gt;1½ uur']]; }
-  else { line = `Te koud: <b>nog ${fmt(target - s.indoor)}</b>`; rows = [['l1', '&lt;1°'], ['l2', '1–2°'], ['l3', '&gt;2°']]; }
+  else {
+    // Kloktijd zegt meer dan een duur. Nog weinig metingen? Dan eerlijk melden dat het een schatting is.
+    line = `Warm rond <b>${clock(Date.now() + min * 60000)}</b>`;
+    rows = [['l1', '&lt;30 min'], ['l2', '30–90 min'], ['l3', '&gt;1½ uur']];
+    if (stillLearning(s.learned)) note = `Nog aan het leren · ${Math.min(s.learned ? s.learned.samples : 0, MIN_SAMPLES)} van ${MIN_SAMPLES} metingen`;
+  }
   const enter = waveEnter ? ' enter' : ''; waveEnter = false;
   return `<div class="wscrim${enter}" data-waveclose></div>
   <div class="wpop${enter}" data-waveclose role="dialog" aria-label="Uitleg golfjes">
     <div class="t">${line}</div>
+    ${note ? `<div class="n">${note}</div>` : ''}
     ${rows ? `<div class="lg">${rows.map(([c, t]) => `<span class="${c === lvl ? 'cur' : ''}"><span class="waves ${c}">${ICON.waves}</span>${t}</span>`).join('')}</div>` : ''}
   </div>`;
 }
@@ -799,7 +927,7 @@ function wScrubEnd() {
 
 // De inhoud volgt je vinger; loslaten = naar de dichtstbijzijnde pagina. Aan de randen wat weerstand.
 document.addEventListener('touchstart', (e) => {
-  if (IN_SETTINGS || !document.querySelector('#w .track') || e.target.closest('input[type=range]')) return;
+  if (IN_SETTINGS || !document.querySelector('#w .track')) return;
   const t = e.touches[0]; drag = { x: t.clientX, y: t.clientY, dx: 0, mode: null };
   // Op het verloop even stilhouden = details bekijken (in plaats van vegen).
   drag.onChart = page === 1 && !!e.target.closest('.p1 .chart');
@@ -808,16 +936,18 @@ document.addEventListener('touchstart', (e) => {
     drag.hold = setTimeout(() => {
       if (!drag || drag.mode) return;
       drag.mode = 'scrub'; wScrub(drag.x);
-      if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
-    }, 250);
+    }, 180);
   }
 }, { passive: true });
 document.addEventListener('touchmove', (e) => {
   if (!drag) return;
   const t = e.touches[0]; const dx = t.clientX - drag.x; const dy = t.clientY - drag.y;
   if (drag.mode === 'scrub') { if (e.cancelable) e.preventDefault(); wScrub(t.clientX); return; }
-  if (!drag.mode && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+  // Op de grafiek: zolang de richting nog niet vastligt niet laten scrollen, anders neemt Homey het gebaar over.
+  if (drag.onChart && !drag.mode && Math.abs(dx) >= Math.abs(dy) && e.cancelable) e.preventDefault();
+  if (!drag.mode && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
     clearTimeout(drag.hold);
+    // Snel opzij = vegen naar de andere kaart; eerst even vasthouden (zie touchstart) = langs de tijd schuiven.
     drag.mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v';
     if (drag.mode === 'h' && (!hist || Date.now() - histAt > 5 * 60000)) loadHist();
   }
@@ -840,20 +970,6 @@ function endDrag() {
 document.addEventListener('touchend', endDrag);
 document.addEventListener('touchcancel', endDrag);
 
-// Schuifbalk: tijdens slepen alleen het label bijwerken, bij loslaten de duur doorgeven.
-document.addEventListener('pointerdown', (e) => { if (e.target.matches('#w input[type=range]')) { sliding = true; openDur(); } });
-document.addEventListener('input', (e) => {
-  if (!e.target.matches('#w input[type=range]')) return;
-  sliding = true; touched = true; chosenDur = durOfStop(Number(e.target.value)); openDur();
-  showDur(e.target.closest('.dur'), chosenDur);
-  if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
-});
-document.addEventListener('change', (e) => {
-  if (!e.target.matches('#w input[type=range]') || !data || !data.status) return;
-  sliding = false;
-  commitDur(durOfStop(Number(e.target.value)));
-});
-['pointerup', 'pointercancel'].forEach((t) => document.addEventListener(t, () => { if (sliding) setTimeout(() => { sliding = false; }, 50); }));
 
 async function sendTemp() {
   clearTimeout(sendTimer); sendTimer = null;
@@ -869,6 +985,13 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-duropen]')) { if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback(); openDur(); render(); return; }
   if (e.target.closest('[data-durclose]')) { closeDur(); return; }
   if (e.target.closest('[data-waveclose]')) { clearTimeout(waveTimer); waveInfo = false; render(); return; }
+  if (e.target.closest('[data-costclose]')) { clearTimeout(costTimer); costInfo = false; renderChart(); return; }
+  if (e.target.closest('[data-costinfo]')) {
+    if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    costInfo = !costInfo; renderChart();
+    clearTimeout(costTimer); if (costInfo) costTimer = setTimeout(() => { costInfo = false; renderChart(); }, 8000); // vanzelf weer dicht
+    return;
+  }
   if (e.target.closest('[data-waveinfo]')) {
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
     waveInfo = true; waveEnter = true; render();
@@ -880,16 +1003,25 @@ document.addEventListener('click', async (e) => {
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
     return;
   }
-  if (e.target.closest('[data-next]') && data && data.status) {
+  const durBtn = e.target.closest('[data-dur]');
+  if (durBtn && data && data.status) {
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
-    showDur(e.target.closest('.dur'), 'next');
-    commitDur('next');
+    const v = durBtn.dataset.dur; const d = v === 'next' || v === 'manual' ? v : Number(v);
+    showDur(durBtn.closest('.dur'), d);
+    commitDur(d);
+    return;
+  }
+  if (e.target.closest('[data-max]')) {
+    // Foutpatroon: drie snelle tikjes (dashboard via Homey, instellingen via de schakelaar-truc).
+    [0, 110, 220].forEach((ms) => setTimeout(stepTick, ms));
     return;
   }
   const step = e.target.closest('[data-d]');
   if (step && data && data.status) {
+    stepTick(); // tikje per stap
     const base = pending != null ? pending : data.status.thermostatTarget;
-    pending = Math.min(28, Math.max(5, Math.round((base + Number(step.dataset.d)) * 2) / 2));
+    const top = data.status.maxTemp != null ? data.status.maxTemp : 28; // niet boven de maximumtemperatuur
+    pending = Math.min(top, Math.max(5, Math.round((base + Number(step.dataset.d)) * 2) / 2));
     openDur(); // meteen vragen hoe lang, maar zonder keuze geldt de standaard
     render();
     // Even wachten zodat meerdere tikken één wijziging worden.
@@ -921,7 +1053,8 @@ function onHomeyReady(Homey) {
   Homey.ready({ height: lastHeight });
   load();
   if (!IN_SETTINGS) setTimeout(loadHist, 1500); // verloop alvast klaarzetten, zodat de tweede kaart gevuld binnenschuift
-  if (typeof Homey.on === 'function') Homey.on('status', (st) => { if (data) { data.status = st; if (pending == null) render(); } else load(); });
+  // Live status: een melding van een oudere ronde (van vóór je laatste keuze) negeren, anders springt de widget even terug.
+  if (typeof Homey.on === 'function') Homey.on('status', (st) => { if (data) { if (data.status && st && st.updatedAt < data.status.updatedAt) return; data.status = st; if (pending == null) render(); } else load(); });
   setInterval(load, 10000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
   setInterval(render, 60000); // nu-streepje laten meeschuiven
