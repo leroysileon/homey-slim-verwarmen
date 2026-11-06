@@ -344,6 +344,7 @@
     #sv input[type=checkbox] { all: revert; width: 24px; height: 24px; accent-color: var(--warm); flex: none; }
     #sv label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
     #sv label:first-child { margin-top: 0; }
+    #sv #preWrap > label { margin-top: 16px; } /* eerste in zijn blok, maar staat onder de schakelaar: wel ruimte */
     /* Homey zet labels standaard in hoofdletters; hier niet. */
     #sv label, #sv label *, #sv small, #sv h1, #sv h2, #sv h3 { text-transform: none !important; letter-spacing: normal !important; }
     #sv .fstep { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 52px; padding: 0 6px; border-radius: 12px; background: var(--card-2); }
@@ -450,7 +451,7 @@
     </label>
 
     <div id="preWrap">
-      <label id="preLbl">Hoogstens zo vroeg beginnen</label>
+      <label id="preLbl">Maximaal eerder beginnen</label>
       <div class="fstep" role="group" aria-labelledby="preLbl">
         <button data-cfg="maxPreheat" data-d="-15" aria-label="Korter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button>
         <output id="maxPreheatOut"></output>
