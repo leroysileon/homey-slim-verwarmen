@@ -424,7 +424,7 @@ test('verbruik in Terugkijken heeft een i-knopje met uitleg over de meter van he
   assert.ok(/Douchen, koken op gas en de verwarming in andere kamers/.test(html), 'gas: ook douchen en koken tellen mee');
   assert.ok(/zonder vaste kosten/.test(html), 'vaste kosten niet meegeteld');
   // Specifiek genoeg om van de algemene i-regel (16px) te winnen.
-  assert.ok(html.includes('#sv .hsum .ucost .info svg { width: 9px; height: 9px;'), 'i-tje bij de kosten is 9px');
+  assert.ok(html.includes('#sv .hsum .ucost .info svg { width: 11px; height: 11px;'), 'i-tje bij de kosten is 11px');
   // INFO_ICON moet boven het eerste gebruik staan (anders een fout bij het laden).
   assert.ok(html.indexOf('const INFO_ICON') < html.indexOf('${INFO_ICON}'));
 });
