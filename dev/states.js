@@ -27,7 +27,7 @@ const STATES = [
   ['Handmatig warmer', { mode: 'manual', thermostatTarget: 20.5, override: { temp: 20.5, duration: 'next' } }],
   ['Handmatig, op temperatuur', { mode: 'manual', thermostatTarget: 17.5, override: { temp: 17.5, duration: 120 } }],
   ['Te koud', { indoor: 15.2, thermostatTarget: 15 }],
-  ['Te vochtig', { humidity: 72 }],
+  ['Vochtig (getal vet, kaart groen)', { humidity: 72 }],
   ['Duur kiezen (verwarmen)', { mode: 'manual', thermostatTarget: 20.5, override: { temp: 20.5, duration: 120 } }, { open: true }],
   ['Duur kiezen (rust)', { mode: 'manual', thermostatTarget: 17.5, override: { temp: 17.5, duration: 'next' } }, { open: true }],
   ['Duur kiezen (te koud)', { mode: 'manual', indoor: 15.2, thermostatTarget: 15, override: { temp: 15, duration: 'manual' } }, { open: true }],

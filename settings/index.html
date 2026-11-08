@@ -8,7 +8,7 @@
   <style>
     /* Alles hangt onder #sv: een ID wint van de standaardopmaak die Homey over knoppen en velden legt. */
     #sv {
-      --bg: #f2f2f7; --card: #ffffff; --card-2: #f2f2f6; --text: #17171a; --muted: #6c6c72; --line: #e3e3e8; /* zelfde grijs als de Homey-app */
+      --bg: #f2f2f7; --card: #ffffff; --card-2: #f2f2f6; --text: #17171a; --muted: #6c6c72; --line: #e3e3e8; --danger: #d92d33; /* zelfde grijs als de Homey-app */
       --link: #1f6fe5; --warm: #ee8a35; --warm-text: #b45f12; --cold-bg: #d6ecea; --cold-text: #1f6f69;
       --tile-heat: linear-gradient(160deg, #f3b25f, #e58a2c); --tile-idle: linear-gradient(160deg, #cfe3e4, #b7d3d6);
       --tile-text-heat: #3a1f02; --tile-text-idle: #0f3a3d; --pill: rgba(0,0,0,.08); --press: #e9e9ee;
@@ -262,7 +262,8 @@
     svg.hchart .hscrub circle { fill: var(--card); stroke: var(--text); stroke-width: 2; }
     #sv .htip { position: absolute; top: -6px; transform: translate(-50%, -100%); pointer-events: none; z-index: 3;
       background: var(--text); color: var(--card); border-radius: 12px; padding: 8px 12px; white-space: nowrap; width: max-content; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
-    #sv .htip .tt { font-size: 12px; opacity: .7; text-align: center; margin-bottom: 2px; }
+    #sv .htip .tt { font-size: 12px; opacity: .7; display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 2px; }
+    #sv .htip .tt .to { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; } /* buiten: rechtsboven in de hoek, zelfde tint als de tijd */
     #sv .htip .tv { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
     #sv .htip .tr { display: flex; gap: 14px; font-size: 14px; margin-top: 2px; font-variant-numeric: tabular-nums; }
     #sv .htip .tr span, #sv .htip .tv span { display: inline-flex; align-items: center; gap: 4px; }
@@ -309,7 +310,7 @@
     #sv .qnav .qlogo.qcfg svg { width: 22px; height: 22px; }
     #sv .qnav .qcfg.on { background: var(--text); color: var(--card); } /* actief: zoals de gekozen tekstknop */
     #sv .qnav .qlogo svg { width: 27px; height: 27px; }
-    #sv .qscroll { position: relative; flex: 0 1 auto; margin-left: auto; min-width: 0; display: flex; gap: 0; padding: 3px 1px; border-radius: 999px;
+    #sv .qscroll { position: relative; flex: 0 1 auto; margin-left: auto; min-width: 0; display: flex; gap: 0; padding: 3px; border-radius: 999px; /* rondom gelijk: actieve knop even ver van de rand als boven en onder */
       overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
     #sv .qscroll::-webkit-scrollbar { display: none; }
     /* Binnenschaduw aan de kant waar nog meer menu-items zitten. */
@@ -426,7 +427,24 @@
     #sv :is(.stats, .hsum) .info:focus-visible { outline: 2px solid var(--link); }
     #sv .stats .note { grid-column: 1 / -1; margin: -4px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--text); }
     #sv .rows { margin-top: 16px; }
-    #sv .rows .r { padding: 9px 0; border-top: 1px solid var(--line); }
+    #sv .rows .r { position: relative; overflow: hidden; border-top: 1px solid var(--line); touch-action: pan-y; }
+    /* Naar links vegen (zoals iOS): de meting schuift opzij en het rode vlak rekt mee met je vinger.
+       Ver doorvegen en dan loslaten verwijdert. */
+    #sv .rows .rc { position: relative; z-index: 1; padding: 9px 0; background: var(--card); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+    #sv .rows .r.open .rc, #sv .rows .r:focus-within .rc { transform: translateX(-120px); } /* knop (108) + ruimte (12) */
+    #sv .rows .del { all: unset; box-sizing: border-box; position: absolute; top: 5px; right: 0; bottom: 5px; width: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; border-radius: 10px;
+      background: var(--danger); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: width .28s cubic-bezier(.2,.8,.2,1); }
+    #sv .rows .r.open .del, #sv .rows .r:focus-within .del { width: 108px; }
+    /* Icoon en tekst staan altijd midden in het rode vlak; bij een smal vlak vervagen ze (niet afknippen of verspringen). */
+    #sv .rows .del .lbl { flex: none; padding: 0 16px; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: opacity .15s; }
+    #sv .rows .del svg { width: 17px; height: 17px; flex: none; }
+    #sv .rows .del:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    #sv .rows .r.drag .rc, #sv .rows .r.drag .del { transition: none; }
+    #sv .rows .r.gone { transition: height .22s ease, opacity .22s ease; opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { #sv .rows .rc, #sv .rows .del, #sv .rows .del .lbl, #sv .rows .r.gone { transition: none; } }
     #sv .rows .r1 { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 500; }
     #sv .rows .r1 b { white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
     #sv .rows .r2 { font-size: 13px; color: var(--muted); margin-top: 1px; }
@@ -619,6 +637,16 @@ const WX = (() => {
   };
 })();
 const wxIcon = (k) => WX[k] || WX.cloudy;
+const THERMO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.6V5a2 2 0 0 1 4 0v8.6a4 4 0 1 1-4 0z"/><path d="M12 16.5v.01"/></svg>'; // buiten, weertype onbekend
+/** Buiten op tijdstip t, voor het detail-kaartje: temperatuur (dichtstbijzijnde meting, max. 1,5 uur ernaast) en weericoon.
+ *  Weertype onbekend (van vóór het bijhouden)? Dan een thermometer. Geen buitentemperatuur = niets tonen. */
+function outdoorAt(h, t) {
+  let best = null; (h.outdoor || []).forEach((r) => { if (!best || Math.abs(r[0] - t) < Math.abs(best[0] - t)) best = r; });
+  if (!best || Math.abs(best[0] - t) > 90 * 60000 || !Number.isFinite(Number(best[1]))) return '';
+  let k = null; (h.weather || []).forEach((x) => { if (x.t <= t) k = x.k; });
+  return `<span class="to">${k ? wxIcon(k) : THERMO_ICON}${fmt(Math.round(Number(best[1]) * 10) / 10)}</span>`;
+}
+
 // i-knopje voor uitleg (Opwarmtijd en Terugkijken).
 const INFO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
 const ICON = {
@@ -1008,9 +1036,12 @@ function logDate(ms) {
 }
 /** Opwarmtijd-kaart: geleerde cijfers en de laatste metingen. */
 function renderLearned(l) {
+  if (sw) { swPending = l; return; } // niet onder je vinger vandaan opnieuw tekenen
   // Per meting twee regels: wanneer en van/naar, met de snelheid rechts; daaronder klein de details.
-  const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r"><div class="r1"><span>${logDate(r.at)} · ${fmt(r.from)} → ${fmt(r.to)}</span><b>${fmt(r.rate, '°/u')}</b></div>`
-    + `<div class="r2">${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}cv op gang in ${Math.round(r.deadTime)} min</div></div>`).join('');
+  // Naar links vegen toont de knop Verwijder (zie 'Meting verwijderen' hieronder).
+  const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r${r.at === swOpen ? ' open' : ''}" data-at="${r.at}"><div class="rc"><div class="r1"><span>${logDate(r.at)} · ${fmt(r.from)} → ${fmt(r.to)}</span><b>${fmt(r.rate, '°/u')}</b></div>`
+    + `<div class="r2">${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}cv op gang in ${Math.round(r.deadTime)} min</div></div>`
+    + `<button class="del" data-del="${r.at}" aria-label="Meting van ${esc(logDate(r.at).toLowerCase())}, ${fmt(r.from)} naar ${fmt(r.to)}, verwijderen"><span class="lbl">${TRASH_ICON}Verwijder</span></button></div>`).join('');
   $('learned').innerHTML = `
     <div class="stats">
       <div><span>Opwarmen</span><b>${fmt(l.rate, '°')}</b> <small>per uur</small></div>
@@ -1022,6 +1053,115 @@ function renderLearned(l) {
     ${rows ? `<div class="rows">${rows}</div>` : ''}
     <div class="actions" style="margin-top:12px"><button class="link" data-act="resetLearning">Opnieuw leren</button></div>`;
 }
+
+// ---- Meting verwijderen: naar links vegen over een meting, dan op Verwijder tikken ----
+const TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
+const DEL_W = 108; const DEL_GAP = 12; const OPEN_X = -(DEL_W + DEL_GAP); // rode knop, ruimte ertussen
+const FULL = 0.55; // voorbij dit deel van de breedte: loslaten = meteen verwijderen
+let swOpen = null; let sw = null; let swPending = null; let swNoClick = false;
+/** Tekent de rij op positie x (≤ 0): de meting schuift, het rode vlak vult de vrijgekomen ruimte. */
+function swPaint(row, x) {
+  const w = Math.max(0, -x - DEL_GAP);
+  row.querySelector('.rc').style.transform = `translateX(${x}px)`;
+  const del = row.querySelector('.del'); del.style.width = `${w}px`;
+  // Nog smal: icoon en tekst passen niet, dus vervagen tot de knop breed genoeg is.
+  del.querySelector('.lbl').style.opacity = String(Math.max(0, Math.min(1, (w - 56) / 40)));
+}
+function swClear(row) {
+  row.querySelector('.rc').style.transform = ''; const del = row.querySelector('.del');
+  del.style.width = ''; del.querySelector('.lbl').style.opacity = '';
+}
+function swSet(row, open) {
+  swClear(row); row.classList.toggle('open', open);
+  if (open) { document.querySelectorAll('#learned .r.open').forEach((r) => { if (r !== row) { swClear(r); r.classList.remove('open'); } }); swOpen = Number(row.dataset.at); } else if (swOpen === Number(row.dataset.at)) swOpen = null;
+}
+function swDone() { sw = null; if (swPending) { const l = swPending; swPending = null; renderLearned(l); } }
+// Vinger: touch-events, net als de grafiek. Zodra duidelijk is dat je opzij veegt, claimen we het gebaar
+// (preventDefault), anders neemt iOS het over voor scrollen of terugvegen en breekt het halverwege af.
+// Muis: pointer-events.
+function swStart(row, id, x, y) {
+  const base = row.classList.contains('open') ? OPEN_X : 0;
+  sw = { row, id, x, y, base, mode: null, dx: base, full: false, w: row.offsetWidth };
+}
+/** Geeft true als dit een zijwaartse veeg is (dan moet de aanroeper het gebaar claimen). */
+function swMove(x, y) {
+  if (!sw) return false;
+  const dx = x - sw.x; const dy = y - sw.y;
+  if (!sw.mode) {
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return Math.abs(dx) >= Math.abs(dy); // nog te klein: zijwaarts alvast claimen
+    sw.mode = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    if (sw.mode === 'v') { swDone(); return false; } // gewoon scrollen
+    sw.row.classList.add('drag');
+  }
+  if (sw.mode !== 'h') return false;
+  const v = Math.max(-sw.w, Math.min(0, sw.base + dx)); // rekt mee met je vinger, tot de hele breedte
+  const full = -v > sw.w * FULL;
+  if (full !== sw.full && navigator.vibrate) navigator.vibrate(10); // tikje bij het omslagpunt (waar het kan)
+  sw.dx = v; sw.full = full;
+  // Eén keer per beeldje tekenen: soepeler dan bij elke vingerbeweging.
+  if (!sw.raf) { const s0 = sw; s0.raf = requestAnimationFrame(() => { s0.raf = 0; if (sw === s0) swPaint(s0.row, s0.dx); }); }
+  return true;
+}
+function swFinish() {
+  if (!sw) return;
+  const { row, mode, dx, full } = sw; cancelAnimationFrame(sw.raf); row.classList.remove('drag');
+  if (mode === 'h') {
+    swNoClick = true; setTimeout(() => { swNoClick = false; }, 350);
+    if (full) { swDone(); swSet(row, true); swDelete(row); return; } // ver doorgeveegd: knop tonen en vragen of het mag
+    swSet(row, dx < OPEN_X / 2);
+  } else if (!mode && row.classList.contains('open')) swSet(row, false); // tik op een open meting: dicht
+  swDone();
+}
+/** Meting weg (na bevestigen): rood vlak vult de rij, rij klapt dicht, daarna rekent de Homey de opwarmtijd opnieuw uit. */
+async function swDelete(row) {
+  const at = Number(row.dataset.at);
+  const r = lastStatus && lastStatus.learned && (lastStatus.learned.recent || []).find((x) => x.at === at);
+  const what = r ? `de meting van ${logDate(r.at).toLowerCase()} (${fmt(r.from)} → ${fmt(r.to)})` : 'deze meting';
+  const ok = await call('confirm', `Wil je ${what} verwijderen? De opwarmtijd wordt dan opnieuw berekend zonder deze meting.`, 'warning').catch(() => false);
+  // Tijdens de vraag kan de lijst opnieuw getekend zijn (nieuwe status): dan de nieuwe rij van deze meting pakken.
+  if (!row.isConnected) row = document.querySelector(`#learned .r[data-at="${at}"]`) || row;
+  if (!ok) { if (row.isConnected) swSet(row, false); return; } // annuleren: rij weer dicht
+  const w = row.offsetWidth || 300;
+  swOpen = null; row.classList.remove('open');
+  swPaint(row, -w); // met overgang naar volledig rood
+  await new Promise((r) => setTimeout(r, 200));
+  row.style.height = `${row.offsetHeight}px`; void row.offsetHeight; row.classList.add('gone'); row.style.height = '0px';
+  if (lastStatus && lastStatus.learned) {
+    const L = lastStatus.learned; L.recent = (L.recent || []).filter((r) => r.at !== at); L.samples = Math.max(0, L.samples - 1);
+  }
+  setTimeout(() => { if (lastStatus && lastStatus.learned) renderLearned(lastStatus.learned); }, 240);
+  await call('api', 'POST', '/action', { action: 'deleteSample', at }).catch((err) => H.alert(err.message || err));
+  loadStatus();
+}
+$('learned').addEventListener('touchstart', (e) => {
+  const row = e.target.closest('.r[data-at]'); if (!row || e.target.closest('.del') || e.touches.length > 1) return;
+  const t = e.touches[0]; swStart(row, 'touch', t.clientX, t.clientY);
+}, { passive: true });
+$('learned').addEventListener('touchmove', (e) => {
+  if (!sw || sw.id !== 'touch') return;
+  const t = e.touches[0];
+  if (swMove(t.clientX, t.clientY) && e.cancelable) e.preventDefault();
+}, { passive: false });
+$('learned').addEventListener('touchend', () => { if (sw && sw.id === 'touch') swFinish(); });
+$('learned').addEventListener('touchcancel', () => { if (sw && sw.id === 'touch') swFinish(); });
+$('learned').addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
+  const row = e.target.closest('.r[data-at]'); if (!row || e.target.closest('.del')) return;
+  swStart(row, e.pointerId, e.clientX, e.clientY);
+  try { row.setPointerCapture(e.pointerId); } catch (err) { /* werkt ook zonder */ }
+});
+$('learned').addEventListener('pointermove', (e) => { if (sw && sw.id === e.pointerId) swMove(e.clientX, e.clientY); });
+$('learned').addEventListener('pointerup', (e) => { if (sw && sw.id === e.pointerId) swFinish(); });
+$('learned').addEventListener('pointercancel', (e) => { if (sw && sw.id === e.pointerId) swFinish(); });
+// Ergens anders tikken: open meting weer dicht.
+document.addEventListener('pointerdown', (e) => {
+  if (swOpen == null || e.target.closest('#learned .r.open')) return;
+  document.querySelectorAll('#learned .r.open').forEach((r) => swSet(r, false));
+}, true);
+$('learned').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-del]'); if (!b || swNoClick) return;
+  swDelete(b.closest('.r'));
+});
 
 // Uitleg-knopjes (Opwarmtijd en Terugkijken): open blijft open bij het verversen van de status.
 let infoOpen = null;
@@ -1220,9 +1360,10 @@ function calmHistory(h) {
   });
   for (let i = 1; i < tg.length - 1; i++) if (tg[i][1] !== tg[i - 1][1] && tg[i + 1][1] !== tg[i][1]) tg[i] = [tg[i][0], tg[i - 1][1]];
   const until = Math.min(h.now, h.end); const modes = [];
+  const kind = (m) => (MODE_BAND[m] || ['off'])[0]; // schema en voorverwarmen zijn allebei groen: één blok
   (h.modes || []).forEach((m, i, a) => {
     const end = i + 1 < a.length ? a[i + 1].t : until;
-    if (modes.length && (end - m.t <= 300000 || modes[modes.length - 1].m === m.m)) return;
+    if (modes.length && (end - m.t <= 300000 || kind(modes[modes.length - 1].m) === kind(m.m))) return;
     modes.push(m);
   });
   return { ...h, target: tg, modes, calm: true };
@@ -1350,7 +1491,7 @@ function scrubAt(ctx, clientX, clientY) {
   const mins = (gap / rate) * 60;
   const lvl = !heat ? '' : mins < 30 ? 'l1' : mins < 90 ? 'l2' : 'l3';
   const tip = $(ctx.tip); tip.hidden = false;
-  tip.innerHTML = `<div class="tt">${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
+  tip.innerHTML = `<div class="tt"><span>${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span>${outdoorAt(m.h, row[0])}</div>
     <div class="tv">${fmt(v)}${heat ? `<span class="hw ${lvl}">${TIP_ICON.waves}</span>` : ''}</div>
     <div class="tr">${hum != null ? `<span>${TIP_ICON.drop}${Math.round(hum)}%</span>` : ''}${sp != null ? `<span>${modeAt(m.h, row[0]) === 'manual' ? TIP_ICON.hand : TIP_ICON.cal}${fmt(sp)}</span>` : ''}</div>`;
   const half = tip.offsetWidth / 2; tip.style.left = `${Math.max(half, Math.min(local - half, cx / k))}px`;
@@ -1363,22 +1504,21 @@ function attachScrub(ctx) {
   el.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; clearTimeout(scrubHide[ctx.svg]); scrubAt(ctx, e.clientX, e.clientY); });
   el.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') { clearTimeout(scrubHide[ctx.svg]); scrubAt(ctx, e.clientX, e.clientY); } });
   el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') scrubEnd(ctx); });
+  // Aanraken: pas details tonen als je over de grafiek schuift (niet bij een tik), en weg zodra je loslaat.
   el.addEventListener('touchstart', (e) => {
     const t = e.touches[0]; st = { x: t.clientX, y: t.clientY, mode: null };
-    clearTimeout(scrubHide[ctx.svg]); scrubAt(ctx, t.clientX, t.clientY);
+    clearTimeout(scrubHide[ctx.svg]);
   }, { passive: true });
   el.addEventListener('touchmove', (e) => {
     if (!st) return; const t = e.touches[0];
     let a = t.clientX - st.x; let b = t.clientY - st.y; if (ctx.rotated()) [a, b] = [b, a]; // a = langs de tijd-as
     if (!st.mode && (Math.abs(a) > 6 || Math.abs(b) > 6)) st.mode = Math.abs(a) >= Math.abs(b) ? 'h' : 'v';
+    if (!st.mode) return; // nog niet ver genoeg geschoven
     if (st.mode === 'v' && ctx === MAIN) { scrubEnd(ctx); return; }
     if (e.cancelable) e.preventDefault();
     scrubAt(ctx, t.clientX, t.clientY);
   }, { passive: false });
-  ['touchend', 'touchcancel'].forEach((ev) => el.addEventListener(ev, () => {
-    if (st && st.mode !== 'v') { clearTimeout(scrubHide[ctx.svg]); scrubHide[ctx.svg] = setTimeout(() => scrubEnd(ctx), 3000); }
-    st = null;
-  }));
+  ['touchend', 'touchcancel'].forEach((ev) => el.addEventListener(ev, () => { scrubEnd(ctx); st = null; }));
 }
 attachScrub(MAIN);
 

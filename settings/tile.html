@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <style>
     /* Kleur = toestand van de kamer (zelfde als de statustegel in de instellingen):
-       groen = rust (basis), geel = opwarmen, blauw = te koud, blauwgroen = te vochtig. Licht en donker gelijk. */
+       groen = rust (basis), geel = opwarmen, blauw = te koud. Licht en donker gelijk. */
     /* #w = houder; elke pagina (.pg) is een eigen kaart, zoals een slimme stapel. */
     #w {
       --cardbg: #45c08f; --fg: #ffffff; --pill: rgba(0,0,0,.14); --solid: rgba(0,0,0,.22); --solid-text: #ffffff;
@@ -19,19 +19,18 @@
     @media (prefers-color-scheme: dark) { #w .pg { box-shadow: none; } }
     #w.heat .pg { background-color: #f7b52c; }
     #w.cold .pg { background-color: #3b8cf0; }
-    #w.humid .pg { background-color: #2f9fb8; }
     #w.setup .pg { background-color: #8b8f96; } /* nog niet gestart */
-    #w.heat { --cardbg: #f7b52c; } #w.cold { --cardbg: #3b8cf0; } #w.humid { --cardbg: #2f9fb8; } #w.setup { --cardbg: #8b8f96; }
+    #w.heat { --cardbg: #f7b52c; } #w.cold { --cardbg: #3b8cf0; } #w.setup { --cardbg: #8b8f96; }
     /* Donkere modus: donkere tint van de toestandskleur met felle tekst in dezelfde kleur (rustiger en beter leesbaar
        dan wit op een felle kaart). Knoppen en balk volgen de tekstkleur. */
     @media (prefers-color-scheme: dark) {
       #w { --fg: #5ee3a8; --solid-text: var(--fg);
         --pill: color-mix(in srgb, var(--fg) 14%, transparent); --solid: color-mix(in srgb, var(--fg) 22%, transparent); }
-      #w.heat { --fg: #ffc24a; } #w.cold { --fg: #74b6ff; } #w.humid { --fg: #5fd3ea; } #w.setup { --fg: #c5c8ce; }
-      #w { --cardbg: #133a2b; } #w.heat { --cardbg: #3e2c0c; } #w.cold { --cardbg: #10294a; } #w.humid { --cardbg: #0e3340; } #w.setup { --cardbg: #2a2b2f; }
+      #w.heat { --fg: #ffc24a; } #w.cold { --fg: #74b6ff; } #w.setup { --fg: #c5c8ce; }
+      #w { --cardbg: #133a2b; } #w.heat { --cardbg: #3e2c0c; } #w.cold { --cardbg: #10294a; } #w.setup { --cardbg: #2a2b2f; }
       #w .p0 { background-color: #133a2b; }
       #w.heat .p0 { background-color: #3e2c0c; } #w.cold .p0 { background-color: #10294a; }
-      #w.humid .p0 { background-color: #0e3340; } #w.setup .p0 { background-color: #2a2b2f; }
+      #w.setup .p0 { background-color: #2a2b2f; }
       #w .p0::before { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,0) 60%); }
       #w .p0::after { background: radial-gradient(120% 90% at 20% 30%, color-mix(in srgb, var(--fg) 22%, transparent), transparent 70%); }
     }
@@ -61,7 +60,7 @@
     #w .top button.cost[aria-expanded="true"] .ci { color: #1f6fe5; opacity: 1; } /* open: i-tje in de selectiekleur */
     @media (prefers-color-scheme: dark) { #w .top button.cost[aria-expanded="true"] .ci { color: #3d8bff; } }
     /* .wpop.cpop: specifieker dan de regels van het golfjes-ballonnetje verderop. */
-    #w .wpop.cpop { left: auto; right: 10px; max-width: 220px; }
+    #w .wpop.cpop { left: auto; right: 10px; max-width: 220px; border-radius: 10px; }
     #w .wpop.cpop .t { white-space: normal; overflow: visible; font-size: 13px; }
     #w .top button.cost[aria-expanded="true"] { position: relative; z-index: 5; opacity: 1; } /* boven de grijze laag, zoals de golfjes */
     #w .info .it { display: inline-flex; align-items: center; gap: 3px; opacity: .8; }
@@ -92,7 +91,7 @@
     #w.wexp-on .wbtn { position: relative; z-index: 5; }
     #w .wpop { position: absolute; left: 10px; width: max-content; max-width: calc(100% - 20px); box-sizing: border-box; z-index: 6; background: #fff; color: #17171a; border-radius: 12px; padding: 7px 10px;
       box-shadow: 0 6px 20px rgba(0,0,0,.22); cursor: pointer; }
-    #w .wpop::before { content: ''; position: absolute; top: -6px; left: var(--ax, 40px); width: 12px; height: 12px; margin-left: -6px; background: inherit; transform: rotate(45deg); border-radius: 2px; }
+    #w .wpop::before { content: ''; position: absolute; top: -5px; left: var(--ax, 40px); width: 12px; height: 12px; margin-left: -6px; background: inherit; transform: rotate(45deg); border-radius: 3px 0 0 0; } /* alleen de punt afgerond: de rest valt naadloos in het ballonnetje */
     #w .wpop .t { font-size: 13.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #w .wpop .n { font-size: 12px; opacity: .65; margin-top: 1px; white-space: nowrap; }
     #w .wpop .t b { font-weight: 700; }
@@ -170,6 +169,9 @@
       opacity: 0; transform: scale(.94); transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
     @media (prefers-color-scheme: dark) { #w .stackframe { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.10)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); } }
     #w.stacking .stackframe { opacity: 1; transform: none; }
+    /* Android (WebView): de vervaging wordt elk frame opnieuw berekend en laat het vegen haperen. Daar zonder. */
+    .android #w .stackframe { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(120,120,128,.32); }
+    @media (prefers-color-scheme: dark) { .android #w .stackframe { background: rgba(255,255,255,.14); } }
     @media (prefers-reduced-motion: reduce) { #w .stackframe { transition: opacity .2s; transform: none; } }
     #w .track { position: relative; }
     #w .track > .p1 { position: absolute; top: 0; left: 0; right: 0; }
@@ -180,7 +182,9 @@
     #w .chart .scrub circle { fill: #fff; stroke: currentColor; stroke-width: 2; }
     #w .wtip { position: absolute; top: 6px; transform: translateX(-50%); pointer-events: none; z-index: 3; white-space: nowrap; width: max-content; /* niet laten samenknijpen aan de rand */
       background: #17171a; color: #fff; border-radius: 10px; padding: 5px 10px; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
-    #w .wtip .tt { font-size: 11px; opacity: .7; text-align: center; }
+    #w .wtip .tt { font-size: 11px; opacity: .7; display: flex; justify-content: center; align-items: center; gap: 10px; }
+    #w .wtip .tt .to { margin-left: auto; } /* buiten: rechtsboven in de hoek, zelfde tint als de tijd */
+    #w .wtip .tt .to svg { width: 13px; height: 13px; }
     #w .wtip .tv { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
     #w .wtip .tr { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
     #w .wtip span { display: inline-flex; align-items: center; gap: 3px; }
@@ -307,6 +311,16 @@ const WX = (() => {
   };
 })();
 const wxIcon = (k) => WX[k] || WX.cloudy;
+const THERMO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.6V5a2 2 0 0 1 4 0v8.6a4 4 0 1 1-4 0z"/><path d="M12 16.5v.01"/></svg>'; // buiten, weertype onbekend
+/** Buiten op tijdstip t, voor het detail-kaartje: temperatuur (dichtstbijzijnde meting, max. 1,5 uur ernaast) en weericoon.
+ *  Weertype onbekend (van vóór het bijhouden)? Dan een thermometer. Geen buitentemperatuur = niets tonen. */
+function outdoorAt(h, t) {
+  let best = null; (h.outdoor || []).forEach((r) => { if (!best || Math.abs(r[0] - t) < Math.abs(best[0] - t)) best = r; });
+  if (!best || Math.abs(best[0] - t) > 90 * 60000 || !Number.isFinite(Number(best[1]))) return '';
+  let k = null; (h.weather || []).forEach((x) => { if (x.t <= t) k = x.k; });
+  return `<span class="to">${k ? wxIcon(k) : THERMO_ICON}${fmt(Math.round(Number(best[1]) * 10) / 10)}</span>`;
+}
+
 const ICON = {
   cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
@@ -324,6 +338,7 @@ let confirmPoll = null;
 // Dezelfde widget dient ook als statustegel op de instellingenpagina (tile.html?in=settings):
 // daar geen dagbalk (het weekschema staat eronder), wel de knoppen Afwezig en Pauzeren in de tegel.
 const IN_SETTINGS = new URLSearchParams(location.search).get('in') === 'settings';
+if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android'); // zie .stackframe
 /**
  * Tikje bij − en +. Op het dashboard via Homey; in de instellingen heeft Homey daar geen functie voor,
  * dan laten we hier (waar je tikt) een onzichtbare iOS-schakelaar omklikken, die geeft ook een tikje.
@@ -607,9 +622,10 @@ function calmHistory(h) {
   });
   for (let i = 1; i < tg.length - 1; i++) if (tg[i][1] !== tg[i - 1][1] && tg[i + 1][1] !== tg[i][1]) tg[i] = [tg[i][0], tg[i - 1][1]];
   const until = Math.min(h.now, h.end); const modes = [];
+  const kind = (m) => BAND_KIND[m] || 'off'; // schema en voorverwarmen zijn allebei groen: één blok
   (h.modes || []).forEach((m, i, a) => {
     const end = i + 1 < a.length ? a[i + 1].t : until;
-    if (modes.length && (end - m.t <= 300000 || modes[modes.length - 1].m === m.m)) return;
+    if (modes.length && (end - m.t <= 300000 || kind(modes[modes.length - 1].m) === kind(m.m))) return;
     modes.push(m);
   });
   return { ...h, target: tg, modes, calm: true };
@@ -640,7 +656,7 @@ const cards = () => [document.querySelector('#w .p0'), document.querySelector('#
 let othSide = 1; // aan welke kant de andere kaart nu buiten beeld ligt
 function place(dx, animate, otherSide) {
   const [a, b] = cards(); if (!a || !b) return;
-  const W = a.offsetWidth + GAP; const side = otherSide || (dx > 0 ? -1 : 1);
+  const W = (drag && drag.w) || a.offsetWidth + GAP; const side = otherSide || (dx > 0 ? -1 : 1);
   const cur = page === 0 ? a : b; const oth = page === 0 ? b : a;
   const tr = animate ? 'transform .34s cubic-bezier(.2,.8,.2,1), background-color .9s ease' : 'background-color .9s ease';
   const sc = scaleNow === 1 ? '' : ` scale(${scaleNow[0]}, ${scaleNow[1]})`;
@@ -648,8 +664,8 @@ function place(dx, animate, otherSide) {
   cur.style.transition = tr;
   // Moet de andere kaart naar de andere kant? Dan springen (buiten beeld), niet animeren: anders vliegt hij erlangs.
   oth.style.transition = side !== othSide ? 'background-color .9s ease' : tr; othSide = side;
-  cur.style.transform = `translateX(${dx}px)${sc}`;
-  oth.style.transform = `translateX(${dx + side * W}px)${sc}`;
+  cur.style.transform = `translate3d(${dx}px,0,0)${sc}`;
+  oth.style.transform = `translate3d(${dx + side * W}px,0,0)${sc}`;
 }
 function setScale(v, animate) { scaleNow = v; place(0, animate, 1); }
 /** Kader tonen en kaarten iets kleiner; 1 seconde na het landen krimpt het kader weer en worden de kaarten groot. */
@@ -752,9 +768,15 @@ function placeCostInfo(p1) {
   const pop = p1.querySelector('.cpop'); const ic = p1.querySelector('.cost .ci');
   if (!pop || !ic) return;
   const pr = p1.getBoundingClientRect(); const r = ic.getBoundingClientRect();
-  pop.style.top = `${r.bottom - pr.top + 10}px`;
-  const left = pr.width - 10 - pop.offsetWidth; // rechts uitgelijnd
-  pop.style.setProperty('--ax', `${r.left + r.width / 2 - pr.left - left}px`);
+  const k = p1.offsetWidth ? pr.width / p1.offsetWidth : 1; // kaart kan iets verkleind zijn (vegen): terug naar eigen pixels
+  const W = p1.offsetWidth; const cx = (r.left + r.width / 2 - pr.left) / k; // midden van het i-tje
+  pop.style.top = `${(r.bottom - pr.top) / k + 10}px`;
+  // Het pijltje moet op het rechte stuk van de bovenrand staan, niet in de afgeronde hoek (10px):
+  // ballonnetje zo ver naar rechts dat het i-tje minstens 18px van de rechterrand van het ballonnetje zit.
+  const right = Math.max(2, Math.min(10, W - cx - 18));
+  pop.style.right = `${right}px`;
+  const left = W - right - pop.offsetWidth;
+  pop.style.setProperty('--ax', `${Math.max(18, Math.min(pop.offsetWidth - 18, cx - left))}px`);
 }
 
 function render() {
@@ -777,12 +799,10 @@ function render() {
   const paused = s.mode === 'paused'; // gepauzeerd: − en + hebben geen zin, alleen hervatten // nieuwe installatie, nog niet gestart: alleen kijken, niets bedienen
   w.classList.toggle('setup', setup);
   const heating = !setup && target != null && s.indoor != null && target > s.indoor + 0.2;
-  // Toestand: verwarmen gaat voor, dan te koud, dan te vochtig.
+  // Toestand (alleen op temperatuur): verwarmen gaat voor, dan te koud. Vochtig = alleen het getal vet.
   const cold = !setup && !heating && s.indoor != null && s.indoor < COLD_BELOW;
-  const humid = !setup && !heating && !cold && s.humidity != null && s.humidity >= HUMID_FROM;
   w.classList.toggle('heat', heating);
   w.classList.toggle('cold', cold);
-  w.classList.toggle('humid', humid);
   const key = JSON.stringify([s.mode, s.thermostatTarget, s.indoor, s.override && s.override.until]);
   if (prevKey !== null && key !== prevKey && pending == null) { w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
   prevKey = key;
@@ -917,13 +937,12 @@ function wScrub(clientX) {
   const t = m.h.start + ((px - m.X0) / (m.W - m.X0)) * (m.h.end - m.h.start);
   const row = m.h.indoor.reduce((a, b) => (Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a));
   const v = row[1]; const sp = m.tgt.get(Math.round(row[0] / m.step)); const hum = m.hum.get(Math.round(row[0] / m.step));
-  const out = m.out.get(Math.round(row[0] / m.step));
   const cx = m.x(Math.min(row[0] + m.step / 2, m.h.now)); const cy = m.y(v);
   const g = svg.querySelector('.scrub'); g.style.display = '';
   g.querySelector('line').setAttribute('x1', cx); g.querySelector('line').setAttribute('x2', cx);
   g.querySelector('circle').setAttribute('cx', cx); g.querySelector('circle').setAttribute('cy', cy);
   const tip = document.querySelector('#w .p1 .wtip'); tip.hidden = false;
-  tip.innerHTML = `<div class="tt">${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</div>
+  tip.innerHTML = `<div class="tt"><span>${new Date(row[0]).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span>${outdoorAt(m.h, row[0])}</div>
     <div class="tv">${fmt(v)}${sp != null && sp > v + 0.2 ? `<span class="waves${heatLevel(sp, v, true, data && data.status && data.status.learned ? { ...data.status.learned, heatingNow: true } : null)}">${ICON.waves}</span>` : ''}</div>
     <div class="tr">${hum != null ? `<span>${ICON.drop}${Math.round(hum)}%</span>` : ''}${sp != null ? `<span>${modeAt(m.h, row[0]) === 'manual' ? ICON.hand : ICON.cal}${fmt(sp)}</span>` : ''}</div>`;
   const p1 = document.querySelector('#w .p1'); const pr = p1.getBoundingClientRect();
@@ -939,7 +958,7 @@ function wScrubEnd() {
 // De inhoud volgt je vinger; loslaten = naar de dichtstbijzijnde pagina. Aan de randen wat weerstand.
 document.addEventListener('touchstart', (e) => {
   if (IN_SETTINGS || !document.querySelector('#w .track')) return;
-  const t = e.touches[0]; drag = { x: t.clientX, y: t.clientY, dx: 0, mode: null };
+  const t = e.touches[0]; drag = { x: t.clientX, y: t.clientY, dx: 0, mode: null, pts: [[e.timeStamp, 0]] };
   // Op het verloop even stilhouden = details bekijken (in plaats van vegen).
   drag.onChart = page === 1 && !!e.target.closest('.p1 .chart');
   if (drag.onChart) {
@@ -954,8 +973,10 @@ document.addEventListener('touchmove', (e) => {
   if (!drag) return;
   const t = e.touches[0]; const dx = t.clientX - drag.x; const dy = t.clientY - drag.y;
   if (drag.mode === 'scrub') { if (e.cancelable) e.preventDefault(); wScrub(t.clientX); return; }
-  // Op de grafiek: zolang de richting nog niet vastligt niet laten scrollen, anders neemt Homey het gebaar over.
-  if (drag.onChart && !drag.mode && Math.abs(dx) >= Math.abs(dy) && e.cancelable) e.preventDefault();
+  // Zolang de richting nog niet vastligt en de beweging meer opzij gaat: het gebaar meteen claimen.
+  // Android (WebView) beslist bij de eerste beweging wie het gebaar krijgt; wachten tot 6px is daar te laat,
+  // dan neemt de Homey-app het vegen over. Verticaal scrollen blijft gewoon werken.
+  if (!drag.mode && Math.abs(dx) >= Math.abs(dy) && e.cancelable) e.preventDefault();
   if (!drag.mode && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
     clearTimeout(drag.hold);
     // Snel opzij = vegen naar de andere kaart; eerst even vasthouden (zie touchstart) = langs de tijd schuiven.
@@ -965,17 +986,30 @@ document.addEventListener('touchmove', (e) => {
   if (drag.mode !== 'h') return;
   if (e.cancelable) e.preventDefault();
   drag.dx = dx; // eindeloos: geen rand, dus geen weerstand
-  if (!drag.lifted) { drag.lifted = true; lift(); scaleNow = stackScale(); } // kader verschijnt, kaarten iets kleiner
-  place(drag.dx, false);
+  drag.pts.push([e.timeStamp, dx]); if (drag.pts.length > 6) drag.pts.shift(); // voor de snelheid bij loslaten
+  if (!drag.lifted) { // kader verschijnt, kaarten iets kleiner; maten één keer opmeten
+    drag.lifted = true; lift(); scaleNow = stackScale();
+    const a = document.querySelector('#w .p0'); drag.w = a ? a.offsetWidth + GAP : 0;
+    const vp = document.querySelector('#w .vp'); drag.vw = vp ? vp.offsetWidth : 300;
+  }
+  // Eén keer per beeldje tekenen: Android stuurt soms meer bewegingen dan er frames zijn.
+  if (!drag.raf) drag.raf = requestAnimationFrame(() => { if (drag) { drag.raf = 0; place(drag.dx, false); } });
 }, { passive: false });
-function endDrag() {
-  if (!drag) return; const { mode, dx, x, onChart } = drag; clearTimeout(drag.hold); drag = null;
-  if (mode === 'scrub') { clearTimeout(wHide); wHide = setTimeout(wScrubEnd, 3000); suppressClick = true; setTimeout(() => { suppressClick = false; }, 350); return; }
-  if (!mode && onChart) { clearTimeout(wHide); wScrub(x); wHide = setTimeout(wScrubEnd, 3000); return; } // tik op het verloop: details even tonen
+function endDrag(e) {
+  if (!drag) return; const { mode, dx, pts, vw } = drag; clearTimeout(drag.hold); cancelAnimationFrame(drag.raf); drag = null;
+  // Details alleen zolang je vinger op het verloop ligt: loslaten = weg. Een tik toont niets.
+  if (mode === 'scrub') { wScrubEnd(); suppressClick = true; setTimeout(() => { suppressClick = false; }, 350); return; }
   if (mode !== 'h') return;
   suppressClick = true; setTimeout(() => { suppressClick = false; }, 350);
-  const vp = document.querySelector('#w .vp'); const width = vp ? vp.offsetWidth : 300;
-  if (Math.abs(dx) > width * 0.5) { flip(dx < 0 ? -1 : 1); return; } // pas voorbij de helft: andere kaart landt
+  const width = vw || 300;
+  // Snelheid over de laatste ~100 ms (px/ms). Snel vegen = doorgaan, ook als je de helft niet haalt.
+  const recent = pts.filter((p) => pts[pts.length - 1][0] - p[0] <= 100);
+  const [t0, x0] = recent[0]; const [t1, x1] = recent[recent.length - 1];
+  const v = t1 > t0 ? (x1 - x0) / (t1 - t0) : 0;
+  const fling = Math.abs(v) > 0.3 && Math.sign(v) === Math.sign(dx) && Math.abs(dx) > 20;
+  // Afgebroken door Android of de Homey-app (touchcancel)? Dan was je nog aan het vegen: afmaken bij een kwart.
+  const far = Math.abs(dx) > width * (e && e.type === 'touchcancel' ? 0.25 : 0.4);
+  if (fling || far) { flip(dx < 0 ? -1 : 1); return; } // andere kaart landt
   place(0, true, dx > 0 ? -1 : 1); settle(1000); // terugveren, na 1 s weer groot
 }
 document.addEventListener('touchend', endDrag);

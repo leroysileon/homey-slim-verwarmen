@@ -121,8 +121,20 @@ class SlimVerwarmenApp extends Homey.App {
       room: await this.zoneName(device.zone),
       target: caps.target_temperature ? caps.target_temperature.value : null,
       indoor: caps.measure_temperature ? caps.measure_temperature.value : null,
-      humidity: caps.measure_humidity ? caps.measure_humidity.value : null,
+      humidity: this.pickHumidity(caps),
     };
+  }
+
+  /** Luchtvochtigheid: sommige thermostaten (bijv. Tado X via Matter) hebben er meerdere, zoals
+   *  measure_humidity én measure_humidity.matter-2-1029, waarvan er één blijft hangen. Neem de verste. */
+  pickHumidity(caps) {
+    const all = Object.keys(caps).filter((k) => (k === 'measure_humidity' || k.startsWith('measure_humidity.'))
+      && Number.isFinite(Number(caps[k] && caps[k].value)));
+    if (!all.length) { this.humidityCap = null; return null; }
+    const at = (k) => { const t = new Date(caps[k].lastUpdated || 0).getTime(); return Number.isFinite(t) ? t : 0; };
+    all.sort((a, b) => at(b) - at(a) || (a === 'measure_humidity' ? -1 : 1));
+    this.humidityCap = all[0];
+    return Number(caps[all[0]].value);
   }
 
   async readOutdoor() {
@@ -132,8 +144,21 @@ class SlimVerwarmenApp extends Homey.App {
     // Weertype voor het icoon in de widget (zon, wolk, regen, …), als het apparaat een omschrijving heeft.
     const t = new Date(new Date().toLocaleString('en-US', { timeZone: this.homey.clock.getTimezone() }));
     this.lastWeather = device ? weatherOf(device, t.getHours() * 60 + t.getMinutes()) : null;
+    this.logWeather(this.lastWeather);
     const value = cap ? Number(cap.value) : NaN;
     return Number.isFinite(value) ? value : null;
+  }
+
+  /** Weertype onthouden bij elke wissel (8 dagen), voor het weericoon in het verloop. Weer-apps houden dat zelf niet bij. */
+  logWeather(k) {
+    if (!k) return;
+    if (!this.weatherLog) this.weatherLog = this.homey.settings.get('weatherlog') || [];
+    const log = this.weatherLog; const last = log[log.length - 1];
+    if (last && last.k === k) return;
+    const now = Date.now();
+    log.push({ t: now, k });
+    while (log.length > 1 && log[1].t < now - 8 * 86400000) log.shift();
+    this.homey.settings.set('weatherlog', log);
   }
 
   async writeTarget(temp) {
@@ -252,7 +277,7 @@ class SlimVerwarmenApp extends Homey.App {
     const [indoor, target, humidity, outdoor, meter] = await Promise.all([
       dev ? read(dev, 'measure_temperature') : [],
       dev ? read(dev, 'target_temperature') : [],
-      dev ? read(dev, 'measure_humidity') : [],
+      dev ? read(dev, this.humidityCap || 'measure_humidity') : [],
       read('homey:manager:weather', 'temperature'),
       cfg.usage === true && cfg.meterId && cfg.meterCapability ? read(`homey:device:${cfg.meterId}`, cfg.meterCapability) : [],
     ]);
@@ -261,11 +286,14 @@ class SlimVerwarmenApp extends Homey.App {
     const log = this.controller.modeLog || [];
     const before = log.filter((x) => x.t < start).pop();
     const modes = [...(before ? [{ t: start, m: before.m }] : []), ...log.filter((x) => x.t >= start && x.t < end)];
+    const wlog = this.weatherLog || this.homey.settings.get('weatherlog') || [];
+    const wBefore = wlog.filter((x) => x.t < start).pop();
+    const weather = [...(wBefore ? [{ t: start, k: wBefore.k }] : []), ...wlog.filter((x) => x.t >= start && x.t < end)]; // [{ t, k }] weertype
     if (!indoor.length && errors.length) this.error('Inzichten:', errors.join(' | '));
-    return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, modes, usage, errors: indoor.length ? [] : errors.slice(0, 2) };
+    return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, weather, modes, usage, errors: indoor.length ? [] : errors.slice(0, 2) };
   }
 
-  async runAction({ action, duration, temp } = {}) {
+  async runAction({ action, duration, temp, at } = {}) {
     const c = this.controller;
     switch (action) {
       case 'setTemp': await c.setManual(Math.round(Number(temp) * 2) / 2, duration); break; // −/+ in de tegel
@@ -277,6 +305,7 @@ class SlimVerwarmenApp extends Homey.App {
       case 'enable': await c.setEnabled(true); break;
       case 'start': await c.setEnabled(true); break; // eerste keer: welkomstkaart 'Start slim verwarmen'
       case 'resetLearning': c.resetLearning(); await c.tick(); break;
+      case 'deleteSample': c.deleteSample(Number(at)); await c.tick(); break; // één meting weg
       default: await c.tick();
     }
     return c.status;

@@ -485,3 +485,23 @@ test('tegel in de instellingen gebruikt hetzelfde kleurschema (geen wit vlak op 
   const settings = fs.readFileSync(path.join(__dirname, '..', 'settings/index.html'), 'utf8');
   assert.ok(settings.includes('#tileframe { display: block; width: 100%; height: 242px;'), 'start op de hoogte van de geladen tegel');
 });
+
+test('widget: horizontaal vegen wordt bij de eerste beweging geclaimd (Android)', () => {
+  const fs = require('fs'); const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'widgets/verwarming/public/index.html'), 'utf8');
+  assert.ok(html.includes('  if (!drag.mode && Math.abs(dx) >= Math.abs(dy) && e.cancelable) e.preventDefault();'), 'niet alleen op de grafiek');
+  assert.ok(!html.includes('if (drag.onChart && !drag.mode && Math.abs(dx) >= Math.abs(dy)'), 'oude, alleen-grafiek-regel is weg');
+});
+
+test('learner: één meting verwijderen, de rest blijft', () => {
+  const samples = [
+    { at: 1, rate: 1, deadTime: 10, outdoor: 5 },
+    { at: 2, rate: 9, deadTime: 60, outdoor: 5 }, // uitschieter
+    { at: 3, rate: 1.2, deadTime: 12, outdoor: 5 },
+  ];
+  const l = new Learner({ samples: samples.map((x) => ({ ...x })) });
+  assert.equal(l.remove(2), true);
+  assert.deepEqual(l.samples.map((x) => x.at), [1, 3]);
+  assert.equal(l.remove(42), false, 'onbekende meting: niets veranderd');
+  assert.equal(l.samples.length, 2);
+});

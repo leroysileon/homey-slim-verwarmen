@@ -23,6 +23,8 @@ let manualDur = 'next';
 const untilOf = (d) => (d === 'manual' ? null : d === 'next' ? Date.now() + 466 * 60000 : Date.now() + d * 60000);
 let manualUntil = untilOf('next');
 const now = Date.now();
+// Opwarmmetingen (oud → nieuw); naar links vegen op de instellingenpagina verwijdert er een.
+let samples = [4, 3, 2, 1].map((d, i) => ({ at: Date.now() - d * 86400000 - i * 3600000, from: 15 + i * 0.3, to: 18 - (i % 2), rate: [1.1, 2.9, 1.2, 1.4][i], deadTime: [15, 8, 16, 12][i], outdoor: [6, 3, 2.5, 4][i] }));
 const status = () => ({
   updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, setupDone: mode !== 'setup', thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5, weather: 'partly', room: 'Woonkamer', presence: { auto: store.config.autoPresence === true, home: ['Leroy Sileon'], count: 3 },
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
@@ -30,10 +32,7 @@ const status = () => ({
   overrideDefault: store.config.overrideDefault || 'next',
   nextChangeAt: Date.now() + 466 * 60000,
   away: mode === 'away', enabled: mode !== 'paused',
-  learned: { samples: 3, rate: 1.35, deadTime: 14, heatingNow: false, recent: [
-    { at: now - 86400000, from: 15.2, to: 18, rate: 1.4, deadTime: 12, outdoor: 4 },
-    { at: now - 2 * 86400000, from: 15.6, to: 17, rate: 1.2, deadTime: 16, outdoor: 2.5 },
-  ] },
+  learned: { samples: samples.length, rate: 1.35, deadTime: 14, heatingNow: false, recent: samples.slice(-5) },
   error: null,
 });
 const devices = [
@@ -111,7 +110,8 @@ http.createServer((req, res) => {
       }
       const modes = [{ t: start, m: 'schedule' }, { t: start + 12 * 3600000, m: 'manual' }, { t: start + 14 * 3600000, m: 'schedule' }].filter((m) => m.t < upto);
       const usage = store.config.usage && store.config.meterId ? { amount: 2.3, unit: 'm³', price: store.config.price || 1.4, cost: Math.round(2.3 * (store.config.price || 1.4) * 100) / 100 } : null;
-      return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, humidity, modes, usage });
+      const weather = day === 1 ? [] : [[0, 'night'], [8, 'partly'], [11, 'rain'], [14, 'cloudy'], [17, 'night']].map(([hr, k]) => ({ t: start + hr * 3600000, k })); // gisteren: nog niet bijgehouden
+      return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, weather, humidity, modes, usage });
     }
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/action') {
@@ -121,6 +121,7 @@ http.createServer((req, res) => {
         mode = 'manual'; manualTemp = temp; confirmedAt = Date.now() + 6000; return send(200, status());
       }
       if (action === 'setDuration') { manualDur = duration; manualUntil = untilOf(duration); return send(200, status()); }
+      if (action === 'deleteSample') { const at = Number(JSON.parse(data || '{}').at); samples = samples.filter((x) => x.at !== at); return send(200, status()); }
       mode = { resume: 'schedule', away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule', start: 'schedule' }[action] || mode;
       return send(200, status());
     }
