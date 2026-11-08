@@ -317,7 +317,7 @@ class SlimVerwarmenApp extends Homey.App {
   async runAction({ action, duration, temp, at } = {}) {
     const c = this.controller;
     switch (action) {
-      case 'setTemp': await c.setManual(Math.round(Number(temp) * 2) / 2, duration); break; // −/+ in de tegel
+      case 'setTemp': await c.setManual(Math.round(Number(temp) * 2) / 2, duration, 'app'); break; // −/+ in de tegel
       case 'resume': await c.clearOverride(); break;
       case 'setDuration': await c.setOverrideDuration(duration); break;
       case 'away': await c.setAway(true); break;
@@ -344,7 +344,7 @@ class SlimVerwarmenApp extends Homey.App {
     flow.getActionCard('set_presence').registerRunListener(({ mode }) => c.setAway(mode === 'away'));
     flow.getActionCard('resume_schedule').registerRunListener(() => c.clearOverride());
     flow.getActionCard('set_temporary').registerRunListener(({ temp, hours }) => c.setOverride(temp, hours));
-    flow.getActionCard('set_manual').registerRunListener(({ temp, duration }) => c.setManual(temp, duration));
+    flow.getActionCard('set_manual').registerRunListener(({ temp, duration }) => c.setManual(temp, duration, 'flow'));
     flow.getActionCard('set_enabled').registerRunListener(({ state }) => c.setEnabled(state === 'on'));
     // Met een raamsensor: open = verwarming uit (tot het raam dicht is, maximaal 4 uur), dicht = verder waar hij was.
     flow.getActionCard('set_window').registerRunListener(({ state }) => (state === 'open' ? c.startWindow(240) : c.stopWindow()));
@@ -369,6 +369,16 @@ class SlimVerwarmenApp extends Homey.App {
     };
   }
 
+  async notifyManual() {
+    const d = this.lastManual; this.manualTimer = null; if (!d) return;
+    // Wie het deed, vertelt Homey een app niet; wel waar het vandaan kwam.
+    // Geen eindtijd: een melding kan achteraf niet meer worden aangepast, en de duur kan nog veranderen.
+    const where = { thermostat: 'via de thermostaat', app: 'via Homey', flow: 'via een flow' }[d.via] || '';
+    await this.homey.notifications.createNotification({
+      excerpt: `Handmatig op **${String(d.temp).replace('.', ',')}°** gezet ${where}.`,
+    });
+  }
+
   formatTime(ms) {
     return new Date(ms).toLocaleTimeString('nl-NL', {
       timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit',
@@ -387,7 +397,7 @@ class SlimVerwarmenApp extends Homey.App {
     if (event === 'setpoint_changed' && data.reason === 'limit') {
       const f = (v) => `${String(v).replace('.', ',')}°`;
       await this.homey.notifications.createNotification({
-        excerpt: `Slim verwarmen: thermostaat teruggezet van ${f(data.from)} naar ${f(data.temp)} (maximumtemperatuur).`,
+        excerpt: `Thermostaat teruggezet van ${f(data.from)} naar **${f(data.temp)}** (maximumtemperatuur).`,
       }).catch(this.error);
     }
     // Raam open? Melding in de tijdlijn; kiezen doe je in de widget (of met een flow op deze trigger).
@@ -395,8 +405,25 @@ class SlimVerwarmenApp extends Homey.App {
       const f = (v) => `${String(Math.round(v * 10) / 10).replace('.', ',')}°`;
       const room = this.controller.status.room ? ` in de ${this.controller.status.room.toLowerCase()}` : '';
       await this.homey.notifications.createNotification({
-        excerpt: `Slim verwarmen: staat er een raam open${room}? De temperatuur zakte snel van ${f(data.from)} naar ${f(data.to)}. In de widget kun je de verwarming ${this.controller.windowMinutes()} minuten ${this.controller.windowTemp() === WINDOW_TEMP ? 'uitzetten' : 'lager zetten'}.`,
+        excerpt: `Staat er een raam open${room}? De temperatuur zakte snel van ${f(data.from)} naar ${f(data.to)}. In de widget kun je de verwarming ${this.controller.windowMinutes()} minuten ${this.controller.windowTemp() === WINDOW_TEMP ? 'uitzetten' : 'lager zetten'}.`,
       }).catch(this.error);
+    }
+    // Raam is open geweest: achteraf één melding in de tijdlijn met hoe lang.
+    if (event === 'window_closed' && data.since) {
+      const min = Math.round((data.until - data.since) / 60000);
+      if (min >= 1) {
+        // Alleen hoe lang; wanneer zie je aan het tijdstip van de melding.
+        const dur = min < 60 ? `${min} min` : `${Math.floor(min / 60)} uur${min % 60 ? ` ${min % 60} min` : ''}`;
+        const excerpt = data.device ? `Thermostaat meldde **${dur}** een open raam.`
+          : `Raam stond **${dur}** open, verwarming stond ${data.temp != null && data.temp > WINDOW_TEMP ? `lager (${String(data.temp).replace('.', ',')}°)` : 'uit'}.`;
+        await this.homey.notifications.createNotification({ excerpt }).catch(this.error);
+      }
+    }
+    // Handmatig verstellen: één melding nadat het een minuut stil is (vijf keer op + = één melding met de eindstand).
+    if (event === 'manual_change') {
+      this.lastManual = data;
+      if (this.manualTimer) this.homey.clearTimeout(this.manualTimer);
+      this.manualTimer = this.homey.setTimeout(() => this.notifyManual().catch(this.error), 60000);
     }
     const card = this.triggers && this.triggers[event];
     if (!card) return;

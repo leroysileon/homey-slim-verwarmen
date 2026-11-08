@@ -727,3 +727,18 @@ test('instellingen: lege standen en verborgen delen hangen alleen af van wel/gee
   assert.match(html, /#sv\.nodev \[data-needdev\] \{ display: none !important; \}/);
   assert.match(html, /#sv:not\(\.nodev\) \[data-nodev\] \{ display: none !important; \}/);
 });
+
+test('handmatig: bron wordt onthouden (thermostaat, Homey, flow) en raam-einde meldt hoe lang', async () => {
+  const { c, sim, events } = setup({ now: at('12:00'), target: 20, indoor: 21 });
+  await c.tick();
+  sim.now = at('12:05'); sim.target = 21.5; await c.tick(); // aan de knop
+  await c.setManual(22); // widget
+  await c.setManual(19, 60, 'flow');
+  assert.deepEqual(c.changeLog.map((x) => [x.temp, x.via]), [[21.5, 'thermostat'], [22, 'app'], [19, 'flow']]);
+  assert.equal(events.filter((x) => x.e === 'manual_change').length, 3);
+  await c.clearOverride();
+  await c.startWindow(10);
+  sim.now = at('12:20'); await c.tick();
+  const w = events.find((x) => x.e === 'window_closed');
+  assert.ok(w && w.d.since && w.d.until > w.d.since, 'begin en einde voor de melding');
+});

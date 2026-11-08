@@ -266,7 +266,7 @@
     #sv .htip .tt .to { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; } /* buiten: rechtsboven in de hoek, zelfde tint als de tijd */
     #sv .htip .tv { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
     #sv .htip .tr { display: flex; gap: 14px; font-size: 14px; margin-top: 2px; font-variant-numeric: tabular-nums; }
-    #sv .htip .tr span, #sv .htip .tv span { display: inline-flex; align-items: center; gap: 4px; }
+    #sv .htip .tr span, #sv .htip .tv span { display: inline-flex; align-items: center; gap: 4px; } /* waar de handmatige stand vandaan kwam */
     #sv .htip svg { width: 15px !important; height: 15px !important; flex: none; }
     #sv .htip .tv svg { width: 18px !important; height: 18px !important; opacity: .8; }
     #sv .htip .hw path { opacity: .35; } #sv .htip .hw.l1 .w1, #sv .htip .hw.l2 .w1, #sv .htip .hw.l2 .w2, #sv .htip .hw.l3 path { opacity: 1; }
@@ -276,11 +276,15 @@
     svg.hchart .hin { stroke: var(--text); }
     svg.hchart .hnow { stroke: var(--text); }
     svg.hchart .hheat { fill: #fbe3a6; opacity: .75; }
-    svg.hchart .b-schedule { fill: #d7f3e6; } svg.hchart .b-manual { fill: #f7b52c; } svg.hchart .b-away { fill: #8b8f96; } svg.hchart .b-off { fill: #c9cbd1; }
-    svg.hchart .i-schedule { stroke: #1d6f4f; } svg.hchart .i-manual { stroke: #4a3000; } svg.hchart .i-away, svg.hchart .i-off { stroke: #fff; }
+    svg.hchart .hwin { fill: #9cc9f5; opacity: .4; }
+    svg.hchart .hwinb circle { fill: #d3e6fb; stroke: var(--card); stroke-width: 2; }
+    svg.hchart .b-schedule { fill: #d7f3e6; } svg.hchart .b-manual { fill: #f7b52c; } svg.hchart .b-away { fill: #8b8f96; } svg.hchart .b-off { fill: #c9cbd1; } svg.hchart .b-window { fill: #d3e6fb; } /* raam open: koele lichtblauwe tint */
+    svg.hchart .i-schedule { stroke: #1d6f4f; } svg.hchart .i-manual { stroke: #4a3000; } svg.hchart .i-away, svg.hchart .i-off { stroke: #fff; } svg.hchart .i-window { stroke: #1f5fa8; }
     @media (prefers-color-scheme: dark) {
       svg.hchart .hheat { fill: rgba(247,181,44,.28); opacity: 1; }
-      svg.hchart .b-schedule { fill: #1c4636; } svg.hchart .b-away { fill: #6b6f76; } svg.hchart .b-off { fill: #4a4c52; }
+      svg.hchart .hwin { fill: rgba(140,196,255,.22); opacity: 1; }
+      svg.hchart .hwinb circle { fill: #173452; }
+      svg.hchart .b-schedule { fill: #1c4636; } svg.hchart .b-away { fill: #6b6f76; } svg.hchart .b-off { fill: #4a4c52; } svg.hchart .b-window { fill: #173452; } svg.hchart .i-window { stroke: #8cc4ff; }
       svg.hchart .i-schedule { stroke: #6fdcae; }
     }
 
@@ -1535,9 +1539,20 @@ const BAND_ICON = {
   manual: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/>',
   away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
+  window: '<path d="M7 7h10v10H7zM7 7 2.5 5v14L7 17M17 7l4.5-2v14L17 17"/>', // raam met twee open vleugels
 };
 const MODE_BAND = { schedule: ['schedule', 'Thuis · schema'], preheat: ['schedule', 'Thuis · schema'], manual: ['manual', 'Handmatig'],
-  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''], window: ['off', 'Raam open'], deviceWindow: ['off', 'Raam open'], deviceOff: ['off', 'Thermostaat uit'] };
+  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''], window: ['window', 'Raam open'], deviceWindow: ['window', 'Raam open'], deviceOff: ['off', 'Thermostaat uit'] };
+/** Periodes waarin de verwarming lager stond voor een open raam (zelf herkend of door de thermostaat gemeld): [[van, tot], …]. */
+function windowSpans(h) {
+  const until = h.day === 0 ? Math.min(h.now, h.end) : h.end; const out = [];
+  (h.modes || []).forEach((m, i) => {
+    if ((MODE_BAND[m.m] || [])[0] !== 'window') return;
+    const a = Math.max(m.t, h.start); const b = i + 1 < h.modes.length ? h.modes[i + 1].t : until;
+    if (b > a) out.push([a, b]);
+  });
+  return out;
+}
 function dayLabel(day, start) {
   if (day === 0) return 'Vandaag';
   if (day === 1) return 'Gisteren';
@@ -1595,6 +1610,9 @@ function chartSvg(raw, W, H) {
       if (sp != null && sp > v + 0.2) { heatMin += 5; const e = Math.min(t + step, h.now); if (run && t - run[1] <= step / 2) run[1] = e; else { flush(); run = [t, e]; } }
     });
     flush();
+    // Raam open: lichtblauwe baan door de grafiek, met een rondje met het raamicoon erboven (ook bij een kwartier goed te zien).
+    const wins = windowSpans(h);
+    wins.forEach(([a, b]) => { s += `<rect class="hwin" x="${x(a)}" y="${Y0}" width="${Math.max(3, x(b) - x(a))}" height="${H - Y0}"/>`; });
     if (h.target.length) {
       let d = '';
       h.target.forEach(([t, v], i) => { const vv = Math.round(v * 2) / 2; d += i ? `H${x(t)}V${y(vv)}` : `M${x(t)} ${y(vv)}`; });
@@ -1603,6 +1621,8 @@ function chartSvg(raw, W, H) {
     }
     s += `<path d="${h.indoor.map(([t, v], i) => `${i ? 'L' : 'M'}${x(Math.min(t + step / 2, h.now))} ${y(v)}`).join('')}" class="hin" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     if (h.day === 0) { const nx = x(Math.min(h.now, h.end)); s += `<line class="hnow" x1="${nx}" x2="${nx}" y1="${Y0}" y2="${H}" stroke-dasharray="2 3"/>`; }
+    wins.forEach(([a, b]) => { const cx = Math.min(W - 10, Math.max(X0 + 10, (x(a) + x(b)) / 2)); const cy = Y0 + 10;
+      s += `<g class="hwinb"><circle cx="${cx}" cy="${cy}" r="9"/><g class="i-window" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(${cx - 6} ${cy - 6}) scale(.5)">${BAND_ICON.window}</g></g>`; });
     s += `<g class="hscrub" style="display:none"><line x1="0" x2="0" y1="${Y0}" y2="${H}"/><circle r="4" cx="0" cy="0"/></g>`;
     model = { h, x, y, X0, W, step, tgt, hum: new Map((h.humidity || []).map(([t, v]) => [Math.round(t / step), v])) };
   }

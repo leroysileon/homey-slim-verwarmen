@@ -120,7 +120,7 @@ http.createServer((req, res) => {
         const hr = (k - start) / 3600000; const sp = hr < 6.5 ? 15 : hr < 8.5 ? 18 : hr < 12 ? 17 : hr < 14 ? 20.5 : hr < 18 ? 17 : hr < 22.5 ? 18 : 15;
         t += sp > t ? 0.08 : -0.02; indoor.push([k, Math.round(t * 10) / 10]); target.push([k, sp]); outdoor.push([k, 2 + 5 * Math.sin((hr - 8) / 24 * Math.PI * 2)]); humidity.push([k, Math.round(60 + 4 * Math.sin(hr / 3))]);
       }
-      const modes = [{ t: start, m: 'schedule' }, { t: start + 12 * 3600000, m: 'manual' }, { t: start + 14 * 3600000, m: 'schedule' }].filter((m) => m.t < upto);
+      const modes = [{ t: start, m: 'schedule' }, { t: start + 10 * 3600000, m: 'window' }, { t: start + 10.5 * 3600000, m: 'schedule' }, { t: start + 12 * 3600000, m: 'manual' }, { t: start + 14 * 3600000, m: 'schedule' }].filter((m) => m.t < upto);
       const usage = store.config.usage && store.config.meterId ? { amount: 2.3, unit: 'm³', price: store.config.price || 1.4, cost: Math.round(2.3 * (store.config.price || 1.4) * 100) / 100 } : null;
       const weather = day === 1 ? [] : [[0, 'night'], [8, 'partly'], [11, 'rain'], [14, 'cloudy'], [17, 'night']].map(([hr, k]) => ({ t: start + hr * 3600000, k })); // gisteren: nog niet bijgehouden
       return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, weather, humidity, modes, usage });

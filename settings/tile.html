@@ -207,13 +207,15 @@
     #w .chart .heat { fill: #fbe3a6; opacity: .75; }
     #w .chart .in { stroke: #17171a; }
     #w .chart .sp { stroke: #45c08f; }
-    #w .chart .b-schedule { fill: #d7f3e6; } #w .chart .b-manual { fill: #f7b52c; } #w .chart .b-away { fill: #8b8f96; } #w .chart .b-off { fill: #c9cbd1; }
-    #w .chart .i-schedule { stroke: #1d6f4f; } #w .chart .i-manual { stroke: #4a3000; } #w .chart .i-away, #w .chart .i-off { stroke: #fff; }
+    #w .chart .win { fill: #9cc9f5; opacity: .4; } #w .chart .winb circle { fill: #d3e6fb; }
+    #w .chart .b-schedule { fill: #d7f3e6; } #w .chart .b-manual { fill: #f7b52c; } #w .chart .b-away { fill: #8b8f96; } #w .chart .b-off { fill: #c9cbd1; } #w .chart .b-window { fill: #d3e6fb; } /* raam open: koele lichtblauwe tint */
+    #w .chart .i-schedule { stroke: #1d6f4f; } #w .chart .i-manual { stroke: #4a3000; } #w .chart .i-away, #w .chart .i-off { stroke: #fff; } #w .chart .i-window { stroke: #1f5fa8; }
     @media (prefers-color-scheme: dark) {
       #w .track > .p1 { background-color: #22232b; color: #f5f5f5; } /* zelfde blauwgrijs als de apparaattegels in Homey */
       #w .chart .g { stroke: #3a3b40; } #w .chart .in { stroke: #f5f5f5; }
       #w .chart .heat { fill: rgba(247,181,44,.28); opacity: 1; }
-      #w .chart .b-schedule { fill: #1c4636; } #w .chart .b-away { fill: #6b6f76; } #w .chart .b-off { fill: #4a4c52; }
+      #w .chart .win { fill: rgba(140,196,255,.22); opacity: 1; } #w .chart .winb circle { fill: #173452; }
+      #w .chart .b-schedule { fill: #1c4636; } #w .chart .b-away { fill: #6b6f76; } #w .chart .b-off { fill: #4a4c52; } #w .chart .b-window { fill: #173452; } #w .chart .i-window { stroke: #8cc4ff; }
       #w .chart .i-schedule { stroke: #6fdcae; }
     }
 
@@ -648,8 +650,19 @@ const BAND_ICON = {
   manual: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/>',
   away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
+  window: '<path d="M7 7h10v10H7zM7 7 2.5 5v14L7 17M17 7l4.5-2v14L17 17"/>', // raam met twee open vleugels
 };
-const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off', window: 'off', deviceWindow: 'off', deviceOff: 'off' };
+/** Periodes waarin de verwarming lager stond voor een open raam: [[van, tot], …]. */
+function windowSpans(h) {
+  const until = Math.min(h.now, h.end); const out = [];
+  (h.modes || []).forEach((m, i) => {
+    if (BAND_KIND[m.m] !== 'window') return;
+    const a = Math.max(m.t, h.start); const b = i + 1 < h.modes.length ? h.modes[i + 1].t : until;
+    if (b > a) out.push([a, b]);
+  });
+  return out;
+}
+const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off', window: 'window', deviceWindow: 'window', deviceOff: 'off' };
 /** Vaste opbouw: kaart 'nu' (p0) en kaart 'verloop' (p1). Geeft p0 terug. */
 function frame(w) {
   let p0 = w.querySelector('.vp[data-ready] .p0');
@@ -735,6 +748,9 @@ function chartPage(p1, p0) {
     // Eén vlak per aaneengesloten verwarmde periode (losse vakjes overlappen en geven streepjes).
     let run = null; const flush = () => { if (run) svg += `<rect class="heat" x="${x(run[0])}" y="${Y0}" width="${Math.max(0, x(run[1]) - x(run[0]))}" height="${HH - Y0}"/>`; run = null; };
     h.indoor.forEach(([t, v]) => { const sp = tgt.get(Math.round(t / step)); if (sp != null && sp > v + 0.2) { heatMin += 5; const e = Math.min(t + step, h.now); if (run && t - run[1] <= step / 2) run[1] = e; else { flush(); run = [t, e]; } } });
+    // Raam open: lichtblauwe baan door de grafiek (rondje met icoon komt verderop, bovenop de lijnen).
+    const wins = windowSpans(h);
+    wins.forEach(([a, b]) => { svg += `<rect class="win" x="${x(a)}" y="${Y0}" width="${Math.max(2.5, x(b) - x(a))}" height="${HH - Y0}"/>`; });
     flush();
     if (h.target.length) {
       let d = ''; h.target.forEach(([t, v], i) => { const vv = Math.round(v * 2) / 2; d += i ? `H${x(t)}V${y(vv)}` : `M${x(t)} ${y(vv)}`; });
@@ -746,6 +762,8 @@ function chartPage(p1, p0) {
       if (h.errors && h.errors.length) svg += `<text class="l" x="${W / 2}" y="${HH / 2 + 14}" text-anchor="middle" style="font-size:8px">${esc(String(h.errors[0]).slice(0, 60))}</text>`;
     }
     const nx = x(Math.min(h.now, h.end)); svg += `<line class="in" x1="${nx}" x2="${nx}" y1="${Y0}" y2="${HH}" stroke-width="1" stroke-dasharray="2 3"/>`;
+    wins.forEach(([a, b]) => { const cx = Math.min(W - 8, Math.max(X0 + 8, (x(a) + x(b)) / 2)); const cy = Y0 + 7;
+      svg += `<g class="winb"><circle cx="${cx}" cy="${cy}" r="7"/><g class="i-window" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(${cx - 4.8} ${cy - 4.8}) scale(.4)">${BAND_ICON.window}</g></g>`; });
     svg += `<g class="scrub" style="display:none"><line x1="0" x2="0" y1="${Y0}" y2="${HH}"/><circle r="3.5" cx="0" cy="0"/></g>`;
     wModel = { h, x, y, X0, W, step, tgt, out: new Map((h.outdoor || []).map(([t, v]) => [Math.round(t / step), v])), hum: new Map((h.humidity || []).map(([t, v]) => [Math.round(t / step), v])) };
     const by = HH + 4; const until = Math.min(h.now, h.end);
