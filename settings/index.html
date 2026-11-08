@@ -346,6 +346,19 @@
     #sv .hfs.rot .hfsbox { width: 100vh; height: 100vw; transform: translate(-50%, -50%) rotate(90deg);
       padding: max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-top)); }
     #sv .hfswrap { flex: 1; min-height: 0; }
+    /* Groot scherm: samenvatting kort op één regel in de kopregel, zoals in de widget. */
+    #sv .fsline { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+    #sv .fsline b { color: var(--text); font-weight: 600; }
+    #sv .fsline svg { width: 11px; height: 14px; flex: none; }
+    #sv .fsline .fsinfo { all: unset; display: inline-flex; align-items: center; gap: 5px; padding: 6px 0; margin: -6px 0; cursor: pointer; }
+    #sv .fsline .fsinfo i { display: inline-grid; place-items: center; color: var(--muted); }
+    #sv .fsline .fsinfo i svg { width: 14px; height: 14px; }
+    #sv .fsline .fsinfo.on i { color: var(--link); }
+    /* Uitleg valt over de grafiek heen, zodat de grafiek niet kleiner wordt. */
+    #sv .fsnote { position: absolute; top: 58px; left: 16px; right: 16px; z-index: 3; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2);
+      box-shadow: 0 6px 20px rgba(0,0,0,.18); font-size: 14px; line-height: 1.4; color: var(--text); }
+    #sv .fsnote[hidden] { display: none; }
     #sv svg#fsChart { display: block; width: 100%; height: 100%; touch-action: none; }
     #sv #fsTip { top: 6px; transform: translateX(-50%); } /* in het grote scherm binnen de grafiek, niet erboven */
     #sv button.hback { min-height: 36px; padding: 0 14px 0 8px; gap: 4px; font-size: 15px; }
@@ -674,7 +687,9 @@
   <div class="hfs" id="hFs" hidden>
     <div class="hfsbox">
       <div class="hhd"><button class="hback" id="hFsBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg>Terug</button>
+        <span class="fsline" id="fsSum"></span>
         <span class="hnav"><button class="harr" id="fsPrev" aria-label="Dag eerder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg></button><b id="fsDay">Vandaag</b><button class="harr" id="fsNext" aria-label="Dag later"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></svg></button></span></div>
+      <p class="fsnote" id="fsNote" hidden></p>
       <div class="hwrap hfswrap"><svg id="fsChart" class="hchart" role="img" aria-label="Temperatuurverloop, groot"></svg><div class="htip" id="fsTip" hidden></div></div>
     </div>
   </div>
@@ -1649,6 +1664,25 @@ function usageNote(u, today) {
   return `${what} Het bedrag is het verbruik × ${price}, zonder vaste kosten. De prijs pas je aan bij Instellingen.`
     + (today ? ` Vandaag is het verbruik tot nu toe${u.unit === 'm³' ? '; een slimme meter geeft gas vaak maar eens per uur door' : ''}.` : '');
 }
+/** Samenvatting van de dag: verwarmd, gemiddeld en (met een meter) verbruik en kosten. Groot scherm: zonder i-knopje. */
+function sumHtml(h, heatMin, withInfo) {
+  if (!h.indoor.length) return '';
+  const avg = h.indoor.reduce((a, r) => a + r[1], 0) / h.indoor.length;
+  const u = h.usage; // verbruik van die dag uit de gas- of stroommeter (als die is gekozen)
+  const kind = u && (u.unit === 'm³' ? 'Gas' : 'Stroom');
+  return `<span>Verwarmd<b>${Math.floor(heatMin / 60)}u ${heatMin % 60}m</b></span><span>Gemiddeld<b>${fmt(avg)}</b></span>`
+    + (!u ? '' : withInfo
+      ? `<button class="ucost" data-info="usage" aria-label="${kind} ${euro(u.cost)}: waar komt dit bedrag vandaan?" aria-expanded="${infoOpen === 'usage'}" aria-controls="usageNote"><em class="ul">${kind} · ${String(u.amount).replace('.', ',')} ${u.unit}<span class="info">${INFO_ICON}</span></em><b>${euro(u.cost)}</b></button>`
+      : `<span>${kind} · ${String(u.amount).replace('.', ',')} ${u.unit}<b>${euro(u.cost)}</b></span>`);
+}
+/** Korte samenvatting voor het grote scherm: ≋ 3u 20m · gem. 17.7° · € 3,22 · 2,3 m³ */
+function fsLine(h, heatMin) {
+  if (!h.indoor.length) return '';
+  const avg = h.indoor.reduce((a, r) => a + r[1], 0) / h.indoor.length; const u = h.usage;
+  return `${TIP_ICON.waves}<b>${Math.floor(heatMin / 60)}u ${heatMin % 60}m</b> · gem. <b>${fmt(avg)}</b>`
+    // Bedrag en verbruik samen als één knop: tik erop (of op het i-tje) voor de uitleg.
+    + (u ? ` · <button class="fsinfo${$('fsNote').hidden ? '' : ' on'}" id="fsInfo" aria-label="${euro(u.cost)}, ${String(u.amount).replace('.', ',')} ${u.unit}: waar komt dit bedrag vandaan?" aria-expanded="${!$('fsNote').hidden}" aria-controls="fsNote"><b>${euro(u.cost)}</b><span>${String(u.amount).replace('.', ',')} ${u.unit}</span><i>${INFO_ICON}</i></button>` : '');
+}
 function renderHistory(h) {
   const svg = $('hChart');
   if (!h) { svg.innerHTML = '<text class="hempty" x="170" y="90">Verloop kon niet worden geladen.</text>'; $('hSum').innerHTML = ''; return; }
@@ -1659,12 +1693,7 @@ function renderHistory(h) {
   histModel = c.model;
   svg.setAttribute('viewBox', `0 0 340 ${c.viewH}`);
   svg.innerHTML = c.s;
-  if (h.indoor.length) {
-    const avg = h.indoor.reduce((a, r) => a + r[1], 0) / h.indoor.length;
-    const u = h.usage; // verbruik van die dag uit de gas- of stroommeter (als die is gekozen)
-    $('hSum').innerHTML = `<span>Verwarmd<b>${Math.floor(c.heatMin / 60)}u ${c.heatMin % 60}m</b></span><span>Gemiddeld<b>${fmt(avg)}</b></span>`
-      + (u ? `<button class="ucost" data-info="usage" aria-label="${u.unit === 'm³' ? 'Gas' : 'Stroom'} ${euro(u.cost)}: waar komt dit bedrag vandaan?" aria-expanded="${infoOpen === 'usage'}" aria-controls="usageNote"><em class="ul">${u.unit === 'm³' ? 'Gas' : 'Stroom'} · ${String(u.amount).replace('.', ',')} ${u.unit}<span class="info">${INFO_ICON}</span></em><b>${euro(u.cost)}</b></button>` : '');
-  } else $('hSum').innerHTML = '';
+  $('hSum').innerHTML = sumHtml(h, c.heatMin, true);
   const note = $('usageNote');
   note.hidden = !(h.indoor.length && h.usage && infoOpen === 'usage');
   if (!note.hidden) note.textContent = usageNote(h.usage, h.now < h.end);
@@ -1761,9 +1790,19 @@ function renderFs() {
   fsModel = c.model;
   svg.setAttribute('viewBox', `0 0 ${W} ${c.viewH}`);
   svg.innerHTML = c.s;
+  if (!h.usage) $('fsNote').hidden = true;
+  $('fsSum').innerHTML = fsLine(h, c.heatMin);
+  if (!$('fsNote').hidden) $('fsNote').textContent = usageNote(h.usage, h.now < h.end);
 }
 $('hFull').addEventListener('click', () => { $('hFs').hidden = false; requestAnimationFrame(renderFs); });
-$('hFsBack').addEventListener('click', () => { $('hFs').hidden = true; scrubEnd(FS); });
+$('hFsBack').addEventListener('click', () => { $('hFs').hidden = true; $('fsNote').hidden = true; scrubEnd(FS); });
+// Groot scherm: i-tje bij het verbruik klapt dezelfde uitleg open als in de kaart.
+$('hFs').addEventListener('click', (e) => {
+  if (!e.target.closest('#fsInfo')) return;
+  const n = $('fsNote'); n.hidden = !n.hidden;
+  if (!n.hidden && lastHist) n.textContent = usageNote(lastHist.usage, lastHist.now < lastHist.end);
+  $('fsInfo').setAttribute('aria-expanded', String(!n.hidden)); $('fsInfo').classList.toggle('on', !n.hidden);
+});
 $('fsPrev').addEventListener('click', () => { if (histDay < 6) { histDay += 1; loadHistory(); } });
 $('fsNext').addEventListener('click', () => { if (histDay > 0) { histDay -= 1; loadHistory(); } });
 window.addEventListener('resize', () => { if (!$('hFs').hidden) renderFs(); });
