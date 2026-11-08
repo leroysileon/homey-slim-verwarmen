@@ -505,3 +505,225 @@ test('learner: één meting verwijderen, de rest blijft', () => {
   assert.equal(l.remove(42), false, 'onbekende meting: niets veranderd');
   assert.equal(l.samples.length, 2);
 });
+
+test('learner: een mislukte meting (raam open) telt niet mee', () => {
+  const ok = [1.0, 1.1, 0.9, 1.05, 0.95, 1.0].map((rate, i) => ({ at: i + 1, rate, deadTime: 12 + i, outdoor: 5 }));
+  const bad = { at: 99, rate: 0.25, deadTime: 70, outdoor: 5 };
+  const l = new Learner({ samples: [...ok, bad] });
+  assert.deepEqual([...l.ignored()], [99]);
+  assert.ok(Math.abs(l.rateAt(5) - 1.0) < 0.06, 'snelheid zonder de uitschieter');
+  assert.ok(l.deadTime() < 20, 'opstarttijd zonder de uitschieter');
+  // Gewone spreiding is geen fout.
+  assert.equal(new Learner({ samples: ok }).ignored().size, 0);
+  // Weinig metingen: nog niets negeren.
+  assert.equal(new Learner({ samples: [ok[0], ok[1], bad] }).ignored().size, 0);
+});
+
+test('learner: één rare meting trekt de buitentemperatuur-lijn niet scheef', () => {
+  // Echt verband: snelheid = 0,8 + 0,05 × buiten
+  const s = [-2, 0, 2, 4, 6, 8, 10].map((x, i) => ({ at: i + 1, rate: 0.8 + 0.05 * x, deadTime: 15, outdoor: x }));
+  s.push({ at: 50, rate: 3.5, deadTime: 15, outdoor: -2 }); // zon op de thermostaat
+  const l = new Learner({ samples: s });
+  assert.ok(Math.abs(l.rateAt(0) - 0.8) < 0.05, `verwacht ~0,8, kreeg ${l.rateAt(0)}`);
+  assert.ok(Math.abs(l.rateAt(10) - 1.3) < 0.05);
+});
+
+test('learner: te laat warm = voortaan eerder beginnen', () => {
+  const l = new Learner({ samples: [{ at: 1, rate: 1, deadTime: 15, outdoor: 5 }] });
+  const before = l.preheatMinutes(17, 19, 5, 600); // (15 + 120) × 1,1
+  assert.equal(before, 149);
+  for (let i = 0; i < 3; i++) l.addTiming({ at: i, base: 135, need: 162, late: 13, temp: 19 }); // duurde 20% langer
+  assert.equal(l.factor(), 1.2);
+  assert.equal(l.preheatMinutes(17, 19, 5, 600), Math.round(135 * 1.2 * 1.05));
+  assert.equal(l.lateness(), 13);
+  // Te vroeg warm: korter voorverwarmen (scheelt stoken), maar nooit onder 70%.
+  const e = new Learner({ samples: [{ at: 1, rate: 1, deadTime: 15, outdoor: 5 }] });
+  for (let i = 0; i < 3; i++) e.addTiming({ at: i, base: 135, need: 60, late: -75, temp: 19 });
+  assert.equal(e.factor(), 0.7);
+  // Opslaan en weer laden houdt het vast.
+  assert.equal(new Learner(JSON.parse(JSON.stringify(l.toJSON()))).factor(), 1.2);
+});
+
+test('op tijd warm: controller meet hoe laat het doel gehaald werd', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, learner: { samples: [{ at: 1, rate: 2, deadTime: 10, outdoor: 4 }] } });
+  const { c, sim, events } = setup({ now: at('05:00'), target: 16, indoor: 18, outdoor: 4, store });
+  // 18 -> 20 bij 2 °/u: 10 + 60 = 70 × 1,1 = 77 min -> begint 05:13
+  await c.tick();
+  sim.now = at('05:13'); await c.tick();
+  assert.equal(c.status.mode, 'preheat');
+  assert.ok(c.state.run, 'meting loopt');
+  sim.now = at('06:00'); sim.indoor = 19; await c.tick();
+  sim.now = at('06:30'); sim.indoor = 19.5; await c.tick(); // schema-moment, nog niet warm
+  assert.ok(c.state.run);
+  sim.now = at('06:45'); sim.indoor = 19.85; await c.tick(); // 15 min te laat
+  const t = events.find((x) => x.e === 'timing');
+  assert.ok(t, 'meting afgerond');
+  assert.equal(t.d.late, 15);
+  assert.equal(t.d.need, 92);
+  assert.equal(c.state.run, null);
+  assert.equal(c.status.learned.late, 15);
+});
+
+test('op tijd warm: handmatig ingrijpen = niets leren', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, learner: { samples: [{ at: 1, rate: 2, deadTime: 10, outdoor: 4 }] } });
+  const { c, sim, events } = setup({ now: at('05:13'), target: 16, indoor: 18, outdoor: 4, store });
+  await c.tick();
+  assert.ok(c.state.run);
+  await c.setManual(21);
+  sim.now = at('06:40'); sim.indoor = 20; await c.tick();
+  assert.equal(c.state.run, null);
+  assert.ok(!events.some((x) => x.e === 'timing'));
+});
+
+test('raam open: snelle daling = vraag, kiezen = verwarming uit, daarna terug', async () => {
+  const { c, sim, events } = setup({ now: at('12:00'), target: 20, indoor: 20.5 });
+  await c.tick();
+  sim.now = at('12:04'); sim.indoor = 20.3; await c.tick();
+  assert.equal(c.status.windowAsk, null, 'kleine daling: niets');
+  sim.now = at('12:08'); sim.indoor = 19.8; await c.tick();
+  assert.ok(c.status.windowAsk, 'vraag in de widget');
+  assert.ok(events.some((x) => x.e === 'window_open'));
+  assert.equal(sim.target, 20, 'zonder keuze verandert er niets');
+  await c.startWindow();
+  assert.equal(sim.target, 5);
+  assert.equal(c.status.mode, 'window');
+  assert.equal(c.status.windowAsk, null);
+  sim.now = at('12:20'); sim.indoor = 18; await c.tick();
+  assert.equal(c.status.mode, 'window', 'geen handmatig: dit stelden we zelf in');
+  sim.now = at('12:39'); await c.tick();
+  assert.equal(sim.target, 20, 'na een half uur terug naar het schema');
+  assert.equal(c.status.mode, 'schedule');
+  sim.now = at('12:45'); sim.indoor = 19; await c.tick();
+  assert.equal(c.status.windowAsk, null, 'na het luchten niet meteen opnieuw vragen');
+});
+
+test('raam open tijdens handmatige stand: daarna komt je eigen temperatuur terug', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 21 });
+  await c.tick();
+  await c.setManual(22, 'manual');
+  await c.startWindow(10);
+  assert.equal(sim.target, 5);
+  sim.now = at('12:11'); await c.tick();
+  assert.equal(sim.target, 22);
+  assert.equal(c.status.mode, 'manual');
+  assert.equal(c.state.override.temp, 22);
+});
+
+test('raam open: zelf aan de knop draaien beëindigt de raamstand', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 21 });
+  await c.tick();
+  await c.startWindow();
+  sim.now = at('12:05'); sim.target = 21; await c.tick();
+  assert.equal(c.status.mode, 'manual');
+  assert.equal(sim.target, 21);
+  // Negeren: een uur niet opnieuw vragen.
+  const r = setup({ now: at('12:00'), target: 20, indoor: 21 });
+  await r.c.tick();
+  r.sim.now = at('12:05'); r.sim.indoor = 20.2; await r.c.tick();
+  assert.ok(r.c.status.windowAsk);
+  await r.c.ignoreWindow();
+  r.sim.now = at('12:10'); r.sim.indoor = 19.4; await r.c.tick();
+  assert.equal(r.c.status.windowAsk, null);
+});
+
+test('instellingenpagina en widget: elke id komt maar één keer voor', () => {
+  const fs = require('fs'); const path = require('path');
+  for (const f of ['settings/index.html', 'widgets/verwarming/public/index.html']) {
+    const html = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    const ids = [...html.matchAll(/\sid="([^"$]+)"/g)].map((m) => m[1]);
+    const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
+    assert.deepEqual(dup, [], `${f}: dubbele id`);
+  }
+});
+
+test('raam open: instelling kiest uit of de temperatuur van afwezig, of zet herkennen uit', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, config: { windowAction: 'eco', ecoTemp: 15 } });
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 21, store });
+  await c.tick();
+  await c.startWindow();
+  assert.equal(sim.target, 15, 'naar de temperatuur van afwezig');
+  assert.equal(c.status.windowTemp, 15);
+  sim.now = at('12:10'); await c.tick();
+  assert.equal(c.status.mode, 'window', 'eigen 15° telt niet als aan de knop draaien');
+  // Herkennen uit: geen vraag bij een snelle daling.
+  const off = setup({ now: at('12:00'), target: 20, indoor: 21, store: memoryStore({ schedule: SCHEDULE, state: {}, config: { windowDetect: false } }) });
+  await off.c.tick();
+  off.sim.now = at('12:05'); off.sim.indoor = 19.8; await off.c.tick();
+  assert.equal(off.c.status.windowAsk, null);
+  assert.ok(!off.c.state.windowAsk);
+});
+
+test('raam open: duur uit de instellingen, en leren van je keuzes', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, config: { windowMinutes: 10 } });
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 21, store });
+  await c.tick();
+  await c.startWindow();
+  assert.equal(c.state.window.until - c.state.window.since, 10 * MIN);
+  // Vaak negeren = pas bij een grotere daling vragen.
+  const r = setup({ now: at('08:00'), target: 20, indoor: 21 });
+  await r.c.tick();
+  assert.equal(r.c.windowDrop(), 0.6);
+  for (let i = 0; i < 3; i++) {
+    r.sim.now += 2 * 3600000; r.sim.indoor = 21; await r.c.tick();
+    r.sim.now += 5 * MIN; r.sim.indoor = 19.8; await r.c.tick(); // flink kouder: telt altijd
+    assert.ok(r.c.state.windowAsk, `vraag ${i + 1}`);
+    await r.c.ignoreWindow();
+  }
+  assert.equal(r.c.windowDrop(), 1.05);
+  assert.equal(r.c.status.windowInfo.ignored, 3);
+  r.sim.now += 2 * 3600000; r.sim.indoor = 21; await r.c.tick();
+  r.sim.now += 5 * MIN; r.sim.indoor = 20.3; await r.c.tick();
+  assert.equal(r.c.state.windowAsk, null, '0,7° is nu niet genoeg');
+});
+
+test('raam open: thermostaat met eigen detectie (tado) = onze detectie standaard uit, en niet tegenin sturen', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 21 });
+  const read = c.io.readThermostat;
+  let extra = { ownWindow: 'tado' };
+  c.io.readThermostat = async () => ({ ...(await read()), ...extra });
+  await c.tick();
+  sim.now = at('12:05'); sim.indoor = 20.1; await c.tick();
+  assert.equal(c.status.windowAsk, null, 'tado doet het zelf');
+  assert.equal(c.status.windowInfo.on, false);
+  // Zelf aangezet in de instellingen: dan wel.
+  c.store.set('config', { windowDetect: true });
+  sim.now = at('12:30'); sim.indoor = 21; await c.tick();
+  sim.now = at('12:35'); sim.indoor = 20.2; await c.tick();
+  assert.ok(c.status.windowAsk);
+  // De thermostaat meldt zelf een open raam en zet zich laag: wij sturen niet terug en zien het niet als handmatig.
+  extra = { ownWindow: 'tado', windowOpen: true };
+  sim.target = 5; sim.now = at('12:40'); await c.tick();
+  assert.equal(sim.target, 5);
+  assert.equal(c.status.mode, 'deviceWindow');
+  extra = { ownWindow: 'tado', windowOpen: false };
+  sim.target = 20; sim.now = at('12:55'); await c.tick();
+  assert.equal(c.status.mode, 'schedule', 'raam dicht: gewoon verder, geen handmatige stand');
+  // Thermostaat zelf uitgezet: ook niet tegenin.
+  extra = { mode: 'off' };
+  sim.now = at('22:31'); await c.tick();
+  assert.equal(sim.target, 20, 'schema schrijft niets zolang de thermostaat uit staat');
+  assert.equal(c.status.mode, 'deviceOff');
+});
+
+test('geen thermostaat gekozen: duidelijke melding, geen oude status', async () => {
+  const store = memoryStore({ schedule: SCHEDULE, state: {}, config: { thermostatId: 'x' } });
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20, store });
+  await c.tick();
+  assert.equal(c.status.mode, 'schedule');
+  c.io.readThermostat = async () => null; // thermostaat weg
+  sim.now = at('12:05'); await c.tick();
+  assert.equal(c.status.mode, 'nodevice');
+  assert.equal(c.status.indoor, null, 'geen oude temperatuur meer tonen');
+  assert.match(c.status.error, /reageert niet/);
+  c.store.set('config', {}); // niets gekozen
+  await c.tick();
+  assert.match(c.status.error, /Kies een thermostaat/);
+  assert.ok(c.status.learned, 'opwarmgegevens blijven zichtbaar');
+});
+
+test('instellingen: lege standen en verborgen delen hangen alleen af van wel/geen thermostaat', () => {
+  const fs = require('fs'); const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'settings', 'index.html'), 'utf8');
+  assert.match(html, /#sv\.nodev \[data-needdev\] \{ display: none !important; \}/);
+  assert.match(html, /#sv:not\(\.nodev\) \[data-nodev\] \{ display: none !important; \}/);
+});

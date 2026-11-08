@@ -153,7 +153,16 @@
     #w .ticks { display: flex; justify-content: space-between; font-size: 11px; line-height: 14px; height: 14px; opacity: .7; margin-top: -2px; flex: none; }
     #w .resume { flex: none; white-space: nowrap; height: 32px; padding: 0 12px; font-size: 14px; background: var(--solid); color: var(--solid-text); }
     #w .resume svg { width: 16px; height: 16px; }
+    /* Raam open? Vraag met 'Negeren' als tekstlink; de hoofdkeuze staat rechtsboven. */
+    /* Raam open? Eén rustige regel: vraag, één knop en een kruisje. De rest van de kaart blijft zoals hij was. */
+    #w .sub.askrow { overflow: visible; }
+    #w .sub .ask { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    #w .sub .yes { flex: none; height: 26px; margin: -3px 0 -3px 4px; padding: 0 11px; font-size: 13.5px; font-weight: 600; background: var(--solid); color: var(--solid-text); }
+    #w .sub .no { flex: none; width: 26px; height: 26px; margin: -3px 0; padding: 0; background: none; opacity: .75; }
+    #w .sub .no svg { width: 12px; height: 12px; }
     #w .err { font-size: 13px; }
+    /* Geen thermostaat: zelfde opbouw als normaal, maar de onderdelen die een thermostaat nodig hebben vervaagd. */
+    #w.nodevice .ghost { opacity: .4; pointer-events: none; }
     /* Twee pagina's (alleen dashboard): nu en verloop van vandaag. Swipen of op de puntjes tikken. */
     #w { touch-action: pan-y; }
     /* Schuifbaan: beide pagina's naast elkaar; de inhoud volgt je vinger tot aan de rand van de kaart. */
@@ -292,7 +301,7 @@
 
 <script>
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart' };
+const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart', window: 'Raam open', deviceWindow: 'Raam open', deviceOff: 'Thermostaat uit' };
 /** Weericoon bij de buitentemperatuur, passend bij het weer buiten (kind uit status.weather). */
 const WX = (() => {
   const S = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -331,6 +340,7 @@ const ICON = {
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M8 15h8m-3-2.5L15.5 15 13 17.5"/></svg>',
   edit: '<svg class="edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
+  window: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7zM7 7 2.5 5v14L7 17M2.5 12H7M17 7l4.5-2v14L17 17M17 12h4.5"/><path stroke-width="1.3" d="M9 11c1.1-.9 2.1-.9 3.2 0 .9.7 2 .6 2.4-.3.3-.8-.3-1.6-1.1-1.4M9 13.8c1.1-.8 2.1-.8 3.2 0s2.1.8 2.8 0"/></svg>', // raam met openstaande vleugel
   flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg>',
 };
 
@@ -639,7 +649,7 @@ const BAND_ICON = {
   away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
 };
-const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off' };
+const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off', window: 'off', deviceWindow: 'off', deviceOff: 'off' };
 /** Vaste opbouw: kaart 'nu' (p0) en kaart 'verloop' (p1). Geeft p0 terug. */
 function frame(w) {
   let p0 = w.querySelector('.vp[data-ready] .p0');
@@ -784,6 +794,31 @@ function render() {
   if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
   const first = w.classList.contains('loading');
   w.removeAttribute('aria-busy'); w.removeAttribute('aria-label');
+  if (data && data.status && data.status.mode === 'nodevice') {
+    // Geen thermostaat (of hij reageert niet): de gewone widget, maar lichter en zonder waarden.
+    // Zo zie je wat je krijgt zodra er een thermostaat is: temperatuur, bediening en het schema van vandaag.
+    const s0 = data.status; const none = s0.modeLabel === 'Geen thermostaat';
+    w.style.minHeight = '';
+    w.className = `setup nodevice${first ? ' in' : ''}`; if (first) setTimeout(() => w.classList.remove('in'), 400);
+    // Eén kaart, zonder 'Verloop vandaag' erachter: zonder thermostaat valt er niets terug te kijken.
+    page = 0;
+    w.innerHTML = '<div class="vp"><div class="track"><div class="pg p0"></div></div></div>';
+    const p0n = w.querySelector('.p0');
+    const subN = `<div class="sub">${none ? 'Kies je thermostaat in de instellingen' : 'Controleer hem in de Homey-app'}</div>`;
+    p0n.innerHTML = `
+      <div class="top">
+        <span class="info"><span class="mode">${none ? 'Geen thermostaat' : 'Thermostaat reageert niet'}</span></span>
+        ${none && IN_SETTINGS ? '<button class="resume" data-pickdev>Kies thermostaat</button>' : ''}
+      </div>
+      <div class="mid ghost" aria-hidden="true">
+        <span class="tw">${bigTemp(null)}<span class="wbtn"><span class="waves">${ICON.waves}</span></span></span>
+        <div class="ctrl"><button tabindex="-1" disabled>${ICON.minus}</button><span class="val"><output>–</output></span><button tabindex="-1" disabled>${ICON.plus}</button></div>
+      </div>
+      <div class="room">${none ? 'Koppel je thermostaat' : 'Even geen verbinding'}</div>
+      ${IN_SETTINGS ? subN : `<div class="zone"><div class="rowl">${subN}<div class="ghost">${todayBar(data.schedule || {}, s0)}</div></div></div>`}`;
+    setTimeout(fitHeight, 0);
+    return;
+  }
   if (!data || !data.status || !data.status.updatedAt) {
     // Melding in een kaart van dezelfde hoogte, zodat de widget niet krimpt.
     w.className = first ? 'in' : ''; if (first) setTimeout(() => w.classList.remove('in'), 400);
@@ -798,6 +833,7 @@ function render() {
   const setup = s.mode === 'setup';
   const paused = s.mode === 'paused'; // gepauzeerd: − en + hebben geen zin, alleen hervatten // nieuwe installatie, nog niet gestart: alleen kijken, niets bedienen
   w.classList.toggle('setup', setup);
+  w.classList.remove('nodevice'); // weer een thermostaat: gewone weergave
   const heating = !setup && target != null && s.indoor != null && target > s.indoor + 0.2;
   // Toestand (alleen op temperatuur): verwarmen gaat voor, dan te koud. Vochtig = alleen het getal vet.
   const cold = !setup && !heating && s.indoor != null && s.indoor < COLD_BELOW;
@@ -807,9 +843,16 @@ function render() {
   if (prevKey !== null && key !== prevKey && pending == null) { w.classList.remove('flash'); void w.offsetWidth; w.classList.add('flash'); }
   prevKey = key;
   const manual = s.mode === 'manual' && s.override;
-  if (durOpen && !manual && pending == null) durOpen = false; // inmiddels terug naar het schema
+  const win = s.mode === 'window' && s.window;
+  // Raam open? De temperatuur zakte snel: vraag of de verwarming even uit moet. Niets gebeurt vanzelf.
+  const ask = !setup && !paused && !win && s.windowAsk;
+  const winOff = s.windowTemp == null || s.windowTemp <= 5; // instelling: uit, of naar de temperatuur van afwezig
+  if (durOpen && (!manual || ask) && pending == null) durOpen = false; // inmiddels terug naar het schema (of de raamvraag gaat voor)
   let sub;
-  if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span><span class="cd">∞</span>${ICON.edit}`;
+  if (ask) sub = `${ICON.window}<span class="ask">Raam open?</span><button class="yes" data-act="windowOff" aria-label="${winOff ? 'Verwarming even uit' : 'Verwarming even lager'}">${winOff ? 'Verwarming uit' : 'Verwarming lager'}</button><button class="no" data-act="windowIgnore" aria-label="Negeren">${ICON.x}</button>`;
+  else if (s.mode === 'deviceWindow' || s.mode === 'deviceOff') sub = `${s.mode === 'deviceWindow' ? ICON.window : ''}<span>Je thermostaat regelt dit zelf</span>`; // tado e.d.: wij sturen niet tegenin
+  else if (win) sub = `${ICON.window}<span>Verwarming ${winOff ? 'uit' : 'lager'} tot ${esc(clock(s.window.until))}</span>`;
+  else if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span><span class="cd">∞</span>${ICON.edit}`;
   else if (manual) { const l = durLabel(s, s.override.duration || 'next', s.override.until); sub = `${ICON.hand}<span>${esc(l.t)}</span><span class="cd">${l.cd}</span>${ICON.edit}`; }
   else if (setup) sub = '<span>Start via de app-instellingen</span>';
   else if (paused) sub = '<span>Schema staat stil</span>';
@@ -822,7 +865,7 @@ function render() {
     const dd = curDur(s); const same = s.mode === 'manual' && s.override && chosenDur == null;
     const lb = durLabel(s, dd, same ? s.override.until : untilOf(s, dd));
     subHtml = `<button class="sub" data-durclose aria-label="Klaar met kiezen">${ICON.hand}<span class="dl">${esc(lb.t)}</span><span class="cd">${esc(lb.cd)}</span></button>`;
-  } else subHtml = manual ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub">${sub}</div>`;
+  } else subHtml = manual && !ask ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub${ask ? ' askrow' : ''}">${sub}</div>`;
   const waiting = heating && (pending == null) && s.targetConfirmed === false;
   clearTimeout(confirmPoll); if (waiting) confirmPoll = setTimeout(load, 3000); // wacht op bevestiging: vaker kijken
   const p0 = frame(w);
@@ -832,12 +875,13 @@ function render() {
         <span class="mode">${esc(MODES[s.mode] || s.mode)}</span>
         ${infoItems(s)}
       </span>
-      ${s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>`
+      ${win ? `<button class="resume" data-act="windowEnd">${ICON.window}Raam dicht</button>`
+        : s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>`
         : paused && !IN_SETTINGS ? `<button class="resume" data-act="enable">${ICON_ACT.play}Hervat</button>` : ''}
     </div>
     <div class="mid">
       <span class="tw">${bigTemp(s.indoor)}<button class="wbtn" data-waveinfo aria-label="Wat betekenen de golfjes?"><span class="waves${heatLevel(target, s.indoor, heating, s.learned)}${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></button></span>
-      ${setup || paused ? '' : `<div class="ctrl">
+      ${setup || paused || win || s.mode === 'deviceWindow' || s.mode === 'deviceOff' ? '' : `<div class="ctrl">
         <button data-d="-0.5" aria-label="Kouder">${ICON.minus}</button>
         <span class="val"><output aria-label="Ingesteld">${fmt(target)}</output></span>
         ${s.maxTemp != null && target >= s.maxTemp ? '<button class="maxb" data-max aria-label="Maximumtemperatuur bereikt">max</button>' : `<button data-d="0.5" aria-label="Warmer">${ICON.plus}</button>`}
@@ -957,7 +1001,7 @@ function wScrubEnd() {
 
 // De inhoud volgt je vinger; loslaten = naar de dichtstbijzijnde pagina. Aan de randen wat weerstand.
 document.addEventListener('touchstart', (e) => {
-  if (IN_SETTINGS || !document.querySelector('#w .track')) return;
+  if (IN_SETTINGS || !document.querySelector('#w .track') || document.querySelector('#w.nodevice')) return; // geen thermostaat: niets te vegen
   const t = e.touches[0]; drag = { x: t.clientX, y: t.clientY, dx: 0, mode: null, pts: [[e.timeStamp, 0]] };
   // Op het verloop even stilhouden = details bekijken (in plaats van vegen).
   drag.onChart = page === 1 && !!e.target.closest('.p1 .chart');
@@ -1079,7 +1123,7 @@ document.addEventListener('click', async (e) => {
     // Meteen laten zien dat er iets gebeurt; de Homey bevestigt een paar seconden later.
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
     act.classList.add('busy');
-    act.textContent = 'Bezig…';
+    if (!act.classList.contains('no')) act.textContent = 'Bezig…'; // kruisje blijft een kruisje
     if (act.dataset.act === 'resume' && data && data.status) {
       const st = data.status;
       const t = scheduledNow(data.schedule || {});
@@ -1089,6 +1133,12 @@ document.addEventListener('click', async (e) => {
     try { data = await H.api('POST', '/action', { action: act.dataset.act }); } catch (err) { console.error(err); }
     render(); refreshSoon();
   }
+});
+
+// Instellingen: 'Kies thermostaat' springt naar de keuzelijst op de pagina eromheen.
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-pickdev]')) return;
+  try { const el = window.parent.document.getElementById('thermostat'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); } catch (err) { /* los geopend */ }
 });
 
 function onHomeyReady(Homey) {

@@ -1,0 +1,8 @@
+{
+  "title": { "en": "Window may be open", "nl": "Raam staat misschien open" },
+  "hint": { "en": "The indoor temperature dropped quickly (0.6 °C or more within 10 minutes).", "nl": "De binnentemperatuur zakte snel (0,6 °C of meer binnen 10 minuten)." },
+  "tokens": [
+    { "name": "drop", "type": "number", "title": { "en": "Drop (°C)", "nl": "Daling (°C)" }, "example": 0.8 },
+    { "name": "temp", "type": "number", "title": { "en": "Indoor temperature", "nl": "Binnentemperatuur" }, "example": 19.4 }
+  ]
+}

@@ -70,9 +70,8 @@
     #sv .foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 6px; }
     #sv .copybtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; color: var(--link); font-weight: 500; font-size: 14px; min-height: 36px; }
     #sv .copybtn svg { width: 17px; height: 17px; }
-    #sv .copymenu { display: none; flex-wrap: wrap; gap: 8px; padding: 6px 0 10px; }
-    #sv .copymenu.show { display: flex; }
-    #sv .copymenu button { min-height: 38px; padding: 0 14px; font-size: 15px; }
+    #sv .copybtn.on { color: var(--text); } /* deze dag is gekopieerd */
+    #sv .cpgroup { display: inline-flex; gap: 16px; } /* Kopiëren altijd, Plakken alleen als er iets gekopieerd is */
 
     /* Tijdsblokken bewerken */
     #sv .edit { display: none; margin-top: 14px; }
@@ -216,6 +215,7 @@
     #setup button.wide { width: 100%; margin-top: 10px; }
     #setup button.start { width: 100%; background: #45c08f; color: #fff; font-weight: 600; font-size: 16px; min-height: 50px; }
     #setup button.start:disabled { opacity: .45; }
+    #setup .done-card .first + button.start { margin-top: 16px; } /* ruimte tussen uitleg en 'Schema instellen' */
     #setup .note { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); margin: 10px 4px 0; }
     #setup .note svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
     #setup .dayl { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; margin-top: 14px; }
@@ -227,9 +227,9 @@
     #setup .done-card .check { width: 56px; height: 56px; border-radius: 50%; background: #45c08f; color: #fff; display: grid; place-items: center; margin: 4px auto 10px; }
     #setup .done-card .check svg { width: 28px; height: 28px; }
     #setup .done-card h2 { all: unset; display: block; font-size: 21px; font-weight: 700; margin: 0 0 6px; }
-    #setup .first { margin-top: 14px; padding: 12px; border-radius: 14px; background: #d7f3e6; color: #1d6f4f; font-size: 14px; text-align: left; }
-    #setup .first b { display: block; }
-    @media (prefers-color-scheme: dark) { #setup .first { background: #1c4636; color: #6fdcae; } }
+    /* Zelfde zachte oranje tint als de tado-melding: iets wat je nog moet doen. */
+    #setup .first { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--warm) 16%, var(--card)); color: var(--text); font-size: 14px; line-height: 1.4; text-align: left; }
+    #setup .first b { display: block; margin-bottom: 2px; }
 
     /* Verloop van een dag */
     #sv .hhd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
@@ -324,6 +324,7 @@
     #sv .qscroll button.on { position: relative; z-index: 1; } /* actieve knop ligt bovenop zijn buren */
     #sv .qscroll button.on { background: var(--text); color: var(--card); }
     #sv #secWeek, #sv #secHist, #sv #secLearn, #sv #secCfg { scroll-margin-top: 94px; }
+    #sv [data-card] { scroll-margin-top: 102px; } /* Vandaag: de dag valt niet onder de vaste menubalk */
 
     /* Verloop groot */
     /* Lange ruimtenaam: inkorten met '…'; vergroot-icoon en dagknoppen blijven altijd zichtbaar. */
@@ -371,14 +372,24 @@
     #sv #preWrap > label, #sv #priceWrap > label, #sv #usageWrap > label { margin-top: 16px; }
     /* Groepen in de instellingen: geen lijnen, maar een duidelijk kopje met ruimte erboven. */
     #sv .cg { all: unset; display: block; font-size: 17px; font-weight: 700; margin: 34px 2px 0; }
-    #sv .cg:first-of-type { margin-top: 0; }
+    #sv .card > .cg:first-of-type { margin-top: 0; } /* alleen de eerste kop van de kaart (Apparaten), niet die in het blok erna */
     #sv .cg + label, #sv .cg + label.toggle { margin-top: 10px; }
     /* Blok met schakelaar waarin de extra velden verschijnen (Verbruik en kosten). */
     #sv .tsec { margin-top: 34px; } /* los blok: zelfde ruimte als een nieuwe groep */
     #sv .tblock { border-radius: 14px; background: var(--card-2); }
     #sv .tblock > label.toggle { margin: 0; background: transparent; }
-    #sv .tblock #usageWrap, #sv .tblock #preWrap, #sv .tblock #limitWrap { padding: 0 14px 14px; }
-    #sv .tblock #usageWrap > label, #sv .tblock #preWrap > label, #sv .tblock #limitWrap > label { margin-top: 2px; }
+    #sv .tblock #usageWrap, #sv .tblock #preWrap, #sv .tblock #limitWrap, #sv .tblock #windowWrap { padding: 0 14px 14px; }
+    #sv .tblock #windowWrap > select + label { margin-top: 16px; } /* zelfde afstand als Meter → Prijs */
+    /* Uitleg bij een schakelaar: verborgen tot je op het i-tje tikt. Alleen korte actuele info (wie er thuis is) blijft staan. */
+    #sv .toggle .tinfo { all: unset; display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -6px -6px -6px -2px; vertical-align: middle; color: var(--muted); cursor: pointer; border-radius: 50%; }
+    #sv .toggle .tinfo svg { width: 16px; height: 16px; }
+    #sv .toggle .tinfo[aria-expanded="true"] { color: var(--link); }
+    #sv .toggle .tinfo:focus-visible { outline: 2px solid var(--link); }
+    #sv .toggle .tt { min-width: 0; } /* titel mag smaller worden; schakelaar blijft altijd heel in beeld */
+    #sv .toggle .tt .nw { white-space: nowrap; } /* laatste stukje van de titel en het i-tje blijven samen */
+    #sv .toggle .desc { display: none; }
+    #sv .toggle.showdesc .desc { display: block; }
+    #sv .tblock #usageWrap > label, #sv .tblock #preWrap > label, #sv .tblock #limitWrap > label, #sv .tblock #windowWrap > label { margin-top: 2px; }
     #sv .tblock.tgap { margin-top: 22px; }
     #sv .tblock select, #sv .tblock .fstep { background-color: var(--card); } /* alleen de kleur: de chevron van de keuzelijst is een achtergrondafbeelding */
     #sv label .lh { opacity: .7; } /* korte toelichting achter een label */ /* eerste in zijn blok, maar staat onder de schakelaar: wel ruimte */
@@ -388,7 +399,12 @@
     #sv .fstep output { flex: 1; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
     #sv .fstep button { width: 44px; min-height: 44px; padding: 0; flex: none; background: transparent; } /* geen rondje: − en + spreken voor zich */
     #sv .fstep button:active { background: var(--press); }
-    #sv label.toggle { display: flex; align-items: center; gap: 14px; margin: 22px 0 0; padding: 14px; border-radius: 14px; background: var(--card-2); cursor: pointer; color: var(--text); }
+    #sv label.toggle { display: flex; align-items: center; gap: 14px; margin: 22px 0 0; padding: 14px; border-radius: 14px; background: var(--card-2); cursor: default; color: var(--text); }
+    #sv label.toggle .knob { cursor: pointer; }
+    /* Alles bovenaan uitgelijnd: openklappen van de uitleg laat schakelaar en icoon op hun plek. Titel staat midden naast de schakelaar (32px). */
+    #sv label.toggle { align-items: flex-start; }
+    #sv label.toggle .tt { padding-top: 5px; }
+    #sv label.toggle .ti { margin-top: 1px; }
     /* Icoon in een neutraal rondje voor de schakelaar, zoals in de Homey-instellingen (geen accentkleur). */
     #sv .toggle .ti { flex: none; align-self: flex-start; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
       background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
@@ -456,13 +472,39 @@
     #sv .savebar.show { transform: none; }
     #sv .savebar span { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* één regel */
     /* Zelfde maat als 'Tijdsblok verwijderen'. */
-    #sv .savebar button { flex: none; min-height: 44px; padding: 0 20px; border-radius: 999px; font-size: 15px; }
+    #sv .savebar button { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 15px; } /* tekst ernaast past ook op een smal scherm */
     /* Melding: klein pilletje onderaan, valt weinig op en verdwijnt vanzelf. */
     #sv .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 8px); z-index: 20;
-      padding: 8px 14px; border-radius: 999px; background: color-mix(in srgb, var(--text) 88%, transparent); color: var(--bg); font-size: 14px; font-weight: 600;
-      white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s, transform .2s; }
+      padding: 8px 14px; border-radius: 18px; background: color-mix(in srgb, var(--text) 88%, transparent); color: var(--bg); font-size: 14px; font-weight: 600;
+      width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box; text-align: center; line-height: 1.35; /* past altijd, met 16px rand */
+      pointer-events: none; opacity: 0; transition: opacity .2s, transform .2s; }
     #sv .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    #sv.has-savebar .toast { bottom: calc(69px + 12px + env(safe-area-inset-bottom)); } /* boven de balk met Opslaan */
     @media (prefers-reduced-motion: reduce) { #sv .toast { transition: none; } }
+    /* Meting verwijderd: zelfde pilletje, met een knop om het terug te draaien. */
+    #sv .toast.undo { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 16px; }
+    #sv .toast.undo.show { pointer-events: auto; }
+    #sv .toast.undo button { all: unset; box-sizing: border-box; min-height: 36px; padding: 0 12px; border-radius: 999px; font-weight: 700; color: var(--bg); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    #sv .toast.undo button:focus-visible { outline: 2px solid var(--bg); outline-offset: -2px; }
+    /* Meting die niet meetelt (wijkt te veel af): wat lichter. */
+    #sv .rows .r.ign .r1 { opacity: .55; }
+    #sv .rows .r2 .ign { color: var(--text); font-weight: 600; }
+    /* Nog geen thermostaat gekozen: alleen tonen wat zonder thermostaat zin heeft (tegel met melding, schema, Apparaten). */
+    /* !important: kaarten hebben zelf een display (bijv. .card.empty is flex); dit aan/uit moet altijd winnen. */
+    #sv.nodev [data-needdev] { display: none !important; }
+    #sv:not(.nodev) [data-nodev] { display: none !important; }
+    #sv .pnote.nodevnote { margin: 16px 2px 0; } /* zelfde afstand als tussen velden */
+    /* Lege stand: wat je hier straks ziet (de knop om te kiezen staat al in de tegel bovenaan). */
+    #sv .card.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 26px 22px 24px; }
+    #sv .card.empty .ei { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); color: var(--muted); margin-bottom: 6px; }
+    #sv .card.empty .ei svg { width: 22px; height: 22px; }
+    #sv .card.empty b { font-size: 17px; font-weight: 600; }
+    #sv .card.empty span:not(.ei) { font-size: 14px; line-height: 1.4; color: var(--muted); max-width: 300px; }
+    /* Dubbele raam-open-detectie (tado doet het ook): opvallend vak met een knop om de onze uit te zetten. */
+    #sv .ownwarn { display: flex; align-items: center; gap: 12px; margin: 2px 0 16px; padding: 12px 14px; border-radius: 12px;
+      background: color-mix(in srgb, var(--warm) 16%, var(--card)); color: var(--text); font-size: 14px; line-height: 1.4; font-weight: 500; }
+    #sv .ownwarn[hidden] { display: none; }
+    #sv .ownwarn span { flex: 1; }
   </style>
 </head>
 <body>
@@ -484,7 +526,8 @@
   <div class="fresh" id="freshRow" role="status"><span class="dot" id="dot" aria-hidden="true"></span><span id="fresh"></span><button class="link" id="refresh">Opnieuw proberen</button></div>
 
   <div class="h2row" id="secHist"><h2>Terugkijken</h2></div>
-  <div class="card" id="hist">
+  <div class="card empty" data-nodev><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13.6V5a2 2 0 0 1 4 0v8.6a4 4 0 1 1-4 0z"/><path d="M12 16.5v.01"/></svg></span><b>Nog niets om terug te kijken</b><span>Kies een thermostaat. Daarna zie je hier per dag hoe warm het was, wat er ingesteld stond en wanneer je het zelf veranderde.</span></div>
+  <div class="card" id="hist" data-needdev>
     <div class="hhd"><span class="hroom"><span id="hRoom"></span></span>
       <span class="hnav"><button class="harr" id="hPrev" aria-label="Dag eerder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg></button><b id="hDay">Vandaag</b><button class="harr" id="hNext" aria-label="Dag later"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></svg></button></span></div>
     <div class="hwrap"> <svg id="hChart" class="hchart" width="100%" viewBox="0 0 340 196" role="img" aria-label="Temperatuurverloop. Houd ingedrukt en schuif voor details."></svg><div class="htip" id="hTip" hidden></div></div>
@@ -493,11 +536,13 @@
   </div>
 
   <div class="h2row" id="secWeek"><h2>Schema</h2><button id="goToday">Vandaag</button></div>
+  <p class="pnote" id="schedHint" hidden><b>Dit is nog het standaardschema.</b> Tik op een dag en zet er jouw tijden in: wanneer je opstaat, weg bent en naar bed gaat.</p>
   <div id="week"></div>
 
   <h2 id="secLearn">Opwarmtijd</h2>
-  <p class="pnote" id="preNote"></p>
-  <div class="card" id="learned"><span class="muted">Laden…</span></div>
+  <p class="pnote" id="preNote" data-needdev></p>
+  <div class="card empty" data-nodev><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13.6V5a2 2 0 0 1 4 0v8.6a4 4 0 1 1-4 0z"/><path d="M12 16.5v.01"/></svg></span><b>Nog niets geleerd</b><span>Kies een thermostaat. Daarna leert de app hoe snel je huis opwarmt, zodat het op tijd warm is.</span></div>
+  <div class="card" id="learned" data-needdev><span class="muted">Laden…</span></div>
 
   <h2 id="secCfg">Instellingen</h2>
   <div class="card">
@@ -509,6 +554,8 @@
     <label for="outdoor">Buitentemperatuur <span class="lh">· voor de opwarmtijd</span></label>
     <select id="outdoor"></select>
 
+    <p class="pnote nodevnote" data-nodev>Kies eerst een thermostaat. Daarna kun je de rest instellen.</p>
+    <div data-needdev><!-- pas tonen als er een thermostaat gekozen is -->
     <h3 class="cg">Thuis en weg</h3>
     <label id="ecoLbl">Temperatuur als niemand thuis is</label>
     <div class="fstep" role="group" aria-labelledby="ecoLbl">
@@ -519,7 +566,7 @@
 
     <label class="toggle" for="autoPres" id="presToggle">
       <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5 3.8 10.3c-.8.3-.7 1.4.1 1.6l6.6 1.6 1.6 6.6c.2.8 1.3.9 1.6.1z"/></svg></span>
-      <span class="tt"><b>Thuis/Afwezig-detectie</b><small>Iedereen de deur uit? Dan zakt de temperatuur naar de stand hierboven.<span id="presNow" hidden></span></small></span>
+      <span class="tt"><b>Thuis/Afwezig-detectie</b><small class="desc">Iedereen de deur uit? Dan zakt de temperatuur naar de stand hierboven.</small><small id="presNow" hidden></small></span>
       <input id="autoPres" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
 
@@ -538,7 +585,7 @@
     <div class="tblock tgap">
     <label class="toggle" for="limitOn" id="limitToggle">
       <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M18 4h3M18 8h3"/></svg></span>
-      <span class="tt"><b>Maximumtemperatuur</b><small>Niemand kan de verwarming hoger zetten, ook niet via de knop op de thermostaat.</small></span>
+      <span class="tt"><b>Maximum&shy;temperatuur</b><small class="desc">Niemand kan de verwarming hoger zetten, ook niet via de knop op de thermostaat.</small></span>
       <input id="limitOn" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
     <div id="limitWrap" hidden>
@@ -554,7 +601,7 @@
     <div class="tblock tgap">
     <label class="toggle" for="preheat" id="preToggle">
       <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg></span>
-      <span class="tt"><b>Op tijd warm</b><small>Begint vanzelf eerder met verwarmen, zodat het op het ingestelde tijdstip al warm is. Uit: de verwarming begint pas op dat tijdstip.</small></span>
+      <span class="tt"><b>Op tijd warm</b><small class="desc">Begint vanzelf eerder met verwarmen, zodat het op het ingestelde tijdstip al warm is. Uit: de verwarming begint pas op dat tijdstip.</small></span>
       <input id="preheat" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
 
@@ -568,11 +615,35 @@
     </div>
     </div>
 
+    <!-- Raam open: snelle temperatuurdaling herkennen en in de widget vragen of de verwarming lager moet. -->
+    <div class="tblock tgap">
+    <label class="toggle" for="windowOn" id="windowToggle">
+      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7zM7 7 2.5 5v14L7 17M2.5 12H7M17 7l4.5-2v14L17 17M17 12h4.5"/><path stroke-width="1.3" d="M9 11c1.1-.9 2.1-.9 3.2 0 .9.7 2 .6 2.4-.3.3-.8-.3-1.6-1.1-1.4M9 13.8c1.1-.8 2.1-.8 3.2 0s2.1.8 2.8 0"/></svg></span>
+      <span class="tt"><b>Raam open herkennen</b><small class="desc">Wordt het snel kouder, dan vraagt de widget of de verwarming even lager mag. Er gebeurt niets zonder dat jij kiest.<span id="windowLearn" hidden></span></small><small id="windowOwn" hidden></small></span>
+      <input id="windowOn" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
+    </label>
+    <div id="windowWrap" hidden>
+      <div class="ownwarn" id="windowWarn" hidden role="note"><span id="windowWarnTxt"></span></div>
+      <label for="windowAction">Verwarming bij open raam</label>
+      <select id="windowAction">
+        <option value="off">Uit (5°)</option>
+        <option value="eco" id="windowEcoOpt">Zoals bij afwezig</option>
+      </select>
+      <label for="windowMinutes">Hoe lang</label>
+      <select id="windowMinutes">
+        <option value="10">10 minuten</option>
+        <option value="15">15 minuten</option>
+        <option value="30">30 minuten</option>
+        <option value="60">1 uur</option>
+      </select>
+    </div>
+    </div>
+
     <!-- Optioneel: na aanzetten verschijnen meter en prijs ín hetzelfde blok. -->
     <div class="tsec"><div class="tblock">
     <label class="toggle" for="usageOn" id="usageToggle">
       <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg></span>
-      <span class="tt"><b>Verbruik en kosten</b><small>Laat bij Terugkijken zien hoeveel gas of stroom er die dag is gebruikt en wat dat kostte. Werkt met een slimme meter in Homey.</small></span>
+      <span class="tt"><b>Verbruik en kosten</b><small class="desc">Laat bij Terugkijken zien hoeveel gas of stroom er die dag is gebruikt en wat dat kostte. Werkt met een slimme meter in Homey.</small></span>
       <input id="usageOn" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
     <div id="usageWrap" hidden>
@@ -590,6 +661,7 @@
     </div>
     </div></div>
 
+    </div><!-- /data-needdev -->
     <div class="actions" id="setupBack"><button class="solid" id="saveConfig">Terug naar de stappen</button></div>
   </div>
 
@@ -603,21 +675,22 @@
     </div>
   </div>
   <div class="savebar" id="savebar" role="region" aria-live="polite">
-    <span>Schema gewijzigd</span>
+    <span>Niet opgeslagen</span>
     <button id="undo">Herstel</button>
     <button class="solid" id="saveSchedule">Opslaan</button>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <div class="toast undo" id="undoBar" role="status" aria-live="polite"><span>Meting verwijderd</span><button type="button" id="undoBtn">Ongedaan maken</button></div>
 </div>
 
 <script>
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DAY_LONG = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
-const DEFAULT_BLOCKS = [{ time: '06:30', temp: 20 }, { time: '22:30', temp: 16 }]; // zelfde voorstel als de app
+const DEFAULT_BLOCKS = [{ time: '06:30', temp: 20 }, { time: '08:30', temp: 16 }, { time: '16:00', temp: 20 }, { time: '22:30', temp: 16 }]; // zelfde als de app: werkweek met gezin
 const WEEKEND_BLOCKS = [{ time: '08:00', temp: 20 }, { time: '23:00', temp: 16 }];
 const MODES = {
   schedule: 'Volgens schema', preheat: 'Aan het voorverwarmen', manual: 'Handmatig',
-  away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart',
+  away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart', window: 'Raam open', deviceWindow: 'Raam open', deviceOff: 'Thermostaat uit',
 };
 /** Weericoon bij de buitentemperatuur, passend bij het weer buiten (kind uit status.weather). */
 const WX = (() => {
@@ -661,14 +734,22 @@ const ICON = {
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg>',
   drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 12 3l9.5 8v10.5h-19z"/><path d="M12 10.5s2.3 2.5 2.3 4.2a2.3 2.3 0 0 1-4.6 0c0-1.7 2.3-4.2 2.3-4.2z"/></svg>',
   chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  paste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3.5" rx="1"/><path d="M9 13h6M9 16.5h4"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>',
 };
 
 let H; let schedule = {}; let saved = '{}'; let config = {}; let lastSaved = {}; let devices = [];
 const todayKey = DAY_KEYS[(new Date().getDay() + 6) % 7];
+/** Nog het standaardschema (nooit zelf opgeslagen)? Dan een korte aansporing boven het schema. */
+let scheduleCustom = false;
+function isDefaultSchedule(sch) {
+  return DAY_KEYS.every((k) => JSON.stringify(sch[k] || []) === JSON.stringify(k === 'sat' || k === 'sun' ? WEEKEND_BLOCKS : DEFAULT_BLOCKS));
+}
+function renderSchedHint() { $('schedHint').hidden = scheduleCustom || !isDefaultSchedule(JSON.parse(saved || '{}')); }
 const open = new Set([todayKey]);
-let copyOpen = null;
+let clip = null; // { from: dag, blocks }: gekopieerde dag, te plakken op andere dagen
 let flashId = null; // nieuw blok dat even oplicht
 let opening = null; // blok dat net opengaat: alleen dan de groei-animatie
 
@@ -818,14 +899,12 @@ function dayCard(key, i) {
       <div class="ticks"><span>0:00</span><span>8:00</span><span>16:00</span><span>24:00</span></div>
       <div class="edit"><div class="slots">${rows}</div></div>
       <div class="foot">
-        <button class="copybtn" data-copyopen="${key}">${ICON.copy}Kopiëren</button>
+        <span class="cpgroup">
+          ${clip && clip.from === key && JSON.stringify(schedule[key] || []) === JSON.stringify(clip.blocks) // daarna aangepast? dan weer Kopiëren
+    ? `<button class="copybtn on" data-copyday="${key}">${ICON.check}Gekopieerd</button>` : `<button class="copybtn" data-copyday="${key}">${ICON.copy}Kopiëren</button>`}
+          ${clip && clip.from !== key ? `<button class="copybtn" data-paste="${key}">${ICON.paste}Plakken</button>` : ''}
+        </span>
         <button class="link" data-add="${key}">Tijdsblok toevoegen</button>
-      </div>
-      <div class="copymenu ${copyOpen === key ? 'show' : ''}">
-        <small style="flex-basis:100%">${DAY_LONG[i]} ook gebruiken op:</small>
-        <button data-copy="work" data-day="${key}">Werkdagen</button>
-        <button data-copy="weekend" data-day="${key}">Weekend</button>
-        <button data-copy="all" data-day="${key}">Alle dagen</button>
       </div>
     </section>`;
 }
@@ -904,13 +983,16 @@ $('week').addEventListener('click', (e) => {
     const n = document.querySelector('#week .slot.open'); if (n) n.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
-  if ((el = t('[data-copyopen]'))) { copyOpen = copyOpen === el.dataset.copyopen ? null : el.dataset.copyopen; renderWeek(); return; }
-  if ((el = t('[data-copy]'))) {
-    const src = el.dataset.day;
-    const targets = { work: DAY_KEYS.slice(0, 5), weekend: ['sat', 'sun'], all: DAY_KEYS }[el.dataset.copy];
-    targets.forEach((k) => { schedule[k] = clone(schedule[src] || []); });
-    copyOpen = null; renderWeek();
-    toast(`Gekopieerd naar ${el.textContent.toLowerCase()}. Tik op Opslaan.`);
+  // Kopiëren en plakken: een dag kopiëren, daarna bij elke andere dag op Plakken tikken.
+  if ((el = t('[data-copyday]'))) {
+    const k = el.dataset.copyday; clip = { from: k, blocks: clone(schedule[k] || []) }; renderWeek();
+    toast(`${DAY_LONG[DAY_KEYS.indexOf(k)]} gekopieerd`); return;
+  }
+  if ((el = t('[data-paste]'))) {
+    const k = el.dataset.paste; const day = DAY_LONG[DAY_KEYS.indexOf(k)];
+    if (JSON.stringify(schedule[k] || []) === JSON.stringify(clip.blocks)) { toast(`${day} was al hetzelfde`); return; } // niets veranderd: geen Opslaan nodig
+    schedule[k] = clone(clip.blocks); renderWeek();
+    toast(`Geplakt op ${day.toLowerCase()}`); return;
   }
 });
 // Tijd typen: tijdens het typen alleen onthouden. Pas als je het veld verlaat (of Enter drukt)
@@ -962,7 +1044,8 @@ $('saveSchedule').addEventListener('click', async () => {
   try {
     await call('set', 'schedule', schedule);
     saved = JSON.stringify(schedule);
-    renderWeek(); toast('Schema opgeslagen');
+    clip = null; renderWeek(); toast('Schema opgeslagen');
+    call('set', 'scheduleCustom', true).catch(() => {}); scheduleCustom = true; renderSchedHint();
     setTimeout(loadStatus, 1500);
   } catch (err) { H.alert(`Opslaan mislukt: ${err.message || err}`); }
 });
@@ -1020,10 +1103,11 @@ function renderStatus(s) {
   tileListeners.forEach((cb) => cb(s)); // live naar de tegel (widget)
 
   renderLearned(s.learned);
+  if (config) renderWindowCfg();
   // Wie er nu thuis is, onder de schakelaar 'Automatisch thuis en afwezig'.
   const home = s.presence && s.presence.home;
   const pr = $('presNow'); pr.hidden = home == null;
-  if (home != null) pr.textContent = ` Nu thuis: ${home.length} van ${s.presence.count || home.length}.`;
+  if (home != null) pr.textContent = `Nu thuis: ${home.length} van ${s.presence.count || home.length}`;
 }
 
 /** Datum van een meting: vandaag/gisteren, anders '4 nov'; uit een ander jaar met jaartal ('4 nov 2025'). */
@@ -1039,16 +1123,28 @@ function renderLearned(l) {
   if (sw) { swPending = l; return; } // niet onder je vinger vandaan opnieuw tekenen
   // Per meting twee regels: wanneer en van/naar, met de snelheid rechts; daaronder klein de details.
   // Naar links vegen toont de knop Verwijder (zie 'Meting verwijderen' hieronder).
-  const rows = (l.recent || []).slice().reverse().map((r) => `<div class="r${r.at === swOpen ? ' open' : ''}" data-at="${r.at}"><div class="rc"><div class="r1"><span>${logDate(r.at)} · ${fmt(r.from)} → ${fmt(r.to)}</span><b>${fmt(r.rate, '°/u')}</b></div>`
-    + `<div class="r2">${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}cv op gang in ${Math.round(r.deadTime)} min</div></div>`
+  const recent = (l.recent || []).filter((r) => !hiddenAt.has(r.at)); // net verwijderd (nog terug te draaien): niet tonen
+  const samples = Math.max(0, l.samples - ((l.recent || []).length - recent.length));
+  const rows = recent.slice().reverse().map((r) => `<div class="r${r.at === swOpen ? ' open' : ''}${r.ignored ? ' ign' : ''}" data-at="${r.at}"><div class="rc"><div class="r1"><span>${logDate(r.at)} · ${fmt(r.from)} → ${fmt(r.to)}</span><b>${fmt(r.rate, '°/u')}</b></div>`
+    + `<div class="r2">${r.ignored ? '<span class="ign">Telt niet mee, wijkt te veel af</span> · ' : ''}${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}cv op gang in ${Math.round(r.deadTime)} min</div></div>`
     + `<button class="del" data-del="${r.at}" aria-label="Meting van ${esc(logDate(r.at).toLowerCase())}, ${fmt(r.from)} naar ${fmt(r.to)}, verwijderen"><span class="lbl">${TRASH_ICON}Verwijder</span></button></div>`).join('');
+  // Stiptheid: hoe het meestal ging bij de laatste keren (mediaan). Binnen 5 minuten = op tijd.
+  const late = l.late;
+  const onTime = late == null ? '<b>–</b> <small>nog niet gemeten</small>'
+    : Math.abs(late) <= 5 ? '<b>Op tijd</b>'
+      : `<b>${Math.abs(late)}</b> <small>min te ${late > 0 ? 'laat' : 'vroeg'}</small>`;
+  const f = l.factor;
+  const adjust = f == null || Math.abs(f - 1) < 0.05 ? ''
+    : ` Daarom begint de app nu ${Math.round(Math.abs(f - 1) * 100)}% ${f > 1 ? 'eerder' : 'later'} dan berekend${f > 1 ? '' : ', en stook je minder'}.`;
+  const small = l.heatingNow ? 'nu aan het meten' : samples < 3 ? 'nog aan het leren' : l.ignored ? `${l.ignored} telt niet mee` : '';
   $('learned').innerHTML = `
     <div class="stats">
       <div><span>Opwarmen</span><b>${fmt(l.rate, '°')}</b> <small>per uur</small></div>
       <div><span>Opstarttijd cv<button class="info" data-info="dead" aria-label="Wat is opstarttijd cv?" aria-expanded="${infoOpen === 'dead'}" aria-controls="deadNote">${INFO_ICON}</button></span><b>${Math.round(l.deadTime)}</b> <small>min</small></div>
       ${infoOpen === 'dead' ? '<p class="note" id="deadNote">De tijd tussen het hoger zetten en het moment dat het in de kamer echt warmer wordt. In die tijd slaat de ketel aan en worden de radiatoren of de vloer warm. Bij radiatoren is dat meestal 10 tot 20 minuten, bij vloerverwarming vaak langer. De app telt dit mee om op tijd te beginnen.</p>' : ''}
-      <div><span>Metingen</span><b>${l.samples}</b> ${l.samples < 3 ? '<small>nog aan het leren</small>' : ''}</div>
-      <div><span>Nu aan het meten</span><b>${l.heatingNow ? 'ja' : 'nee'}</b></div>
+      <div><span>Stiptheid<button class="info" data-info="ontime" aria-label="Wat is stiptheid?" aria-expanded="${infoOpen === 'ontime'}" aria-controls="ontimeNote">${INFO_ICON}</button></span>${onTime}</div>
+      <div><span>Metingen</span><b>${samples}</b> ${small ? `<small>${small}</small>` : ''}</div>
+      ${infoOpen === 'ontime' ? `<p class="note" id="ontimeNote">Na elk voorverwarmen kijkt de app hoe laat het echt warm was. Was het te laat, dan begint hij voortaan eerder. Was het te vroeg, dan later.${adjust} Het getal laat zien hoe het meestal ging bij de laatste 10 keer.</p>` : ''}
     </div>
     ${rows ? `<div class="rows">${rows}</div>` : ''}
     <div class="actions" style="margin-top:12px"><button class="link" data-act="resetLearning">Opnieuw leren</button></div>`;
@@ -1107,32 +1203,53 @@ function swFinish() {
   const { row, mode, dx, full } = sw; cancelAnimationFrame(sw.raf); row.classList.remove('drag');
   if (mode === 'h') {
     swNoClick = true; setTimeout(() => { swNoClick = false; }, 350);
-    if (full) { swDone(); swSet(row, true); swDelete(row); return; } // ver doorgeveegd: knop tonen en vragen of het mag
+    if (full) { swDone(); swDelete(row); return; } // ver doorgeveegd en losgelaten: weg (terug te draaien)
     swSet(row, dx < OPEN_X / 2);
   } else if (!mode && row.classList.contains('open')) swSet(row, false); // tik op een open meting: dicht
   swDone();
 }
-/** Meting weg (na bevestigen): rood vlak vult de rij, rij klapt dicht, daarna rekent de Homey de opwarmtijd opnieuw uit. */
-async function swDelete(row) {
+/**
+ * Meting weg: rood vlak vult de rij, rij klapt dicht, onderin 'Ongedaan maken'. Pas na een paar seconden
+ * (of bij het sluiten van de pagina) verwijdert de Homey hem echt en rekent de opwarmtijd opnieuw uit.
+ */
+const UNDO_MS = 5000;
+// Snel na elkaar verwijderd? Dan verzamelen we ze: één balk ('2 metingen verwijderd') en Ongedaan maken zet ze allemaal terug.
+const hiddenAt = new Set(); let undo = null; // { ats: [...], timer }
+function swDelete(row) {
   const at = Number(row.dataset.at);
-  const r = lastStatus && lastStatus.learned && (lastStatus.learned.recent || []).find((x) => x.at === at);
-  const what = r ? `de meting van ${logDate(r.at).toLowerCase()} (${fmt(r.from)} → ${fmt(r.to)})` : 'deze meting';
-  const ok = await call('confirm', `Wil je ${what} verwijderen? De opwarmtijd wordt dan opnieuw berekend zonder deze meting.`, 'warning').catch(() => false);
-  // Tijdens de vraag kan de lijst opnieuw getekend zijn (nieuwe status): dan de nieuwe rij van deze meting pakken.
-  if (!row.isConnected) row = document.querySelector(`#learned .r[data-at="${at}"]`) || row;
-  if (!ok) { if (row.isConnected) swSet(row, false); return; } // annuleren: rij weer dicht
   const w = row.offsetWidth || 300;
   swOpen = null; row.classList.remove('open');
   swPaint(row, -w); // met overgang naar volledig rood
-  await new Promise((r) => setTimeout(r, 200));
-  row.style.height = `${row.offsetHeight}px`; void row.offsetHeight; row.classList.add('gone'); row.style.height = '0px';
-  if (lastStatus && lastStatus.learned) {
-    const L = lastStatus.learned; L.recent = (L.recent || []).filter((r) => r.at !== at); L.samples = Math.max(0, L.samples - 1);
-  }
-  setTimeout(() => { if (lastStatus && lastStatus.learned) renderLearned(lastStatus.learned); }, 240);
-  await call('api', 'POST', '/action', { action: 'deleteSample', at }).catch((err) => H.alert(err.message || err));
-  loadStatus();
+  setTimeout(() => {
+    row.style.height = `${row.offsetHeight}px`; void row.offsetHeight; row.classList.add('gone'); row.style.height = '0px';
+    setTimeout(() => { if (lastStatus && lastStatus.learned) renderLearned(lastStatus.learned); }, 240);
+  }, 200);
+  hiddenAt.add(at);
+  if (undo) clearTimeout(undo.timer); else undo = { ats: [] };
+  undo.ats.push(at);
+  undo.timer = setTimeout(commitUndo, UNDO_MS); // elke nieuwe verwijdering geeft weer 5 seconden
+  const n = undo.ats.length;
+  $('undoBar').querySelector('span').textContent = n === 1 ? 'Meting verwijderd' : `${n} metingen verwijderd`;
+  $('undoBar').classList.add('show');
 }
+function hideUndo() { $('undoBar').classList.remove('show'); }
+async function commitUndo() {
+  if (!undo) return;
+  const { ats, timer } = undo; clearTimeout(timer); undo = null; hideUndo();
+  for (const at of ats) {
+    try { await call('api', 'POST', '/action', { action: 'deleteSample', at }); } catch (err) { hiddenAt.delete(at); H.alert(err.message || err); }
+  }
+  await loadStatus();
+  ats.forEach((at) => hiddenAt.delete(at)); // de Homey heeft ze niet meer; niets meer te verbergen
+}
+$('undoBtn').addEventListener('click', () => {
+  if (!undo) return;
+  clearTimeout(undo.timer); undo.ats.forEach((at) => hiddenAt.delete(at)); undo = null; hideUndo();
+  if (lastStatus && lastStatus.learned) renderLearned(lastStatus.learned); // metingen staan er weer
+});
+// Pagina dicht of naar de achtergrond: wat verwijderd is, nu echt verwijderen.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') commitUndo(); });
+window.addEventListener('pagehide', () => commitUndo());
 $('learned').addEventListener('touchstart', (e) => {
   const row = e.target.closest('.r[data-at]'); if (!row || e.target.closest('.del') || e.touches.length > 1) return;
   const t = e.touches[0]; swStart(row, 'touch', t.clientX, t.clientY);
@@ -1175,6 +1292,7 @@ document.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-act]'); if (!btn) return;
   const act = btn.dataset.act;
   if (act === 'resetLearning') {
+    await commitUndo();
     const ok = await call('confirm', 'Alle metingen wissen en opnieuw leren?', 'warning').catch(() => false);
     if (!ok) return;
   }
@@ -1205,6 +1323,7 @@ function duration(min) {
 }
 function renderCfgVals() {
   $('ecoTempOut').textContent = fmt(cfgVals.ecoTemp);
+  $('windowEcoOpt').textContent = `Zoals bij afwezig (${fmt(cfgVals.ecoTemp)})`;
   $('maxPreheatOut').textContent = duration(cfgVals.maxPreheat);
   $('priceOut').textContent = euro(cfgVals.price);
   $('maxTempOut').textContent = fmt(cfgVals.maxTemp);
@@ -1222,6 +1341,7 @@ document.addEventListener('click', (e) => {
 function renderConfig() {
   const therm = devices.filter((d) => d.thermostat);
   $('thermostat').innerHTML = '<option value="">– kies –</option>' + therm.map((d) => `<option value="${d.id}" ${d.id === config.thermostatId ? 'selected' : ''}>${esc(d.name)}${d.zone ? ` (${esc(d.zone)})` : ''}</option>`).join('');
+  renderNoDevice();
   const outOpts = [];
   devices.forEach((d) => d.tempCaps.forEach((c) => {
     const v = `${d.id}|${c.id}`;
@@ -1249,12 +1369,93 @@ function renderConfig() {
   $('usageOn').checked = config.usage === true;
   $('limitOn').checked = config.limit === true;
   $('limitWrap').hidden = !$('limitOn').checked;
+  renderWindowCfg();
+  $('windowAction').value = config.windowAction === 'eco' ? 'eco' : 'off';
+  $('windowMinutes').value = String([10, 15, 30, 60].includes(Number(config.windowMinutes)) ? Number(config.windowMinutes) : 15);
   $('usageWrap').hidden = !$('usageOn').checked;
   renderPreNote();
   $('preWrap').hidden = !$('preheat').checked;
 }
 $('preheat').addEventListener('change', () => { $('preWrap').hidden = !$('preheat').checked; autoSave(0); });
 $('autoPres').addEventListener('change', () => autoSave(0));
+// Eerst de keuze in config zetten: renderWindowCfg leest de stand uit config, anders springt de schakelaar terug.
+$('windowOn').addEventListener('change', () => { config.windowDetect = $('windowOn').checked; renderWindowCfg(); autoSave(0); });
+// i-tje achter de titel van elke schakelaar met uitleg; tik toont of verbergt de uitleg (zet de schakelaar niet om).
+document.querySelectorAll('#sv label.toggle').forEach((t) => {
+  const d = t.querySelector('.desc'); const b = t.querySelector('.tt b'); if (!d || !b) return;
+  // Het laatste stukje van de titel en het i-tje blijven samen op één regel; de rest van de titel mag afbreken
+  // (bij een spatie, streepje of afbreekstreepje), zodat de schakelaar altijd heel in beeld blijft.
+  const title = b.textContent.trim();
+  const m = title.match(/^([\s\S]*[\s\-\u00ad])?([^\s\-\u00ad]+)$/); // laatste stukje na spatie, streepje of afbreekstreepje
+  const head = m && m[1] ? m[1] : ''; const tail = m ? m[2] : title;
+  b.innerHTML = `${esc(head)}<span class="nw">${esc(tail)}<button type="button" class="tinfo" aria-expanded="false" aria-label="Uitleg bij ${esc(title.replace(/\u00ad/g, ''))}">${INFO_ICON}</button></span>`;
+});
+// Alleen de schakelaar zelf zet aan of uit; een tik op de titel of uitleg doet niets (de label zou dat anders wel doen).
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('#sv label.toggle'); if (!t) return;
+  if (e.target.closest('.knob, input, .tinfo')) return;
+  e.preventDefault();
+}, true);
+document.addEventListener('click', (e) => {
+  const i = e.target.closest('.tinfo'); if (!i) return;
+  e.preventDefault(); e.stopPropagation();
+  const t = i.closest('label.toggle'); const open = t.classList.toggle('showdesc');
+  i.setAttribute('aria-expanded', String(open));
+}, true);
+$('windowAction').addEventListener('change', () => autoSave(0));
+$('thermostat').addEventListener('change', () => { keepInPlace($('thermostat'), 2500); renderWindowCfg(); renderNoDevice(); }); // andere thermostaat: tado-regel en zichtbare delen meteen bijwerken
+/**
+ * Houd `el` op dezelfde plek op het scherm terwijl de inhoud erboven van hoogte verandert
+ * (lege standen, tegel die opnieuw tekent). iOS doet dat niet vanzelf. Stopt zodra je zelf scrolt.
+ */
+function keepInPlace(el, ms) {
+  // De pagina mag niet korter worden dan nu, anders kan hij niet terugscrollen (zonder thermostaat valt er veel weg).
+  const sv = $('sv'); sv.style.minHeight = `${sv.offsetHeight}px`;
+  const top0 = el.getBoundingClientRect().top; const end = Date.now() + ms; let stop = false;
+  const quit = () => { stop = true; };
+  ['touchstart', 'wheel'].forEach((ev) => window.addEventListener(ev, quit, { once: true, passive: true }));
+  const step = () => {
+    if (stop || Date.now() > end) return;
+    const d = el.getBoundingClientRect().top - top0;
+    if (Math.abs(d) > 0.5) window.scrollBy(0, d);
+    setTimeout(step, 16);
+  };
+  step();
+}
+/** Geen thermostaat gekozen: Terugkijken en Opwarmtijd tonen een lege stand in plaats van (oude) gegevens. */
+function renderNoDevice() {
+  $('sv').classList.toggle('nodev', !$('thermostat').value);
+  if ($('thermostat').value) setTimeout(() => { $('sv').style.minHeight = ''; }, 2600); // weer alles zichtbaar: extra hoogte niet meer nodig
+}
+$('windowMinutes').addEventListener('change', () => autoSave(0));
+/**
+ * Raam open: aan/uit (niet zelf gekozen = aan, behalve als de thermostaat het zelf al doet), een tip als dat zo is,
+ * en in één zin wat de app ervan geleerd heeft.
+ */
+function renderWindowCfg() {
+  const w = (lastStatus && lastStatus.windowInfo) || null;
+  // Heeft de thermostaat die nu gekozen is zelf raam-open-detectie (bijv. tado)? Kijk naar de keuze in de lijst, niet naar de oude status.
+  const sel = (devices || []).find((d) => d.id === $('thermostat').value);
+  const own = devices && devices.length ? (sel && sel.ownWindow) || null : (w && w.own); // lijst nog niet geladen: dan pas de status
+  const on = config.windowDetect === true || (config.windowDetect == null && (w ? w.on : !own));
+  $('windowOn').checked = on;
+  $('windowWrap').hidden = !$('windowOn').checked;
+  const name = own === 'tado' ? 'Tado' : 'Je thermostaat';
+  // De thermostaat kán het zelf (tado), maar of dat aan staat zien we niet. Aan: vak met uitleg. Uit: één korte regel.
+  const dbl = !!own && $('windowOn').checked;
+  $('windowWarn').hidden = !dbl;
+  const app = name === 'Tado' ? 'de tado-app' : 'de app van je thermostaat';
+  $('windowWarnTxt').textContent = dbl ? `${name === 'Tado' ? 'Tado' : 'Je thermostaat'} kan zelf ook een open raam herkennen. Staat dat aan in ${app}? Zet dan deze schakelaar uit, anders gebeurt het dubbel.` : '';
+  $('windowOwn').hidden = !own || dbl;
+  $('windowOwn').textContent = own ? `${name === 'Tado' ? 'Tado' : 'Je thermostaat'} kan dit ook zelf` : '';
+  const learn = $('windowLearn');
+  learn.hidden = !w || !w.asked;
+  if (w && w.asked) {
+    const keer = (n) => `${n} keer`;
+    learn.textContent = ` Afgelopen 30 dagen ${keer(w.asked)} gevraagd: ${keer(w.off)} lager gezet, ${keer(w.ignored)} genegeerd.`
+      + (w.drop > 0.6 ? ` Omdat je vaak negeert, vraagt hij nu pas als het ${String(w.drop).replace('.', ',')}° kouder wordt.` : '');
+  }
+}
 $('limitOn').addEventListener('change', () => { $('limitWrap').hidden = !$('limitOn').checked; autoSave(0); });
 /** Prijs alleen tonen als er een meter is; eenheid volgt de meter (m³ of kWh). */
 function renderMeter() {
@@ -1297,6 +1498,9 @@ async function saveAll() {
     price: cfgVals.price,
     preheat: $('preheat').checked,
     autoPresence: $('autoPres').checked,
+    windowDetect: $('windowOn').checked,
+    windowMinutes: Number($('windowMinutes').value) || 15,
+    windowAction: $('windowAction').value === 'eco' ? 'eco' : 'off',
     overrideDefault: /^\d+$/.test($('overrideDefault').value) ? Number($('overrideDefault').value) : $('overrideDefault').value,
   };
   try {
@@ -1333,7 +1537,7 @@ const BAND_ICON = {
   off: '<path d="M9 6v12M15 6v12"/>',
 };
 const MODE_BAND = { schedule: ['schedule', 'Thuis · schema'], preheat: ['schedule', 'Thuis · schema'], manual: ['manual', 'Handmatig'],
-  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''] };
+  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''], window: ['off', 'Raam open'], deviceWindow: ['off', 'Raam open'], deviceOff: ['off', 'Thermostaat uit'] };
 function dayLabel(day, start) {
   if (day === 0) return 'Vandaag';
   if (day === 1) return 'Gisteren';
@@ -1606,15 +1810,6 @@ const SETUP_ICON = {
 const setupState = { outdoorSkipped: false, reviewed: false, proposal: false, starting: false, done: false };
 function inSetup() { return !!(lastStatus && lastStatus.setupDone === false) || setupState.done; }
 function devName(id) { const d = devices.find((x) => x.id === id); return d ? `${d.name}${d.zone ? ` · ${d.zone}` : ''}` : ''; }
-function sameDays(keys) { const j = JSON.stringify(schedule[keys[0]] || []); return keys.every((k) => JSON.stringify(schedule[k] || []) === j); }
-function proposalDay(label, key) {
-  const segs = segments(key);
-  const blocks = (schedule[key] || []).slice().sort((a, b) => a.time.localeCompare(b.time));
-  const warm = blocks.reduce((a, b) => (Number(b.temp) > Number(a.temp) ? b : a), blocks[0] || { temp: 0 });
-  return `<div class="dayl">${label}${warm.time ? `<span>${deg(warm.temp)} vanaf ${warm.time}</span>` : ''}</div>
-    <div class="pbar">${segs.map((g) => `<i style="flex:${g.to - g.from} 0 0;${tempStyle(g.temp)}">${(g.to - g.from) >= 150 && g.temp != null ? deg(g.temp) : ''}</i>`).join('')}</div>
-    <div class="ticks"><span>0:00</span><span>8:00</span><span>16:00</span><span>24:00</span></div>`;
-}
 function renderSetup() {
   const sv = $('sv'); const box = $('setup');
   const on = inSetup();
@@ -1626,32 +1821,24 @@ function renderSetup() {
     box.innerHTML = `<div class="card done-card">
       <div class="check">${SETUP_ICON.check}</div>
       <h2>Slim verwarmen staat aan</h2>
-      <p class="sub">Je thermostaat volgt nu het schema.</p>
-      ${nb && s.nextBlock ? `<div class="first"><b>Eerste moment: ${esc(whenAt(nb))} → ${deg(s.nextBlock.temp)}</b>Draai je zelf aan de thermostaat, dan blijft die temperatuur staan tot het volgende moment. De app leert hoe snel je huis opwarmt en begint dan vanzelf op tijd.</div>` : ''}
-      <div class="note" style="text-align:left">${SETUP_ICON.info}<span>Tip: voeg de widget Verwarming toe aan je Home-scherm in de Homey-app.</span></div>
-      <button class="wide" data-setup="close">Sluiten</button>
+      <p class="sub">Je thermostaat volgt nu een standaardschema.</p>
+      <div class="first"><b>Stel nu je eigen schema in</b>Wanneer sta je op, ben je weg en ga je naar bed? Met jouw tijden is het warm als je thuis bent en stook je niet als het niet hoeft.${nb && s.nextBlock ? ` Tot dan geldt: ${esc(whenAt(nb))} → ${deg(s.nextBlock.temp)}.` : ''}</div>
+      <button class="start" data-setup="schedule">Schema instellen</button>
+      <button class="wide" data-setup="close">Later</button>
+      <div class="note" style="text-align:left;margin-top:14px">${SETUP_ICON.info}<span>Tip: voeg de widget Verwarming toe aan je Home-scherm in de Homey-app.</span></div>
     </div>`;
     return;
   }
   const thermOk = !!config.thermostatId;
   const outOk = !!config.outdoorDeviceId || setupState.outdoorSkipped;
-  const steps = [thermOk, outOk, setupState.reviewed];
+  const steps = [thermOk, outOk]; // schema stel je daarna zelf in
   const doneN = steps.filter(Boolean).length;
   const num = (i) => (steps[i] ? `<span class="num done">${SETUP_ICON.check}</span>` : `<span class="num ${steps.slice(0, i).every(Boolean) ? 'now' : ''}">${i + 1}</span>`);
-  const work = sameDays(DAY_KEYS.slice(0, 5)); const weekend = sameDays(['sat', 'sun']);
-  const proposal = setupState.proposal ? `<div class="card">
-      <b style="font-size:17px">Voorstel schema</b>
-      <p class="sub">Overdag warm, 's nachts zuiniger.</p>
-      ${work ? proposalDay('Maandag t/m vrijdag', 'mon') : DAY_KEYS.slice(0, 5).map((k, i) => proposalDay(DAY_LONG[i], k)).join('')}
-      ${weekend ? proposalDay('Zaterdag en zondag', 'sat') : proposalDay('Zaterdag', 'sat') + proposalDay('Zondag', 'sun')}
-      <button class="wide start" data-setup="ok" style="margin-top:18px">Ziet er goed uit</button>
-      <button class="wide" data-setup="edit">Tijden of temperaturen aanpassen</button>
-    </div>` : '';
   box.innerHTML = `<div class="card hello">
       <h2>Welkom bij Slim verwarmen</h2>
-      <p>Nog drie korte stappen. Tot je op Start tikt, verandert er niets aan je thermostaat.</p>
+      <p>Nog twee korte stappen. Tot je op Start tikt, verandert er niets aan je thermostaat.</p>
       <div class="prog">${steps.map((d) => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div>
-      <div class="progt">${doneN} van 3 klaar</div>
+      <div class="progt">${doneN} van 2 klaar</div>
     </div>
     <div class="card">
       <div class="step">${num(0)}<div class="sbody"><b>Thermostaat</b>
@@ -1665,14 +1852,9 @@ function renderSetup() {
           ? `<div class="found"><span>${esc(devName(config.outdoorDeviceId) || 'Gekozen sensor')}${s.outdoor != null ? `<small>Nu ${fmt(s.outdoor)} buiten</small>` : ''}</span><button class="link" data-setup="outdoor">Wijzig</button></div>`
           : `<div class="found"><span>${setupState.outdoorSkipped ? 'Overgeslagen' : 'Geen gekozen'}</span><span class="links"><button class="link" data-setup="outdoor">Kies</button>${setupState.outdoorSkipped ? '' : '<button class="link" data-setup="skip">Overslaan</button>'}</span></div>`}
       </div></div>
-      <div class="step">${num(2)}<div class="sbody"><b>Schema</b>
-        <p class="sub">${setupState.reviewed ? 'Voorstel bekeken. Aanpassen kan altijd.' : 'Een voorstel om mee te beginnen. Pas het aan wanneer je wilt.'}</p>
-        ${setupState.proposal ? '' : `<button class="wide" data-setup="proposal">${setupState.reviewed ? 'Bekijk het schema' : 'Bekijk het voorstel'}</button>`}
-      </div></div>
     </div>
-    ${proposal}
     <button class="start" data-setup="start" ${thermOk && !setupState.starting ? '' : 'disabled'}>${setupState.starting ? 'Bezig met starten…' : 'Start slim verwarmen'}</button>
-    <div class="note">${SETUP_ICON.info}<span>Je kunt later altijd pauzeren of het schema veranderen.</span></div>`;
+    <div class="note">${SETUP_ICON.info}<span>Je begint met een schema voor een werkweek met gezin: thuis 20°, overdag weg en 's nachts 16°. Na het starten stel je je eigen tijden in.</span></div>`;
 }
 /** Een deel van de gewone pagina tonen (thermostaat kiezen, schema aanpassen) en ernaartoe scrollen. */
 function showMain(el) { $('sv').classList.add('show-main'); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }
@@ -1682,12 +1864,14 @@ $('setup').addEventListener('click', async (e) => {
   if (a === 'therm') showMain($('thermostat'));
   else if (a === 'outdoor') showMain($('outdoor'));
   else if (a === 'skip') setupState.outdoorSkipped = true;
-  else if (a === 'proposal') setupState.proposal = true;
-  else if (a === 'ok') { setupState.reviewed = true; setupState.proposal = false; }
-  else if (a === 'edit') {
-    setupState.reviewed = true; setupState.proposal = false;
-    open.add('mon'); renderWeek(); showMain(document.querySelector('[data-card="mon"]'));
-  } else if (a === 'close') { setupState.done = false; $('sv').classList.remove('show-main'); }
+  else if (a === 'close') { setupState.done = false; $('sv').classList.remove('show-main'); }
+  else if (a === 'schedule') {
+    // Na het starten: meteen naar vandaag in het schema, opengeklapt.
+    setupState.done = false; $('sv').classList.remove('show-main'); renderSetup();
+    open.add(todayKey); renderWeek();
+    setTimeout(() => { const c = document.querySelector(`[data-card="${todayKey}"]`); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+    return;
+  }
   else if (a === 'start') {
     setupState.starting = true; renderSetup();
     try {
@@ -1713,6 +1897,8 @@ async function onHomeyReady(Homey) {
   }
   DAY_KEYS.forEach((k) => { schedule[k] = schedule[k] || []; });
   saved = JSON.stringify(schedule);
+  scheduleCustom = (await call('get', 'scheduleCustom').catch(() => null)) === true;
+  renderSchedHint();
   config = (await call('get', 'config').catch(() => null)) || {};
   lastSaved = clone(config); // terugvallen als opslaan mislukt
   renderWeek();

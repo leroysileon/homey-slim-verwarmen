@@ -2,13 +2,13 @@
 
 const Homey = require('homey');
 const { HomeyAPI } = require('homey-api');
-const { Controller } = require('./lib/controller');
+const { Controller, WINDOW_TEMP } = require('./lib/controller');
 const { weatherOf } = require('./lib/weather');
 const { presenceOf, PresenceWatcher } = require('./lib/presence');
 const { usageOf } = require('./lib/usage');
 
 const TICK_MS = 60 * 1000;
-const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig', limit: 'maximumtemperatuur' };
+const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig', limit: 'maximumtemperatuur', window: 'raam open', restore: 'raam dicht' };
 
 class SlimVerwarmenApp extends Homey.App {
 
@@ -122,7 +122,27 @@ class SlimVerwarmenApp extends Homey.App {
       target: caps.target_temperature ? caps.target_temperature.value : null,
       indoor: caps.measure_temperature ? caps.measure_temperature.value : null,
       humidity: this.pickHumidity(caps),
+      mode: caps.thermostat_mode ? caps.thermostat_mode.value : null, // 'off' = thermostaat staat zelf uit
+      windowOpen: this.windowCap(caps), // true = de thermostaat meldt zelf een open raam
+      ownWindow: this.ownWindowDetection(device, caps), // naam als hij zelf raam-open-detectie heeft
     };
+  }
+
+  /** Meldt de thermostaat zelf een open raam (capability met 'window' erin, aan/uit)? null = kan hij niet. */
+  windowCap(caps) {
+    const k = Object.keys(caps).find((c) => /window/i.test(c) && typeof (caps[c] && caps[c].value) === 'boolean');
+    return k ? caps[k].value === true : null;
+  }
+
+  /**
+   * Heeft de thermostaat zelf raam-open-detectie? Dan zou die van ons dubbel werken.
+   * Herkend aan een raam-capability, of aan het merk: tado doet het altijd zelf (ook via Matter, waar je het niet ziet).
+   */
+  ownWindowDetection(device, caps) {
+    if (this.windowCap(caps) !== null) return device.name;
+    const text = [device.name, device.driverId, device.driverUri, device.ownerUri,
+      device.settings && device.settings.vendorName, device.settings && device.settings.manufacturer].filter(Boolean).join(' ');
+    return /tado/i.test(text) ? 'tado' : null;
   }
 
   /** Luchtvochtigheid: sommige thermostaten (bijv. Tado X via Matter) hebben er meerdere, zoals
@@ -233,6 +253,7 @@ class SlimVerwarmenApp extends Homey.App {
           name: d.name,
           zone: zones[d.zone] ? zones[d.zone].name : '',
           thermostat: (d.capabilities || []).includes('target_temperature'),
+          ownWindow: (d.capabilities || []).includes('target_temperature') ? this.ownWindowDetection(d, capsObj) : null, // tado e.d.: doet raam open zelf
           tempCaps: tempCaps.map((c) => ({ id: c, title: (capsObj[c] && capsObj[c].title) || c })),
           // Oplopende meterstanden voor gas (m³) of stroom (kWh), zonder dag-, tarief- of terugleverwaarden.
           meterCaps: (d.capabilities || []).filter((c) => /^meter_(gas|power)(\.|$)/.test(c) && !/today|export|tariff|phase/i.test(c))
@@ -306,6 +327,9 @@ class SlimVerwarmenApp extends Homey.App {
       case 'start': await c.setEnabled(true); break; // eerste keer: welkomstkaart 'Start slim verwarmen'
       case 'resetLearning': c.resetLearning(); await c.tick(); break;
       case 'deleteSample': c.deleteSample(Number(at)); await c.tick(); break; // één meting weg
+      case 'windowOff': await c.startWindow(duration); break; // raam open: verwarming even uit
+      case 'windowIgnore': await c.ignoreWindow(); break;
+      case 'windowEnd': await c.stopWindow(); break; // raam weer dicht
       default: await c.tick();
     }
     return c.status;
@@ -322,6 +346,8 @@ class SlimVerwarmenApp extends Homey.App {
     flow.getActionCard('set_temporary').registerRunListener(({ temp, hours }) => c.setOverride(temp, hours));
     flow.getActionCard('set_manual').registerRunListener(({ temp, duration }) => c.setManual(temp, duration));
     flow.getActionCard('set_enabled').registerRunListener(({ state }) => c.setEnabled(state === 'on'));
+    // Met een raamsensor: open = verwarming uit (tot het raam dicht is, maximaal 4 uur), dicht = verder waar hij was.
+    flow.getActionCard('set_window').registerRunListener(({ state }) => (state === 'open' ? c.startWindow(240) : c.stopWindow()));
     // Prijs per m³/kWh vanuit een flow (bijv. met een tag van de app van je energieleverancier), zodat de kosten actueel blijven.
     flow.getActionCard('set_price').registerRunListener(({ price }) => {
       const p = Math.round(Number(price) * 1000) / 1000;
@@ -332,12 +358,14 @@ class SlimVerwarmenApp extends Homey.App {
 
     flow.getConditionCard('is_manual').registerRunListener(() => !!c.state.override);
     flow.getConditionCard('is_preheating').registerRunListener(() => c.status.mode === 'preheat');
+    flow.getConditionCard('is_window').registerRunListener(() => !!c.state.window);
 
     this.triggers = {
       override_started: flow.getTriggerCard('override_started'),
       override_ended: flow.getTriggerCard('override_ended'),
       setpoint_changed: flow.getTriggerCard('setpoint_changed'),
       learned: flow.getTriggerCard('learned'),
+      window_open: flow.getTriggerCard('window_open'),
     };
   }
 
@@ -362,12 +390,22 @@ class SlimVerwarmenApp extends Homey.App {
         excerpt: `Slim verwarmen: thermostaat teruggezet van ${f(data.from)} naar ${f(data.temp)} (maximumtemperatuur).`,
       }).catch(this.error);
     }
+    // Raam open? Melding in de tijdlijn; kiezen doe je in de widget (of met een flow op deze trigger).
+    if (event === 'window_open') {
+      const f = (v) => `${String(Math.round(v * 10) / 10).replace('.', ',')}°`;
+      const room = this.controller.status.room ? ` in de ${this.controller.status.room.toLowerCase()}` : '';
+      await this.homey.notifications.createNotification({
+        excerpt: `Slim verwarmen: staat er een raam open${room}? De temperatuur zakte snel van ${f(data.from)} naar ${f(data.to)}. In de widget kun je de verwarming ${this.controller.windowMinutes()} minuten ${this.controller.windowTemp() === WINDOW_TEMP ? 'uitzetten' : 'lager zetten'}.`,
+      }).catch(this.error);
+    }
     const card = this.triggers && this.triggers[event];
     if (!card) return;
     if (event === 'override_started') {
       await card.trigger({ temp: data.temp, until: data.until == null ? 'schema hervat' : this.formatTime(data.until) });
     } else if (event === 'setpoint_changed') {
       await card.trigger({ temp: data.temp, reason: REASONS[data.reason] || data.reason });
+    } else if (event === 'window_open') {
+      await card.trigger({ drop: data.drop, temp: data.to });
     } else if (event === 'learned') {
       await card.trigger({ rate: data.rate, dead_time: data.deadTime });
     } else {

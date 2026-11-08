@@ -138,6 +138,37 @@
           }
         ],
         "id": "setpoint_changed"
+      },
+      {
+        "title": {
+          "en": "Window may be open",
+          "nl": "Raam staat misschien open"
+        },
+        "hint": {
+          "en": "The indoor temperature dropped quickly (0.6 °C or more within 10 minutes).",
+          "nl": "De binnentemperatuur zakte snel (0,6 °C of meer binnen 10 minuten)."
+        },
+        "tokens": [
+          {
+            "name": "drop",
+            "type": "number",
+            "title": {
+              "en": "Drop (°C)",
+              "nl": "Daling (°C)"
+            },
+            "example": 0.8
+          },
+          {
+            "name": "temp",
+            "type": "number",
+            "title": {
+              "en": "Indoor temperature",
+              "nl": "Binnentemperatuur"
+            },
+            "example": 19.4
+          }
+        ],
+        "id": "window_open"
       }
     ],
     "conditions": [
@@ -154,6 +185,13 @@
           "nl": "!{{Is|Is niet}} aan het voorverwarmen"
         },
         "id": "is_preheating"
+      },
+      {
+        "title": {
+          "en": "Heating !{{is|is not}} off because a window is open",
+          "nl": "Verwarming !{{staat|staat niet}} uit omdat het raam open is"
+        },
+        "id": "is_window"
       }
     ],
     "actions": [
@@ -344,6 +382,43 @@
           }
         ],
         "id": "set_temporary"
+      },
+      {
+        "title": {
+          "en": "Window open or closed",
+          "nl": "Raam open of dicht"
+        },
+        "titleFormatted": {
+          "en": "Window is [[state]]",
+          "nl": "Raam is [[state]]"
+        },
+        "hint": {
+          "en": "Open: heating off (at most 4 hours). Closed: back to the schedule or your manual temperature.",
+          "nl": "Open: verwarming uit (hooguit 4 uur). Dicht: terug naar het schema of je handmatige temperatuur."
+        },
+        "args": [
+          {
+            "type": "dropdown",
+            "name": "state",
+            "values": [
+              {
+                "id": "open",
+                "title": {
+                  "en": "open (heating off)",
+                  "nl": "open (verwarming uit)"
+                }
+              },
+              {
+                "id": "closed",
+                "title": {
+                  "en": "closed",
+                  "nl": "dicht"
+                }
+              }
+            ]
+          }
+        ],
+        "id": "set_window"
       }
     ]
   },

@@ -1,0 +1,11 @@
+{
+  "title": { "en": "Window open or closed", "nl": "Raam open of dicht" },
+  "titleFormatted": { "en": "Window is [[state]]", "nl": "Raam is [[state]]" },
+  "hint": { "en": "Open: heating off (at most 4 hours). Closed: back to the schedule or your manual temperature.", "nl": "Open: verwarming uit (hooguit 4 uur). Dicht: terug naar het schema of je handmatige temperatuur." },
+  "args": [
+    { "type": "dropdown", "name": "state", "values": [
+      { "id": "open", "title": { "en": "open (heating off)", "nl": "open (verwarming uit)" } },
+      { "id": "closed", "title": { "en": "closed", "nl": "dicht" } }
+    ] }
+  ]
+}

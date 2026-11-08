@@ -31,8 +31,15 @@ const STATES = [
   ['Duur kiezen (verwarmen)', { mode: 'manual', thermostatTarget: 20.5, override: { temp: 20.5, duration: 120 } }, { open: true }],
   ['Duur kiezen (rust)', { mode: 'manual', thermostatTarget: 17.5, override: { temp: 17.5, duration: 'next' } }, { open: true }],
   ['Duur kiezen (te koud)', { mode: 'manual', indoor: 15.2, thermostatTarget: 15, override: { temp: 15, duration: 'manual' } }, { open: true }],
+  ['Raam open? (vraag)', { windowAsk: { at: 0, from: 20.4, to: 19.7 } }],
+  ['Raam open? (vraag, handmatig)', { mode: 'manual', thermostatTarget: 20.5, override: { temp: 20.5, duration: 'next' }, windowAsk: { at: 0, from: 20.4, to: 19.7 } }],
+  ['Raam open (verwarming uit)', { mode: 'window', thermostatTarget: 5, window: { since: 0, until: Date.now() + 30 * MIN } }],
+  ['Raam open? (vraag, instelling afwezig-temperatuur)', { windowAsk: { at: 0, from: 20.4, to: 19.7 }, windowTemp: 16 }],
+  ['Raam open (op afwezig-temperatuur)', { mode: 'window', thermostatTarget: 16, windowTemp: 16, window: { since: 0, until: Date.now() + 30 * MIN } }],
   ['Niemand thuis', { mode: 'away', away: true, thermostatTarget: 16 }],
   ['Gepauzeerd', { mode: 'paused', enabled: false }],
+  ['Geen thermostaat gekozen', { mode: 'nodevice', modeLabel: 'Geen thermostaat', indoor: null, thermostatTarget: null, error: 'Kies een thermostaat in de instellingen van Slim verwarmen.' }],
+  ['Thermostaat reageert niet', { mode: 'nodevice', modeLabel: 'Thermostaat niet bereikbaar', indoor: null, thermostatTarget: null }],
   ['Nog niet gestart', { mode: 'setup', setupDone: false, enabled: false }],
 ];
 

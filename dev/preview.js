@@ -25,18 +25,29 @@ let manualUntil = untilOf('next');
 const now = Date.now();
 // Opwarmmetingen (oud → nieuw); naar links vegen op de instellingenpagina verwijdert er een.
 let samples = [4, 3, 2, 1].map((d, i) => ({ at: Date.now() - d * 86400000 - i * 3600000, from: 15 + i * 0.3, to: 18 - (i % 2), rate: [1.1, 2.9, 1.2, 1.4][i], deadTime: [15, 8, 16, 12][i], outdoor: [6, 3, 2.5, 4][i] }));
+// Raam open? Zichtbaar bij het starten; /__mode?m=ask zet hem terug.
+let windowAsk = { at: Date.now(), from: 20.4, to: 19.7 }; let windowUntil = 0;
+function windowAction(action) {
+  if (action === 'windowOff') { windowAsk = null; windowUntil = Date.now() + 30 * 60000; mode = 'window'; return true; }
+  if (action === 'windowIgnore') { windowAsk = null; return true; }
+  if (action === 'windowEnd') { windowUntil = 0; mode = 'schedule'; return true; }
+  return false;
+}
 const status = () => ({
-  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode, setupDone: mode !== 'setup', thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5, weather: 'partly', room: 'Woonkamer', presence: { auto: store.config.autoPresence === true, home: ['Leroy Sileon'], count: 3 },
+  updatedAt: Date.now(), targetConfirmed: Date.now() >= confirmedAt, mode: store.config.thermostatId ? mode : 'nodevice', modeLabel: store.config.thermostatId ? null : 'Geen thermostaat', setupDone: mode !== 'setup', thermostatTarget: mode === 'manual' ? manualTemp : 15, indoor: 17.6, humidity: 63, outdoor: 3.5, weather: 'partly', room: 'Woonkamer', presence: { auto: store.config.autoPresence === true, home: ['Leroy Sileon'], count: 3 },
   currentBlock: { at: 'do 22:30', temp: 15 }, nextBlock: { at: 'vr 08:30', temp: 17, inMinutes: 530 }, preheatMinutes: 64,
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
   nextChangeAt: Date.now() + 466 * 60000,
   away: mode === 'away', enabled: mode !== 'paused',
-  learned: { samples: samples.length, rate: 1.35, deadTime: 14, heatingNow: false, recent: samples.slice(-5) },
+  window: mode === 'window' ? { since: now, until: windowUntil } : null, windowAsk: mode === 'window' || store.config.windowDetect === false ? null : windowAsk, windowTemp: store.config.windowAction === 'eco' ? (store.config.ecoTemp || 16) : 5,
+  windowInfo: { on: store.config.windowDetect === true, own: store.config.thermostatId === 'tado' ? 'tado' : null, minutes: Number(store.config.windowMinutes) || 15, drop: 0.9, asked: 5, off: 1, ignored: 3 },
+  learned: { samples: samples.length, rate: 1.35, deadTime: 14, heatingNow: false, ignored: samples.some((x) => x.rate > 2.5) ? 1 : 0, late: 12, factor: 1.15, recent: samples.slice(-5).map((x) => (x.rate > 2.5 ? { ...x, ignored: true } : x)) },
   error: null,
 });
 const devices = [
   { id: 'thermostaat', name: 'Thermostaat', zone: 'Woonkamer', thermostat: true, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
+  { id: 'tado', name: 'Tado X', zone: 'Woonkamer', thermostat: true, ownWindow: 'tado', tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
   { id: 'plan', name: 'Plan Weekprogramma', zone: 'Woonkamer', thermostat: true, tempCaps: [] },
   { id: 'knmi', name: 'KNMI weather', zone: 'Tuin', thermostat: false, tempCaps: [{ id: 'current_temp', title: 'Temperatuur' }] },
   { id: 'kk', name: 'Temp. sensor', zone: 'Kinderkamer', thermostat: false, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
@@ -91,6 +102,7 @@ http.createServer((req, res) => {
         if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
         mode = 'manual'; manualTemp = b.temp; confirmedAt = Date.now() + 6000;
       } else if (b.action === 'setDuration') { manualDur = b.duration; manualUntil = untilOf(b.duration); } else if (b.action === 'resume') mode = 'schedule';
+      else windowAction(b.action);
       return send(200, { status: status(), schedule: store.schedule });
     }
     if (url.startsWith('/__api/setting/')) {
@@ -121,11 +133,17 @@ http.createServer((req, res) => {
         mode = 'manual'; manualTemp = temp; confirmedAt = Date.now() + 6000; return send(200, status());
       }
       if (action === 'setDuration') { manualDur = duration; manualUntil = untilOf(duration); return send(200, status()); }
+      if (windowAction(action)) return send(200, status());
       if (action === 'deleteSample') { const at = Number(JSON.parse(data || '{}').at); samples = samples.filter((x) => x.at !== at); return send(200, status()); }
       mode = { resume: 'schedule', away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule', start: 'schedule' }[action] || mode;
       return send(200, status());
     }
-    if (url === '/__mode') { mode = new URLSearchParams(req.url.split('?')[1]).get('m'); return send(200, { mode }); }
+    if (url === '/__mode') {
+      mode = new URLSearchParams(req.url.split('?')[1]).get('m');
+      if (mode === 'ask') { mode = 'schedule'; windowAsk = { at: Date.now(), from: 20.4, to: 19.7 }; }
+      if (mode === 'window') windowUntil = Date.now() + 30 * 60000;
+      return send(200, { mode });
+    }
     send(404, 'not found', 'text/plain');
   });
 }).listen(PORT, () => console.log(`Preview op http://localhost:${PORT}`));
