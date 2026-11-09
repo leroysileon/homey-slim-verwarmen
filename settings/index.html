@@ -883,7 +883,7 @@ function typeLog() {
   let r = 0; let k = 0; let n = 0;
   const step = () => {
     if ($('logv').hidden) { jobs.forEach((j) => { j.row.classList.remove('wait'); j.spans.forEach((x) => { x.sp.innerHTML = x.full; }); }); cur.remove(); logTyping = false; return; }
-    let budget = rows.length > 12 ? 9 : 4; // veel regels: sneller, zodat het niet eindeloos duurt
+    let budget = rows.length > 12 ? 26 : 12; // tekens per beeldje; veel regels: nog sneller
     while (budget > 0 && r < jobs.length) {
       const job = jobs[r]; job.row.classList.remove('wait'); const pv = job.row.previousElementSibling; if (pv && pv.classList.contains('wait')) pv.classList.remove('wait'); const x = job.spans[k];
       n = Math.min(x.text.length, n + (k === 2 ? budget : x.text.length)); budget -= k === 2 ? budget : 1;
