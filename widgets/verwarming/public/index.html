@@ -714,8 +714,8 @@ function calView() {
   const cell = (k, label, day, time) => `<div class="cf${nextK === k ? ' next' : ''}" role="button" tabindex="0" data-calpick="${k}" aria-label="${label} wijzigen">${day}${time}</div>`; // geen kopjes: de volgorde (vertrek → terug) zegt het al
   const started = active && vacFrom <= now + 60000; // lopend en vertrek niet verzet
   const fromCell = started ? cell('from', 'Vertrek', '<b class="dim">Al begonnen</b>', '')
-    : vacHasFrom ? cell('from', 'Vertrek', `<b>${footDay(vacFrom)}</b>`, tin('from', vacFrom, 'weggaat')) : cell('from', 'Vertrek', '<b class="dim">Kies dag</b>', '');
-  const untilCell = vacUntil != null ? cell('until', 'Terug', `<b>${footDay(vacUntil)}</b>`, tin('until', vacUntil, 'terug bent')) : cell('until', 'Terug', '<b class="dim">Kies dag</b>', '');
+    : vacHasFrom ? cell('from', 'Vertrek', `<b>${footDay(vacFrom)}</b>`, tin('from', vacFrom, 'weggaat')) : cell('from', 'Vertrek', '<b class="dim">Vertrekdag</b>', '');
+  const untilCell = vacUntil != null ? cell('until', 'Terug', `<b>${footDay(vacUntil)}</b>`, tin('until', vacUntil, 'terug bent')) : cell('until', 'Terug', '<b class="dim">Terugkomdag</b>', '');
   const busy = vacBusy != null; const ok = vacOk();
   // Bestaande vakantie: naast opslaan een rustige knop om hem uit (of weer aan) te zetten, of een lopende te stoppen.
   const plan = !active && st.vacationPlan;
