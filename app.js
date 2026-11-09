@@ -24,15 +24,15 @@ class SlimVerwarmenApp extends Homey.App {
 
   async onInit() {
     // Logboek: alles wat de app logt, doet en meldt, met tijdstip. Te lezen in de instellingen (Logboek).
-    const baseLog = this.log.bind(this); const baseError = this.error.bind(this);
-    this.log = (...args) => { baseLog(...args); this.journal('info', line(args)); };
-    this.error = (...args) => { baseError(...args); this.journal('fout', line(args)); };
+    // Eigen functies naast die van Homey (this.log/this.error zelf niet overschrijven: die kunnen alleen-lezen zijn).
+    this.note = (...args) => { this.log(...args); this.journal('info', line(args)); };
+    this.fail = (...args) => { this.error(...args); this.journal('fout', line(args)); };
     this.journal('start', `app ${this.homey.manifest.version} start (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`);
     this.api = await HomeyAPI.createAppAPI({ homey: this.homey });
     try {
       await this.api.devices.connect();
     } catch (err) {
-      this.error('Realtime koppeling niet gelukt, val terug op elke minuut controleren:', err.message);
+      this.fail('Realtime koppeling niet gelukt, val terug op elke minuut controleren:', err.message);
     }
 
     this.controller = new Controller({
@@ -46,15 +46,15 @@ class SlimVerwarmenApp extends Homey.App {
         writeTarget: (temp) => this.writeTarget(temp),
       },
       store: this.homey.settings,
-      log: (...args) => this.log(...args),
-      onEvent: (event, data) => this.onControllerEvent(event, data).catch(this.error),
+      log: (...args) => this.note(...args),
+      onEvent: (event, data) => this.onControllerEvent(event, data).catch(this.fail),
     });
 
     // Eenmalig: proefrondes van 8 nov 2026 (afwezig, pauze, vakantie aan en uit) uit het dagverloop halen, wordt gewoon thuis.
     if (!this.homey.settings.get('tidied_20261108')) {
       const n = this.controller.tidyLog(Date.UTC(2026, 10, 7, 23, 0)); // 8 nov 00:00 Nederlandse tijd
       this.homey.settings.set('tidied_20261108', true);
-      this.log(`Dagverloop opgeruimd: ${n} testwissels weg`);
+      this.note(`Dagverloop opgeruimd: ${n} testwissels weg`);
     }
     this.registerFlowCards();
     await this.autoDetect();
@@ -64,29 +64,29 @@ class SlimVerwarmenApp extends Homey.App {
     this.autoPresenceOn = this.config.autoPresence === true;
     try {
       await this.api.users.connect();
-      this.api.users.on('user.update', () => this.checkPresence().catch(this.error));
+      this.api.users.on('user.update', () => this.checkPresence().catch(this.fail));
     } catch (err) {
-      this.error('Gebruikers niet realtime te volgen, val terug op elke minuut controleren:', err.message);
+      this.fail('Gebruikers niet realtime te volgen, val terug op elke minuut controleren:', err.message);
     }
-    await this.checkPresence().catch(this.error);
+    await this.checkPresence().catch(this.fail);
 
     this.homey.settings.on('set', (key) => {
       if (key !== 'journal' && key !== 'weatherlog' && key !== 'modelog' && key !== 'changelog' && key !== 'state' && key !== 'learner') this.journal('opslag', `instelling '${key}' opgeslagen`);
       if (key === 'config') {
         const on = this.config.autoPresence === true;
-        if (on && !this.autoPresenceOn) this.checkPresence(true).catch(this.error); // net aangezet: meteen volgen
+        if (on && !this.autoPresenceOn) this.checkPresence(true).catch(this.fail); // net aangezet: meteen volgen
         this.autoPresenceOn = on;
       }
       if (key === 'schedule' || key === 'config') {
-        this.watchThermostat().catch(this.error);
+        this.watchThermostat().catch(this.fail);
         this.controller.tick();
       }
     });
 
     await this.watchThermostat();
-    this.homey.setInterval(() => { this.checkPresence().catch(this.error); this.controller.tick(); }, TICK_MS);
+    this.homey.setInterval(() => { this.checkPresence().catch(this.fail); this.controller.tick(); }, TICK_MS);
     await this.controller.tick();
-    this.log('Slim verwarmen gestart');
+    this.note('Slim verwarmen gestart');
   }
 
   get config() {
@@ -105,7 +105,7 @@ class SlimVerwarmenApp extends Homey.App {
     if (this.config.autoPresence !== true) return;
     if (apply) { await this.controller.setAway(!p.anyHome); return; }
     if (change) {
-      this.log(`Aanwezigheid: ${change === 'home' ? 'iemand thuis' : 'iedereen weg'}`);
+      this.note(`Aanwezigheid: ${change === 'home' ? 'iemand thuis' : 'iedereen weg'}`);
       await this.controller.setAway(change === 'away');
     }
   }
@@ -204,8 +204,8 @@ class SlimVerwarmenApp extends Homey.App {
   }
 
   async writeTarget(temp) {
-    await this.turnOn().catch((err) => this.error('Thermostaat aanzetten:', err));
-    this.log(`Thermostaat -> ${temp}°`);
+    await this.turnOn().catch((err) => this.fail('Thermostaat aanzetten:', err));
+    this.note(`Thermostaat -> ${temp}°`);
     await this.api.devices.setCapabilityValue({
       deviceId: this.config.thermostatId,
       capabilityId: 'target_temperature',
@@ -223,7 +223,7 @@ class SlimVerwarmenApp extends Homey.App {
     if (!cap || cap.value !== 'off') return;
     const ids = (cap.values || []).map((v) => v.id);
     const mode = ['heat', 'auto'].find((m) => ids.includes(m)) || ids.find((m) => m !== 'off' && m !== 'cool') || 'heat';
-    this.log(`Thermostaat aan -> ${mode}`);
+    this.note(`Thermostaat aan -> ${mode}`);
     await this.api.devices.setCapabilityValue({ deviceId: this.config.thermostatId, capabilityId: 'thermostat_mode', value: mode });
   }
 
@@ -244,7 +244,7 @@ class SlimVerwarmenApp extends Homey.App {
         this.debounce = this.homey.setTimeout(() => this.controller.tick(), 2000);
       });
     } catch (err) {
-      this.error('Kon thermostaat niet volgen:', err.message);
+      this.fail('Kon thermostaat niet volgen:', err.message);
     }
   }
 
@@ -348,7 +348,7 @@ class SlimVerwarmenApp extends Homey.App {
     const wlog = this.weatherLog || this.homey.settings.get('weatherlog') || [];
     const wBefore = wlog.filter((x) => x.t < start).pop();
     const weather = [...(wBefore ? [{ t: start, k: wBefore.k }] : []), ...wlog.filter((x) => x.t >= start && x.t < end)]; // [{ t, k }] weertype
-    if (!indoor.length && errors.length) this.error('Inzichten:', errors.join(' | '));
+    if (!indoor.length && errors.length) this.fail('Inzichten:', errors.join(' | '));
     return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, weather, modes, usage, errors: indoor.length ? [] : errors.slice(0, 2) };
   }
 
@@ -361,7 +361,7 @@ class SlimVerwarmenApp extends Homey.App {
     if (!QUICK.includes(body.action)) return job;
     const done = await Promise.race([job.then(() => true), new Promise((r) => setTimeout(() => r(false), 300))]);
     if (done) return job;
-    job.catch((err) => this.error('Actie op de achtergrond:', err));
+    job.catch((err) => this.fail('Actie op de achtergrond:', err));
     return this.controller.quickStatus();
   }
 
@@ -428,6 +428,10 @@ class SlimVerwarmenApp extends Homey.App {
   // ---------- Logboek ----------
 
   journal(kind, msg) {
+    try { this.journalAdd(kind, msg); } catch (err) { /* logboek mag de app nooit laten stoppen */ }
+  }
+
+  journalAdd(kind, msg) {
     if (!this.journalLog) { const j = this.homey.settings.get('journal'); this.journalLog = Array.isArray(j) ? j : []; }
     const e = { t: Date.now(), k: kind, m: String(msg).slice(0, 600) };
     this.journalLog.push(e);
@@ -478,7 +482,7 @@ class SlimVerwarmenApp extends Homey.App {
       // Live naar een geopende instellingenpagina sturen.
       Promise.resolve(this.homey.api.realtime('status', data)).catch(() => {}); // mislukken mag, nooit de app laten stoppen
       const driver = this.homey.drivers.getDriver('thermostat');
-      for (const device of driver.getDevices()) await device.showStatus(data).catch(this.error);
+      for (const device of driver.getDevices()) await device.showStatus(data).catch(this.fail);
       return;
     }
     this.journal('gebeurt', `${event} ${data == null ? '' : line([data])}`);
@@ -487,7 +491,7 @@ class SlimVerwarmenApp extends Homey.App {
       const f = (v) => `${String(v).replace('.', ',')}°`;
       await this.homey.notifications.createNotification({
         excerpt: `Thermostaat teruggezet van ${f(data.from)} naar **${f(data.temp)}** (maximumtemperatuur).`,
-      }).catch(this.error);
+      }).catch(this.fail);
     }
     // Raam open? Melding in de tijdlijn; kiezen doe je in de widget (of met een flow op deze trigger).
     if (event === 'window_open') {
@@ -495,7 +499,7 @@ class SlimVerwarmenApp extends Homey.App {
       const room = this.controller.status.room ? ` in de ${this.controller.status.room.toLowerCase()}` : '';
       await this.homey.notifications.createNotification({
         excerpt: `Staat er een raam open${room}? De temperatuur zakte snel van ${f(data.from)} naar ${f(data.to)}. In de widget kun je de verwarming ${this.controller.windowMinutes()} minuten ${this.controller.windowTemp() === WINDOW_TEMP ? 'uitzetten' : 'lager zetten'}.`,
-      }).catch(this.error);
+      }).catch(this.fail);
     }
     // Raam is open geweest: achteraf één melding in de tijdlijn met hoe lang.
     if (event === 'window_closed' && data.since) {
@@ -505,14 +509,14 @@ class SlimVerwarmenApp extends Homey.App {
         const dur = min < 60 ? `${min} min` : `${Math.floor(min / 60)} uur${min % 60 ? ` ${min % 60} min` : ''}`;
         const excerpt = data.device ? `Thermostaat meldde **${dur}** een open raam.`
           : `Raam stond **${dur}** open, verwarming stond ${data.temp != null && data.temp > WINDOW_TEMP ? `lager (${String(data.temp).replace('.', ',')}°)` : 'uit'}.`;
-        await this.homey.notifications.createNotification({ excerpt }).catch(this.error);
+        await this.homey.notifications.createNotification({ excerpt }).catch(this.fail);
       }
     }
     // Handmatig verstellen: één melding nadat het een minuut stil is (vijf keer op + = één melding met de eindstand).
     if (event === 'manual_change') {
       this.lastManual = data;
       if (this.manualTimer) this.homey.clearTimeout(this.manualTimer);
-      this.manualTimer = this.homey.setTimeout(() => this.notifyManual().catch(this.error), 60000);
+      this.manualTimer = this.homey.setTimeout(() => this.notifyManual().catch(this.fail), 60000);
     }
     const card = this.triggers && this.triggers[event];
     if (!card) return;
