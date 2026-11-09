@@ -531,7 +531,10 @@
     #sv .ownwarn[hidden] { display: none; }
     #sv .ownwarn span { flex: 1; }
     /* Logboek: bewust een kale terminal, altijd donker, alles in monospace. */
-    #sv .logopen { display: block; margin: 28px auto 0; padding: 10px 14px; font: 500 13px/1.2 ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace; color: var(--muted); }
+    /* Geen knop: een kale regel tekst onderaan, voor wie hem zoekt. Tikvlak blijft groot genoeg. */
+    #sv .logopen { display: flex; margin: 20px auto 0; min-height: 44px; padding: 0 12px; background: transparent; border-radius: 0;
+      font: 400 12px/1.2 ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace; color: var(--muted); opacity: .6; }
+    #sv .logopen:active { transform: none; opacity: 1; }
     #sv .logv { position: fixed; inset: 0; z-index: 110; display: flex; flex-direction: column; background: #0b0d0c; color: #c9d4c6;
       font: 400 11.5px/1.45 ui-monospace, "SF Mono", Menlo, "Roboto Mono", "Courier New", monospace; -webkit-font-smoothing: auto; }
     #sv .logv[hidden] { display: none; }
@@ -721,7 +724,7 @@
     <div class="actions" id="setupBack"><button class="solid" id="saveConfig">Terug naar de stappen</button></div>
   </div>
 
-  <button class="logopen" id="logOpen">&gt; logboek_</button>
+  <button class="logopen" id="logOpen">logboek</button>
   </div><!-- /main -->
   <div class="logv" id="logv" hidden role="dialog" aria-label="Logboek">
     <div class="loghd">
