@@ -463,6 +463,65 @@
     #w.in > * { animation: w-in .35s ease-out; }
     @keyframes w-in { from { opacity: 0; } }
     @media (prefers-reduced-motion: reduce) { #w .sk::after, #w.in > * { animation: none; } }
+    /* ───────────── Klimaat-effecten (zie prototypes/klimaat-effecten.html) ─────────────
+       Condens, ijsbloemen, luchtspiegeling en adempluim. Alleen als de echte meetwaarden erom vragen.
+       Alles ligt ónder de tekst (z-index -1 binnen de kaart) en wijkt uit rond letters (uitsparingen in JS).
+       De laag .fxl blijft staan als de kaart opnieuw getekend wordt, zodat effecten niet steeds opnieuw beginnen. */
+    #w { --puff: 255,255,255; --frost: #fff; --warm: rgba(255,96,0,.26); }
+    @media (prefers-color-scheme: dark) { #w { --puff: 210,235,255; --warm: color-mix(in srgb, var(--fg) 16%, transparent); } }
+    #w .fxl { display: contents; }
+    /* Tijdens het vegen blijven ijs en beslag gewoon zichtbaar (stilstaande beelden, goedkoop om mee te schuiven).
+       Alleen wat elk beeld opnieuw berekend moet worden, pauzeert: de luchtspiegeling (en de druppels, in JS). */
+    #w.stacking.pulse .p0 .temp { filter: none; }
+    /* Zelfde afronding als de kaart, en daar ook echt afgeknipt: iOS knipt lagen met masker of menging niet altijd af
+       op de ronde hoek van de kaart, dan steken ijs en rand als witte puntjes in de hoeken uit. */
+    #w .fxl { --fxr: 16px; }
+    .in-settings #w .fxl { --fxr: 20px; }
+    #w .fxl > .fx { position: absolute; inset: 0; pointer-events: none; z-index: -1; border-radius: var(--fxr); clip-path: inset(0 round var(--fxr)); }
+    /* Condens: één canvas, alleen getekend als er iets verandert. */
+    #w .fx-fog { width: 100%; height: 100%; opacity: 0; transition: opacity 2.8s ease; }
+    #w .fx-fog.on { opacity: 1; }
+    #w .top, #w .room, #w .sub, #w .ticks, #w .temp, #w .ctrl output { transition: text-shadow 2s ease; }
+    #w.misted .top, #w.misted .room, #w.misted .sub, #w.misted .ticks, #w.misted .temp, #w.misted .ctrl output { text-shadow: 0 0 6px rgba(0,0,0,.22), 0 0 1px rgba(0,0,0,.18); }
+    @media (prefers-color-scheme: dark) { #w.misted .top, #w.misted .room, #w.misted .sub, #w.misted .ticks, #w.misted .temp, #w.misted .ctrl output { text-shadow: 0 0 6px rgba(0,0,0,.6); } }
+    /* IJsbloemen: groeien één keer uit de hoeken en mengen met de kaart (overlay). */
+    #w .fx-frost { color: var(--frost); opacity: 0; transition: opacity 1.6s ease; overflow: visible; }
+    #w .fx-frost.on { opacity: 1; }
+    #w .fxl > :is(.fx-frost, .fx-rim) { mix-blend-mode: overlay; }
+    /* Oranje verwarmkaart (licht): overlay maakt het ijs fluorgeel, dus daar crème-wit en gewoon mengen. */
+    @media (prefers-color-scheme: light) {
+      #w.heat .fxl > :is(.fx-frost, .fx-rim) { mix-blend-mode: normal; }
+      #w.heat { --frost: color-mix(in srgb, var(--cardbg) 22%, #fff); }
+      #w.heat .fx-frost.on { opacity: .8; }
+    }
+    #w .fx-frost path { stroke-width: 1.5px; }
+    #w .fx-frost path + path { stroke-width: 1px; }
+    #w .fx-frost path + path + path { stroke-width: .7px; }
+    #w .fx-frost .glint { stroke-width: 0; }
+    #w .fx-frost .grow { transform-box: view-box; animation: fx-frost-grow 7s cubic-bezier(.16,.7,.25,1) both; }
+    #w .fx-frost .glint { transform-box: fill-box; transform-origin: center; opacity: 0; animation: fx-glint 1.6s ease-in-out both; }
+    #w .fx-frost.still .grow, #w .fx-frost.still .glint { animation: none; }
+    @keyframes fx-frost-grow { from { transform: scale(0); } to { transform: scale(1); } }
+    @keyframes fx-glint { 0% { opacity: 0; transform: scale(.2) rotate(0deg); } 45% { opacity: 1; transform: scale(1) rotate(45deg); } 100% { opacity: 0; transform: scale(.3) rotate(90deg); } }
+    #w .fx-rim { box-shadow: inset 0 0 16px 0 color-mix(in srgb, var(--frost) 32%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--frost) 22%, transparent); opacity: 0; transition: opacity 3s ease; }
+    /* Opwarmen: luchtspiegeling op het getal (filter #mirage, alleen tijdens het moment) en warmte vanaf de onderrand. */
+    #w .fx-warm { opacity: 0; background: linear-gradient(to top, var(--warm), transparent 62%); }
+    #w.pulse .p0 .temp { filter: url(#mirage); }
+    #w.pulse .fx-warm { animation: fx-warm 9.5s ease-in-out both; }
+    @keyframes fx-warm { 0%, 100% { opacity: 0; } 30%, 65% { opacity: 1; } }
+    /* Koud binnen: adempluim. Nevelwolkje met rafelige randen dat uit het getal opbolt en oplost. Plek via --wx/--wy. */
+    #w .fx-wisp { position: absolute; z-index: -1; left: var(--wx, 0); top: var(--wy, 0); width: 136px; height: 116px; pointer-events: none; overflow: visible; }
+    #w .fx-wisp .pf { opacity: 0; transform-box: fill-box; transform-origin: 20% 90%; }
+    #w .fx-wisp stop { stop-color: color-mix(in srgb, rgb(var(--puff)) 65%, var(--cardbg)); }
+    #w.breathe .fx-wisp .pf1 { animation: fx-puff 4.8s cubic-bezier(.25,.6,.35,1) both; }
+    #w.breathe .fx-wisp .pf2 { animation: fx-puff2 5.2s cubic-bezier(.25,.6,.35,1) .4s both; }
+    #w.breathe .fx-wisp .pf3 { animation: fx-puff 5s cubic-bezier(.25,.6,.35,1) .9s both; }
+    @keyframes fx-puff  { 0% { opacity: 0; transform: translate(-8px,12px) scale(.25); filter: blur(0); } 18% { opacity: 1; } 55% { opacity: .92; filter: blur(.8px); } 100% { opacity: 0; transform: translate(8px,-12px) scale(1.4); filter: blur(3px); } }
+    @keyframes fx-puff2 { 0% { opacity: 0; transform: translate(-14px,18px) scale(.2); filter: blur(0); } 22% { opacity: 1; } 58% { opacity: .8; filter: blur(1.2px); } 100% { opacity: 0; transform: translate(18px,-20px) scale(1.65); filter: blur(4px); } }
+    @media (prefers-reduced-motion: reduce) {
+      #w .fxl *, #w .fxl { animation: none !important; transition: none !important; }
+      #w.pulse .p0 .temp { filter: none; }
+    }
   </style>
 </head>
 <body>
@@ -1219,6 +1278,348 @@ function placeCostInfo(p1) {
   pop.style.setProperty('--ax', `${Math.max(18, Math.min(pop.offsetWidth - 18, cx - left))}px`);
 }
 
+// ───────────── Klimaat-effecten (zie prototypes/klimaat-effecten.html) ─────────────
+// Condens, ijsbloemen, luchtspiegeling (opwarmen) en adempluim (koud binnen), alleen als de meetwaarden erom vragen.
+// De effectlaag (.fxl) blijft in de kaart staan als render() de inhoud vervangt (zie setCard), zodat ijs en beslag
+// niet elke 10 seconden opnieuw beginnen. Vegen door de condens zit er hier bewust niet in: dat botst met swipen.
+const FX = (() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const mq = (q) => window.matchMedia ? matchMedia(q) : { matches: false, addEventListener() {} };
+  const darkQ = mq('(prefers-color-scheme: dark)'), reduceQ = mq('(prefers-reduced-motion: reduce)');
+  const W_EL = () => document.getElementById('w');
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  // Eén keer: het filter voor de luchtspiegeling (horizontale ruisbanden die omhoog schuiven, vooral zijwaarts).
+  function ensureMirage() {
+    if (document.getElementById('mirage')) return;
+    const box = document.createElement('div');
+    box.innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="mirage" x="-10%" y="-150%" width="120%" height="400%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".018 .16" numOctaves="2" seed="3"/><feOffset dy="0" result="m"/>
+      <feColorMatrix in="m" type="matrix" values="1 0 0 0 0  0 .25 0 0 .375  0 0 1 0 0  0 0 0 1 0" result="d"/>
+      <feDisplacementMap in="SourceGraphic" in2="d" scale="0" xChannelSelector="R" yChannelSelector="G"><animate id="mirB" attributeName="scale" values="0;4;6.5;3;5.5;2.5;6;4;0" keyTimes="0;.1;.24;.36;.5;.6;.74;.88;1" calcMode="spline" keySplines=".4 0 .6 1;.4 0 .6 1;.4 0 .6 1;.4 0 .6 1;.4 0 .6 1;.4 0 .6 1;.4 0 .6 1;.4 0 .6 1" dur="9s" begin="indefinite" fill="freeze"/></feDisplacementMap>
+    </filter></svg>`;
+    document.body.appendChild(box.firstElementChild);
+  }
+
+  // De laag zelf: blijft bestaan zolang de kaart (p0) bestaat.
+  const fxl = document.createElement('div'); fxl.className = 'fxl'; fxl.setAttribute('aria-hidden', 'true');
+  fxl.innerHTML = `<canvas class="fx fx-fog"></canvas><svg class="fx fx-frost"></svg><div class="fx fx-rim"></div><div class="fx fx-warm"></div>
+    <svg class="fx-wisp" viewBox="0 0 84 72"><defs><filter id="smoke" x="-50%" y="-50%" width="200%" height="200%"><feTurbulence type="fractalNoise" baseFrequency=".055" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="14" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="1.6"/></filter>
+      <radialGradient id="puffg"><stop offset="0" stop-opacity=".85"/><stop offset=".55" stop-opacity=".55"/><stop offset="1" stop-opacity="0"/></radialGradient></defs>
+      <g filter="url(#smoke)"><g class="pf pf1"><ellipse cx="20" cy="52" rx="20" ry="13" fill="url(#puffg)"/><ellipse cx="34" cy="44" rx="17" ry="13" fill="url(#puffg)"/><ellipse cx="28" cy="56" rx="14" ry="9" fill="url(#puffg)"/></g>
+      <g class="pf pf2"><ellipse cx="46" cy="32" rx="24" ry="17" fill="url(#puffg)"/><ellipse cx="60" cy="24" rx="15" ry="11" fill="url(#puffg)"/><ellipse cx="38" cy="38" rx="14" ry="10" fill="url(#puffg)"/></g>
+      <g class="pf pf3"><ellipse cx="30" cy="40" rx="18" ry="13" fill="url(#puffg)"/></g></g></svg>`;
+  const cv = fxl.querySelector('.fx-fog'), frostSvg = fxl.querySelector('.fx-frost'), rim = fxl.querySelector('.fx-rim');
+  let card = null;
+
+  /* Tekst vrijhouden: strak om elke tekst en elk icoon meten; effecten krijgen daar een zachte uitsparing. */
+  const TEXT_SEL = '.top .mode, .top .it, .top .resume, .temp, .ctrl output, .ctrl .maxb, .room, .sub, .ticks span, .waves';
+  function textBoxes() {
+    if (!card) return [];
+    const pr = card.getBoundingClientRect(), out = [], rg = document.createRange();
+    card.querySelectorAll(TEXT_SEL).forEach((el) => {
+      rg.selectNodeContents(el);
+      for (const r of rg.getClientRects()) if (r.width > 0 && r.height > 0) out.push({ x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height });
+    });
+    return out;
+  }
+  const boxKey = (b) => b.map((r) => [r.x, r.y, r.w, r.h].map(Math.round).join(',')).join(';');
+
+  /* ── Condens: textuur één keer opgebouwd, met af en toe een druppel die een spoor trekt en weer beslaat. ── */
+  const Fog = (() => {
+    const ctx = cv.getContext('2d');
+    const tex = document.createElement('canvas'), tctx = tex.getContext('2d');
+    const mask = document.createElement('canvas'), mctx = mask.getContext('2d');
+    let W = 0, H = 0, dpr = 1, density = 0, built = -1, builtTint = '', builtBoxes = '';
+    let drops = [], residue = [], refog = null, spawnT = 0, rafId = 0, toId = 0, lt = 0, lastDraw = 0;
+    function tint() { // beslag in de kaartkleur, zodat het glas niet grijs-wit uitbleekt
+      const hex = getComputedStyle(W_EL()).getPropertyValue('--cardbg').trim().replace('#', '');
+      if (hex.length !== 6) return '255,255,255';
+      const m = darkQ.matches ? .55 : .45;
+      return [0, 2, 4].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * m + 255 * (1 - m))).join(',');
+    }
+    function size() {
+      if (!card) return;
+      const r = card.getBoundingClientRect(); if (!r.width) return;
+      W = r.width; H = r.height; dpr = Math.min(2, window.devicePixelRatio || 1);
+      for (const c of [cv, tex, mask]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+      built = -1; if (density > 0) { buildTex(); resetMask(); compose(); }
+    }
+    function ellipse(c, x, y, rx, ry) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
+    function bead(c, x, y, r, ry = r) { // druppel als lensje: helder, donkere onderrand, lichte bovenrand, glimlicht
+      const k = darkQ.matches ? .65 : 1;
+      c.save();
+      c.globalCompositeOperation = 'destination-out'; c.fillStyle = 'rgba(0,0,0,.92)'; ellipse(c, x, y, r * 1.18, ry * 1.18); c.fill();
+      c.globalCompositeOperation = 'source-over';
+      c.lineWidth = Math.max(.6, r * .24); c.strokeStyle = `rgba(0,0,0,${darkQ.matches ? .1 : .17})`;
+      c.beginPath(); c.ellipse(x, y, r, ry, 0, .12 * Math.PI, .88 * Math.PI); c.stroke();
+      c.lineWidth = Math.max(.45, r * .14); c.strokeStyle = `rgba(255,255,255,${.38 * k})`;
+      c.beginPath(); c.ellipse(x, y, r, ry, 0, 1.15 * Math.PI, 1.85 * Math.PI); c.stroke();
+      const g = c.createRadialGradient(x, y + ry * .45, 0, x, y + ry * .45, r * .8);
+      g.addColorStop(0, `rgba(255,255,255,${.55 * k})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; ellipse(c, x, y, r, ry); c.fill();
+      c.fillStyle = `rgba(255,255,255,${.95 * k})`;
+      c.beginPath(); c.ellipse(x - r * .34, y - ry * .38, r * .25, ry * .19, -.5, 0, Math.PI * 2); c.fill();
+      c.restore();
+    }
+    function buildTex() { // dichter onderin en aan de randen (daar is het glas het koudst), licht waar de tekst staat
+      const c = tctx, d = density, k = (darkQ.matches ? .6 : 1) * .7, rnd = mulberry32(11), T = tint();
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+      c.fillStyle = `rgba(${T},${(.03 + .05 * d) * k})`; c.fillRect(0, 0, W, H);
+      let g = c.createLinearGradient(0, H, 0, H * .35);
+      g.addColorStop(0, `rgba(${T},${(.2 + .22 * d) * k})`); g.addColorStop(1, `rgba(${T},0)`);
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      g = c.createRadialGradient(W * .4, H * .38, Math.min(W, H) * .3, W * .5, H * .45, Math.max(W, H) * .7);
+      g.addColorStop(0, `rgba(${T},0)`); g.addColorStop(1, `rgba(${T},${(.14 + .2 * d) * k})`);
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      const n = Math.round(W * H / 13 * (.35 + .65 * d));
+      for (let i = 0; i < n; i++) {
+        const x = rnd() * W, y = H * Math.pow(rnd(), .55), r = .3 + rnd() * rnd() * 1.15;
+        c.fillStyle = `rgba(${T},${(.06 + rnd() * .22) * k * (.5 + y / H)})`;
+        if (r < .7) c.fillRect(x, y, r * 1.6, r * 1.6); else { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+      }
+      const nb = Math.round((8 + 40 * d) * W / 360);
+      for (let i = 0; i < nb; i++) { const r = 1 + Math.pow(rnd(), 2.4) * 3.6; bead(c, 8 + rnd() * (W - 16), H * (.1 + .9 * Math.pow(rnd(), .7)), r, r * (1 + rnd() * .12)); }
+      const boxes = textBoxes(); // zachte gaten in het beslag rond de letters
+      // Geen uitsparingen in het beslag: die tekenden zich af als donkere vlakjes rond de tekst.
+      // Leesbaarheid komt van de zachte schaduw onder de tekst (#w.misted).
+      built = d; builtTint = T; builtBoxes = boxKey(boxes);
+    }
+    function resetMask() { mctx.setTransform(dpr, 0, 0, dpr, 0, 0); mctx.globalCompositeOperation = 'source-over'; mctx.fillStyle = '#000'; mctx.fillRect(0, 0, W, H); residue = []; }
+    function compose() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(tex, 0, 0);
+      ctx.globalCompositeOperation = 'destination-in'; ctx.drawImage(mask, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over';
+      for (const p of residue) bead(ctx, p.x, p.y, p.r);
+      for (const dr of drops) bead(ctx, dr.x, dr.y, dr.r, dr.r * (1 + Math.min(dr.v, 3) * .1));
+    }
+    function planRefog() { // na een druppel slaat het glas langzaam weer dicht
+      const next = { at: performance.now() + 2500, left: 90, ms: 200 }; next.k = 1 - Math.pow(.03, 1 / next.left);
+      if (!refog) refog = next; else refog.left = Math.max(refog.left, next.left);
+    }
+    function newDrop() { return { x: 18 + Math.random() * (W - 36), y: H * (.05 + Math.random() * .35), r: 2 + Math.random() * 1.1, v: 0, moving: false, stick: 18 + Math.random() * 20, ph: Math.random() * 6 }; }
+    function step(dtRaw) {
+      const dt = Math.min(3, dtRaw);
+      for (const d of drops) {
+        d.stick -= dtRaw;
+        if (d.stick <= 0) { d.moving = !d.moving; d.stick = d.moving ? 10 + Math.random() * 34 : 3 + Math.random() * 18; }
+        if (d.moving) d.v = Math.min(d.v + .16 * dt, 2.4 + d.r * .3); else d.v *= Math.pow(.72, dt);
+        const px = d.x, py = d.y;
+        d.y += d.v * dt; d.x += Math.sin(d.y * .07 + d.ph) * .14 * dt * d.v;
+        d.r = Math.min(d.r + .005 * d.v * dt, 4.2);
+        if (d.v > .05) {
+          mctx.globalCompositeOperation = 'destination-out'; mctx.strokeStyle = 'rgba(0,0,0,.86)'; mctx.lineCap = 'round'; mctx.lineWidth = d.r * 1.3;
+          mctx.beginPath(); mctx.moveTo(px, py); mctx.lineTo(d.x, d.y); mctx.stroke();
+          if (Math.random() < .045 * d.v * dt) residue.push({ x: d.x + (Math.random() - .5) * d.r * .8, y: py - d.r, r: .5 + Math.random() * .8 });
+        }
+      }
+      const before = drops.length; drops = drops.filter((d) => d.y - d.r < H + 2);
+      if (drops.length < before) planRefog();
+    }
+    function tick(t) {
+      rafId = 0; toId = 0;
+      if (W_EL().classList.contains('stacking')) { toId = setTimeout(() => tick(performance.now()), 400); return; } // vegen: niets tekenen
+      if (drops.length && t - lastDraw < 30) { rafId = requestAnimationFrame(tick); return; } // druppel is traag: 30 fps genoeg
+      lastDraw = t;
+      const dt = lt ? (t - lt) / 16.67 : 1; lt = t;
+      if (drops.length) step(dt);
+      if (refog && t >= refog.at) {
+        mctx.globalCompositeOperation = 'source-over'; mctx.fillStyle = `rgba(0,0,0,${refog.k})`; mctx.fillRect(0, 0, W, H);
+        if (--refog.left <= 0) { resetMask(); refog = null; }
+      }
+      compose(); schedule();
+    }
+    function schedule() {
+      if (rafId || toId || document.hidden || density <= 0) { if (!rafId && !toId) lt = 0; return; }
+      const resting = drops.length && drops.every((d) => !d.moving && d.v < .05);
+      if (resting) toId = setTimeout(() => tick(performance.now()), Math.min(refog ? refog.ms : 1e9, Math.max(16, Math.min(...drops.map((d) => d.stick)) * 16.67)));
+      else if (drops.length) rafId = requestAnimationFrame(tick);
+      else if (refog) { lt = 0; toId = setTimeout(() => tick(performance.now()), refog.ms); }
+      else lt = 0;
+    }
+    function planDrop() {
+      clearTimeout(spawnT);
+      // Druppels vanaf zichtbaar beslag (65% vocht); hoe vochtiger, hoe vaker (ongeveer elke 6 tot 20 s).
+      if (density < .15 || reduceQ.matches) return;
+      spawnT = setTimeout(() => { if (!document.hidden && drops.length < 2 && density >= .15) { drops.push(newDrop()); schedule(); } planDrop(); }, 5000 + Math.random() * 9000 * (1.5 - density));
+    }
+    function set(d) {
+      const was = density; density = d;
+      if (d <= 0) { cv.classList.remove('on'); drops = []; clearTimeout(spawnT); return; }
+      if (!W) size(); if (!W) return;
+      if (built < 0 || Math.abs(d - built) > .04 || tint() !== builtTint || boxKey(textBoxes()) !== builtBoxes) buildTex();
+      if (was <= 0) { resetMask(); drops = []; refog = null; }
+      compose(); cv.classList.add('on');
+      if (was <= 0) { planDrop(); if (!reduceQ.matches) setTimeout(() => { if (density > 0 && !drops.length) { drops.push(newDrop()); schedule(); } }, 2500); } // eerste druppel kort na het beslaan
+      schedule();
+    }
+    document.addEventListener('visibilitychange', schedule);
+    return { set, size, rebuild() { built = -1; if (density > 0) set(density); } };
+  })();
+
+  /* ── IJsbloemen: statische SVG die één keer vanuit de hoeken uitgroeit; wijkt uit rond tekst. ── */
+  const Frost = (() => {
+    let shown = 0, lastKey = '';
+    function build(f, animate) {
+      const r = card.getBoundingClientRect(), W = r.width, H = r.height, rnd = mulberry32(4242);
+      frostSvg.setAttribute('viewBox', `0 0 ${W} ${H}`); frostSvg.classList.toggle('still', !animate || reduceQ.matches);
+      const corners = [{ x: 0, y: H, a0: -88, a1: -4, reach: 80 + 140 * f, delay: 0 }, { x: W, y: 0, a0: 94, a1: 176, reach: 50 + 90 * f, delay: .8 }];
+      if (f > .35) corners.push({ x: W, y: H, a0: -176, a1: -96, reach: 34 + 70 * f, delay: 1.6 });
+      let out = '<defs>', body = '';
+      corners.forEach((c, ci) => {
+        const paths = [[], [], []], tips = [];
+        const branch = (x, y, a, len, d) => {
+          const rad = a * Math.PI / 180, bend = (rnd() - .5) * len * .14;
+          const ex = x + Math.cos(rad) * len, ey = y + Math.sin(rad) * len;
+          const mx = (x + ex) / 2 - Math.sin(rad) * bend, my = (y + ey) / 2 + Math.cos(rad) * bend;
+          paths[d].push(`M${x.toFixed(1)} ${y.toFixed(1)}Q${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+          if (d === 0) tips.push([ex, ey]);
+          if (d >= 2) return;
+          const n = d === 0 ? 7 : 4;
+          for (let j = 0; j < n; j++) {
+            const t = (j + 1) / (n + 1) + (rnd() - .5) * .06, u = 1 - t;
+            const px = u * u * x + 2 * u * t * mx + t * t * ex, py = u * u * y + 2 * u * t * my + t * t * ey;
+            const side = j % 2 ? 1 : -1, sub = len * (d === 0 ? .36 : .44) * (1 - t * .55) * (.7 + rnd() * .5);
+            branch(px, py, a + side * 60 + (rnd() - .5) * 8, sub, d + 1); // zeshoekig ijs: zijtakken onder 60°
+            if (rnd() < .45) branch(px, py, a - side * 60 + (rnd() - .5) * 8, sub * .65, d + 1);
+          }
+        };
+        const arms = 4 + Math.round(3 * f);
+        for (let k = 0; k < arms; k++) branch(c.x, c.y, c.a0 + (c.a1 - c.a0) * (k + .5) / arms + (rnd() - .5) * 14, c.reach * (.65 + rnd() * .45), 0);
+        const R = c.reach * 1.15;
+        out += `<radialGradient id="fg${ci}" gradientUnits="userSpaceOnUse" cx="${c.x}" cy="${c.y}" r="${R}"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+        out += `<radialGradient id="fh${ci}" gradientUnits="userSpaceOnUse" cx="${c.x}" cy="${c.y}" r="${R * .8}"><stop offset="0" stop-color="currentColor" stop-opacity=".12"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>`;
+        out += `<mask id="fm${ci}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><circle class="grow" cx="${c.x}" cy="${c.y}" r="${R}" fill="url(#fg${ci})" style="transform-origin:${c.x}px ${c.y}px;animation-delay:${c.delay}s"/></mask>`;
+        body += `<g mask="url(#fm${ci})" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="${c.x}" cy="${c.y}" r="${R * .8}" fill="url(#fh${ci})" stroke="none"/>
+          <path d="${paths[0].join('')}" stroke-opacity=".85"/><path d="${paths[1].join('')}" stroke-opacity=".7"/><path d="${paths[2].join('')}" stroke-opacity=".55"/></g>`;
+        tips.slice(0, 2).forEach(([x, y], ti) => {
+          const s = 3.2;
+          body += `<path class="glint" d="M${x} ${y - s}L${x + .7} ${y - .7}L${x + s} ${y}L${x + .7} ${y + .7}L${x} ${y + s}L${x - .7} ${y + .7}L${x - s} ${y}L${x - .7} ${y - .7}Z" fill="currentColor" style="animation-delay:${4.5 + c.delay + ti * .9}s"/>`;
+        });
+      });
+      frostSvg.innerHTML = out + '</defs>' + body;
+      lastKey = ''; maskText();
+      rim.style.opacity = (.25 + .6 * f).toFixed(2);
+    }
+    // Uitsparingen rond tekst: één keer getekend op een klein canvas en als stilstaand masker gebruikt (geen live filter).
+    const mc = document.createElement('canvas');
+    function maskText() {
+      if (!card) return;
+      const b = textBoxes(), k = boxKey(b); if (k === lastKey) return; lastKey = k;
+      const r = card.getBoundingClientRect(), sc = .5; // halve resolutie is genoeg voor een zachte rand
+      mc.width = Math.max(1, Math.round(r.width * sc)); mc.height = Math.max(1, Math.round(r.height * sc));
+      const c = mc.getContext('2d'); c.setTransform(sc, 0, 0, sc, 0, 0);
+      c.fillStyle = '#000'; c.fillRect(0, 0, r.width, r.height);
+      c.globalCompositeOperation = 'destination-out'; c.filter = 'blur(4px)'; c.fillStyle = 'rgba(0,0,0,.95)';
+      for (const x of b) { c.beginPath(); if (c.roundRect) c.roundRect(x.x - 5, x.y - 3, x.w + 10, x.h + 6, 6); else c.rect(x.x - 5, x.y - 3, x.w + 10, x.h + 6); c.fill(); }
+      const url = `url(${mc.toDataURL()})`;
+      frostSvg.style.webkitMaskImage = url; frostSvg.style.maskImage = url;
+      frostSvg.style.webkitMaskSize = frostSvg.style.maskSize = '100% 100%';
+    }
+    let sizeKey = '';
+    function set(f) {
+      if (f <= 0) { frostSvg.classList.remove('on'); rim.style.opacity = 0; shown = 0; return; }
+      const r = card.getBoundingClientRect(); if (!r.width) return;
+      const bucket = Math.round(f * 10) / 10, sk = `${Math.round(r.width)}x${Math.round(r.height)}`;
+      if (!shown) { build(bucket, true); requestAnimationFrame(() => frostSvg.classList.add('on')); }
+      else if (bucket !== shown || sk !== sizeKey) build(bucket, false); // groter of kleiner: zonder opnieuw te groeien
+      else maskText();
+      shown = bucket; sizeKey = sk;
+    }
+    return { set, reset() { shown = 0; }, freeze() { if (shown) frostSvg.classList.add('still'); } };
+  })();
+
+  /* ── Luchtspiegeling en adempluim: korte momenten met een vast ritme, geen lussen. ── */
+  function moment(cls, ms) {
+    if (reduceQ.matches || document.hidden) return;
+    const w = W_EL(); w.classList.remove(cls); void w.offsetWidth; w.classList.add(cls);
+    setTimeout(() => W_EL().classList.remove(cls), ms);
+  }
+  const Every = (cls, ms, dur, firstDelay) => {
+    let on = false, t = 0, first = 0;
+    return {
+      set(v) {
+        if (v && !on) { clearTimeout(first); clearInterval(t); first = setTimeout(() => moment(cls, dur), firstDelay); t = setInterval(() => moment(cls, dur), ms); }
+        if (!v && on) { clearTimeout(first); clearInterval(t); W_EL().classList.remove(cls); }
+        on = v;
+      },
+    };
+  };
+  const Heat = Every('pulse', 40000, 9500, 300);
+  const Breath = Every('breathe', 11000, 6000, 700);
+  // Luchtspiegeling: de ruis schuift tijdens het moment gestaag omhoog (warme lucht stijgt), elke keer een ander patroon.
+  let mRaf = 0, mT0 = 0, mLast = 0, mWas = false;
+  function mirageFrame(t) {
+    mRaf = 0; if (!W_EL().classList.contains('pulse')) return;
+    if (t - mLast >= 33) { mLast = t; const s = (t - mT0) / 1000; document.querySelector('#mirage feOffset').setAttribute('dy', (-(s * 7 + Math.sin(s * 1.7) * 1.5)).toFixed(2)); }
+    mRaf = requestAnimationFrame(mirageFrame);
+  }
+  function watchPulse() {
+    new MutationObserver(() => {
+      const now = W_EL().classList.contains('pulse');
+      if (now && !mWas) {
+        const f = document.getElementById('mirage'); if (!f) return;
+        f.querySelector('feTurbulence').setAttribute('seed', 1 + Math.floor(Math.random() * 999));
+        f.querySelector('feOffset').setAttribute('dy', 0); mT0 = mLast = performance.now(); document.getElementById('mirB').beginElement();
+        if (!mRaf) mRaf = requestAnimationFrame(mirageFrame);
+      }
+      mWas = now;
+    }).observe(W_EL(), { attributes: true, attributeFilter: ['class'] });
+  }
+
+  /* ── Regels, met een kleine marge zodat een effect rond de grens niet aan en uit flikkert. ── */
+  const st = { fog: false, frost: false, cold: false };
+  function rules(s) {
+    const hum = s.humidity, out = s.outdoor, ind = s.indoor;
+    const glass = (slack) => out != null && ind != null && out <= ind - 15 && hum >= 55 - slack; // koud glas: sneller beslagen
+    if (hum == null) st.fog = false;
+    else if (!st.fog && (hum >= 65 || glass(0))) st.fog = true;
+    else if (st.fog && hum < 62 && !glass(3)) st.fog = false;
+    let fog = 0;
+    if (st.fog) { fog = Math.max(.1, (hum - 60) / 25); if (glass(3)) fog = Math.max(fog, .2) + .15; fog = clamp(fog, 0, 1); }
+    // IJsbloemen pas bij echte vorst (vanaf -3°, uit boven -2°): bij dubbel glas zie je ze rond 0° in het echt nooit.
+    if (out == null) st.frost = false; else if (!st.frost && out <= -3) st.frost = true; else if (st.frost && out > -2) st.frost = false;
+    const frost = st.frost ? clamp((-2 - out) / 10, .15, 1) : 0; // -3°: een paar takjes, -12°: volle sterkte
+    if (ind == null) st.cold = false; else if (!st.cold && ind < 16) st.cold = true; else if (st.cold && ind >= 16.5) st.cold = false;
+    return { fog, frost, cold: st.cold };
+  }
+
+  let inited = false, ro = null, lastS = null, lastHeating = false;
+  function init() {
+    if (inited) return; inited = true;
+    ensureMirage(); watchPulse();
+    ro = new ResizeObserver(() => { Fog.size(); if (lastS) update(lastS, lastHeating); });
+    darkQ.addEventListener && darkQ.addEventListener('change', () => { Fog.rebuild(); });
+  }
+  /** Zet de laag in de kaart (na het vervangen van de inhoud) en werk alles bij. */
+  function update(s, heating) {
+    init(); lastS = s; lastHeating = heating;
+    const p0 = document.querySelector('#w .p0'); if (!p0) return;
+    if (card !== p0) { card = p0; ro.disconnect(); ro.observe(p0); Frost.reset(); Fog.size(); }
+    if (fxl.parentNode !== p0) { if (!fxl.parentNode) Frost.freeze(); p0.prepend(fxl); } // teruggezet (na de datumkiezer): ijs niet opnieuw laten groeien
+    const tw = p0.querySelector('.tw');
+    if (tw) { const a = tw.getBoundingClientRect(), b = p0.getBoundingClientRect(); fxl.style.setProperty('--wx', `${Math.round(a.right - b.left - 46)}px`); fxl.style.setProperty('--wy', `${Math.round(a.top - b.top - 60)}px`); }
+    const r = rules(s);
+    Fog.set(r.fog); Frost.set(r.frost);
+    Heat.set(!!heating && !r.cold); Breath.set(r.cold);
+    W_EL().classList.toggle('misted', r.fog > 0 || r.frost > 0);
+  }
+  /** Geen gewone kaart (laden, geen thermostaat, fout, datumkiezer): alles uit. */
+  function off() {
+    Heat.set(false); Breath.set(false); Fog.set(0); Frost.set(0); lastS = null;
+    const w = W_EL(); if (w) w.classList.remove('misted');
+  }
+  return { update, off, layer: fxl };
+})();
+
+/** Kaartinhoud vervangen zonder de effectlaag weg te halen (anders begint ijs en beslag steeds opnieuw). */
+function setCard(p0, html) {
+  for (const n of [...p0.childNodes]) if (n !== FX.layer) n.remove();
+  p0.insertAdjacentHTML('beforeend', html);
+}
+
 function render() {
   const w = document.getElementById('w');
   if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
@@ -1233,7 +1634,7 @@ function render() {
     w.style.minHeight = '';
     w.className = `setup nodevice${first ? ' in' : ''}`; if (first) setTimeout(() => w.classList.remove('in'), 400);
     // Eén kaart, zonder 'Verloop vandaag' erachter: zonder thermostaat valt er niets terug te kijken.
-    page = 0;
+    page = 0; FX.off();
     w.innerHTML = '<div class="vp"><div class="track"><div class="pg p0"></div></div></div>';
     const p0n = w.querySelector('.p0');
     const subN = `<div class="sub">${none ? 'Kies je thermostaat in de instellingen' : 'Controleer hem in de Homey-app'}</div>`;
@@ -1254,7 +1655,7 @@ function render() {
   if (!data || !data.status || !data.status.updatedAt) {
     // Melding in een kaart van dezelfde hoogte, zodat de widget niet krimpt.
     w.className = first ? 'in' : ''; if (first) setTimeout(() => w.classList.remove('in'), 400);
-    w.style.minHeight = `${lastHeight}px`;
+    w.style.minHeight = `${lastHeight}px`; FX.off();
     w.innerHTML = `<div class="vp"><div class="track"><div class="pg p0" style="min-height:${lastHeight - 6}px"><div class="err">${esc((data && data.status && data.status.error) || 'Nog geen gegevens van Slim verwarmen.')}</div></div></div></div>`;
     return;
   }
@@ -1321,12 +1722,13 @@ function render() {
     p0.style.minHeight = vacH ? `${vacH}px` : '';
     if (vacAnim === 'in') sinAt = performance.now();
     const sinEl = performance.now() - sinAt; // opnieuw getekend tijdens het inschuiven: verder waar hij was
+    FX.off();
     p0.innerHTML = `<div class="vacwrap${sinEl < 340 ? ' sin' : ''}" style="--sid:-${Math.round(sinEl)}ms">${vacChooser()}</div>`; if (vacTime) positionWheels();
     vacAnim = null; setTimeout(fitHeight, 0); return;
   }
   p0.style.minHeight = '';
   const back = vacAnim === 'out'; vacAnim = null;
-  p0.innerHTML = `
+  setCard(p0, `
     <div class="top">
       <span class="info">
         <span class="mode">${esc(MODES[s.mode] || s.mode)}</span>
@@ -1349,7 +1751,7 @@ function render() {
     ${IN_SETTINGS ? (durOpen ? durPanel(s) : subHtml)
     : `<div class="zone${durOpen ? ' open' : ''}${durOpen && enterPanel ? ' fresh' : ''}"><div class="rowl">${subHtml}${todayBar(data.schedule || {}, s)}</div>${durOpen ? durPanel(s) : ''}</div>`}
     ${durOpen && IN_SETTINGS ? '' : settingsActions(s)}
-    ${waveInfo && !setup ? waveInfoPanel(s, target, heating, heating && (pending != null || s.targetConfirmed === false)) : ''}`;
+    ${waveInfo && !setup ? waveInfoPanel(s, target, heating, heating && (pending != null || s.targetConfirmed === false)) : ''}`);
   // Terug van de keuze: inhoud schuift van links terug. Tekent de widget zich tijdens dat schuiven opnieuw (nieuwe stand
   // van de Homey), dan gaat de beweging verder waar hij was in plaats van opnieuw te beginnen (anders hapert hij heen en weer).
   if (back) { sbackAt = performance.now(); clearTimeout(sbackTimer); p0.classList.add('sback'); sbackTimer = setTimeout(() => p0.classList.remove('sback'), 400); }
@@ -1358,6 +1760,7 @@ function render() {
   if (s.mode !== 'setup') renderExceptions(document.querySelector('#w .p2'), s);
   placeWaveInfo(p0);
   placeManual();
+  if (!setup && !paused) FX.update(s, heating); else FX.off(); // klimaat-effecten: alleen als de kaart echt meet en regelt
   if (enterRow && !durOpen) { w.querySelectorAll('.sub, .barwrap, .ticks').forEach((el) => el.classList.add('enter')); enterRow = false; }
   setTimeout(fitHeight, 0);
 }
