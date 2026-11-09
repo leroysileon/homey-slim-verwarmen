@@ -8,7 +8,7 @@ const { presenceOf, PresenceWatcher } = require('./lib/presence');
 const { usageOf } = require('./lib/usage');
 
 const TICK_MS = 60 * 1000;
-const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig', limit: 'maximumtemperatuur', window: 'raam open', restore: 'raam dicht' };
+const REASONS = { schedule: 'schema', preheat: 'voorverwarmen', away: 'afwezig', vacation: 'vakantie', limit: 'maximumtemperatuur', window: 'raam open', restore: 'raam dicht' };
 
 class SlimVerwarmenApp extends Homey.App {
 
@@ -35,6 +35,12 @@ class SlimVerwarmenApp extends Homey.App {
       onEvent: (event, data) => this.onControllerEvent(event, data).catch(this.error),
     });
 
+    // Eenmalig: proefrondes van 8 nov 2026 (afwezig, pauze, vakantie aan en uit) uit het dagverloop halen, wordt gewoon thuis.
+    if (!this.homey.settings.get('tidied_20261108')) {
+      const n = this.controller.tidyLog(Date.UTC(2026, 10, 7, 23, 0)); // 8 nov 00:00 Nederlandse tijd
+      this.homey.settings.set('tidied_20261108', true);
+      this.log(`Dagverloop opgeruimd: ${n} testwissels weg`);
+    }
     this.registerFlowCards();
     await this.autoDetect();
 
@@ -182,12 +188,27 @@ class SlimVerwarmenApp extends Homey.App {
   }
 
   async writeTarget(temp) {
+    await this.turnOn().catch((err) => this.error('Thermostaat aanzetten:', err));
     this.log(`Thermostaat -> ${temp}°`);
     await this.api.devices.setCapabilityValue({
       deviceId: this.config.thermostatId,
       capabilityId: 'target_temperature',
       value: temp,
     });
+  }
+
+  /**
+   * Staat de thermostaat op 'uit' (de tado X meldt dat soms bij een lage temperatuur)? Dan eerst weer aan,
+   * anders doet een nieuwe temperatuur niets. Verwarmen als dat kan, anders automatisch.
+   */
+  async turnOn() {
+    const device = await this.getDeviceSafe(this.config.thermostatId, true);
+    const cap = device && device.capabilitiesObj && device.capabilitiesObj.thermostat_mode;
+    if (!cap || cap.value !== 'off') return;
+    const ids = (cap.values || []).map((v) => v.id);
+    const mode = ['heat', 'auto'].find((m) => ids.includes(m)) || ids.find((m) => m !== 'off' && m !== 'cool') || 'heat';
+    this.log(`Thermostaat aan -> ${mode}`);
+    await this.api.devices.setCapabilityValue({ deviceId: this.config.thermostatId, capabilityId: 'thermostat_mode', value: mode });
   }
 
   /** Reageer binnen enkele seconden als iemand aan de thermostaat draait. */
@@ -314,14 +335,26 @@ class SlimVerwarmenApp extends Homey.App {
     return { day, start, end, now, room: this.controller.status.room || null, indoor, target, humidity, outdoor, weather, modes, usage, errors: indoor.length ? [] : errors.slice(0, 2) };
   }
 
-  async runAction({ action, duration, temp, at } = {}) {
+  async runAction(body = {}) {
+    // Uitzonderingen (vakantie, afwezig, pauze): niet laten wachten op een trage thermostaat (Tado gaat via de cloud).
+    // Na 0,3 s antwoorden met de nieuwe stand (snelle thermostaten zijn dan al klaar); de rest gaat op de achtergrond.
+    const QUICK = ['vacation', 'vacationEnd', 'vacationPlanOn', 'vacationPlanOff', 'away', 'home', 'pause', 'enable'];
+    const job = this.doAction(body);
+    if (!QUICK.includes(body.action)) return job;
+    const done = await Promise.race([job.then(() => true), new Promise((r) => setTimeout(() => r(false), 300))]);
+    if (done) return job;
+    job.catch((err) => this.error('Actie op de achtergrond:', err));
+    return this.controller.quickStatus();
+  }
+
+  async doAction({ action, duration, temp, at, until, from } = {}) {
     const c = this.controller;
     switch (action) {
       case 'setTemp': await c.setManual(Math.round(Number(temp) * 2) / 2, duration, 'app'); break; // −/+ in de tegel
       case 'resume': await c.clearOverride(); break;
       case 'setDuration': await c.setOverrideDuration(duration); break;
-      case 'away': await c.setAway(true); break;
-      case 'home': await c.setAway(false); break;
+      case 'away': await c.setAway(true, true); break; // zelf gekozen: pauze en vakantie uit
+      case 'home': await c.setAway(false, true); break;
       case 'pause': await c.setEnabled(false); break;
       case 'enable': await c.setEnabled(true); break;
       case 'start': await c.setEnabled(true); break; // eerste keer: welkomstkaart 'Start slim verwarmen'
@@ -330,6 +363,10 @@ class SlimVerwarmenApp extends Homey.App {
       case 'windowOff': await c.startWindow(duration); break; // raam open: verwarming even uit
       case 'windowIgnore': await c.ignoreWindow(); break;
       case 'windowEnd': await c.stopWindow(); break; // raam weer dicht
+      case 'vacation': await c.setVacation(Number(until), from == null ? undefined : Number(from)); break; // tot het begin van de terugkomstdag; met `from` gepland
+      case 'vacationEnd': await c.stopVacation(); break;
+      case 'vacationPlanOn': await c.setVacationPlanOn(true); break; // geplande vakantie weer aan (datums bewaard)
+      case 'vacationPlanOff': await c.setVacationPlanOn(false); break; // geplande vakantie uit, datums blijven staan
       default: await c.tick();
     }
     return c.status;
@@ -341,7 +378,7 @@ class SlimVerwarmenApp extends Homey.App {
     const c = this.controller;
     const flow = this.homey.flow;
 
-    flow.getActionCard('set_presence').registerRunListener(({ mode }) => c.setAway(mode === 'away'));
+    flow.getActionCard('set_presence').registerRunListener(({ mode }) => c.setAway(mode === 'away', true));
     flow.getActionCard('resume_schedule').registerRunListener(() => c.clearOverride());
     flow.getActionCard('set_temporary').registerRunListener(({ temp, hours }) => c.setOverride(temp, hours));
     flow.getActionCard('set_manual').registerRunListener(({ temp, duration }) => c.setManual(temp, duration, 'flow'));

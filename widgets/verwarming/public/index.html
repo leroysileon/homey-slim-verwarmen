@@ -12,7 +12,7 @@
       -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; position: relative;
     }
     #w .pg {
-      border-radius: 12px; padding: 14px 16px; background-color: #45c08f; position: relative; isolation: isolate; overflow: hidden;
+      border-radius: 16px; /* gelijk aan de afronding waarmee Homey de widget afsnijdt: in rust en tijdens vegen dezelfde hoek */ padding: 14px 16px; background-color: #45c08f; position: relative; isolation: isolate; overflow: hidden;
       display: flex; flex-direction: column; gap: 8px; transition: background-color .9s ease;
       box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 3px 8px -3px rgba(0,0,0,.12); transform-origin: 50% 50%;
     }
@@ -21,6 +21,12 @@
     #w.cold .pg { background-color: #3b8cf0; }
     #w.setup .pg { background-color: #8b8f96; } /* nog niet gestart */
     #w.heat { --cardbg: #f7b52c; } #w.cold { --cardbg: #3b8cf0; } #w.setup { --cardbg: #8b8f96; }
+    #w.onaway { --cardbg: #6a72d8; }
+    #w.onaway .p0 { background-color: #6a72d8; background-image: linear-gradient(160deg, #8f8ff0 0%, #6a72d8 55%, #5560b8 100%); } /* afwezig: avond, huis is leeg */
+    #w.onpaused { --cardbg: #6f7c98; }
+    #w.onpaused .p0 { background-color: #6f7c98; background-image: linear-gradient(160deg, #8e9ab3 0%, #6f7c98 60%, #5b6782 100%); } /* gepauzeerd: leisteen, het schema staat stil */
+    #w.onvacation { --cardbg: #1fb0bb; }
+    #w.onvacation .p0 { background-color: #1fb0bb; background-image: linear-gradient(160deg, #3cc9cf 0%, #1fb0bb 60%, #1597a3 100%); } /* vakantie: lagune (turquoise zee), rustig en positief */
     /* Donkere modus: donkere tint van de toestandskleur met felle tekst in dezelfde kleur (rustiger en beter leesbaar
        dan wit op een felle kaart). Knoppen en balk volgen de tekstkleur. */
     @media (prefers-color-scheme: dark) {
@@ -33,6 +39,12 @@
       #w.setup .p0 { background-color: #2a2b2f; }
       #w .p0::before { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,0) 60%); }
       #w .p0::after { background: radial-gradient(120% 90% at 20% 30%, color-mix(in srgb, var(--fg) 22%, transparent), transparent 70%); }
+      #w.onaway { --fg: #b4b8ff; --cardbg: #1e2242; }
+      #w.onaway .p0 { background-color: #1e2242; background-image: linear-gradient(160deg, #25264a 0%, #1e2242 60%, #1a1e3a 100%); }
+      #w.onpaused { --fg: #c3cde4; --cardbg: #323a4d; }
+      #w.onpaused .p0 { background-color: #323a4d; background-image: linear-gradient(160deg, #3a4256 0%, #323a4d 60%, #2b3243 100%); }
+      #w.onvacation { --fg: #7fe3e6; --cardbg: #0f3537; }
+      #w.onvacation .p0 { background-color: #0f3537; background-image: linear-gradient(160deg, #133f42 0%, #0f3537 60%, #0c2c2e 100%); }
     }
     /* Zachte glans. */
     #w .pg::before { content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
@@ -47,13 +59,14 @@
     body { position: fixed; inset: 0; touch-action: manipulation; -webkit-user-select: none; padding: 0 1px 6px; box-sizing: border-box; }
     #w * { box-sizing: border-box; }
     #w .top { display: flex; justify-content: space-between; align-items: center; gap: 6px; height: 32px; flex: none; }
-    #w .chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--pill); font-size: 13px; font-weight: 600; white-space: nowrap; }
+    #w .chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--pill); font-size: 13px; font-weight: 500; white-space: nowrap; }
     #w .chip svg { width: 15px; height: 15px; }
     /* Info als gewone tekst met icoontjes, zodat het niet op knoppen lijkt. */
     #w .info { display: inline-flex; align-items: center; gap: 12px; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; }
     #w .info .mode { font-weight: 600; }
     #w .top .cost { flex: none; font-size: 13px; white-space: nowrap; opacity: .85; font-variant-numeric: tabular-nums; }
-    #w .top .cost b { font-weight: 700; opacity: 1; }
+    #w .top .cost b { font-weight: 600; opacity: 1; }
+    @media (max-width: 350px) { #w .top .cost .amt { display: none; } } /* smal (zoals een S21): alleen het bedrag; de hoeveelheid staat in de uitleg */
     /* Kosten zijn aantikbaar: heel klein i-tje erachter, tik toont een kort ballonnetje. */
     #w .top button.cost { all: unset; flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: 13px; white-space: nowrap; opacity: .85; font-variant-numeric: tabular-nums; cursor: pointer; padding: 8px 0; margin: -8px 0; -webkit-tap-highlight-color: transparent; }
     #w .top button.cost .ci { width: 10px; height: 10px; flex: none; opacity: .7; }
@@ -65,10 +78,10 @@
     #w .top button.cost[aria-expanded="true"] { position: relative; z-index: 5; opacity: 1; } /* boven de grijze laag, zoals de golfjes */
     #w .info .it { display: inline-flex; align-items: center; gap: 3px; opacity: .8; }
     #w .info .it svg { width: 13px; height: 13px; flex: none; }
-    #w .info .it.high { opacity: 1; font-weight: 700; }
+    #w .info .it.high { opacity: 1; font-weight: 600; }
     /* Wisselknop (handmatig): zelfde tekst, iets groter tikvlak, zonder knoplook */
     #w .info button.it { all: unset; display: inline-flex; align-items: center; gap: 3px; opacity: .8; cursor: pointer; padding: 6px 4px; margin: -6px -4px; -webkit-tap-highlight-color: transparent; }
-    #w .info button.it.high { opacity: 1; font-weight: 700; }
+    #w .info button.it.high { opacity: 1; font-weight: 600; }
     #w .info button.it svg { width: 13px; height: 13px; flex: none; }
     /* Wisselende waarde (handmatig): twee waarden op één plek, zachte overgang */
     #w .info button.rot { display: inline-grid; }
@@ -76,7 +89,7 @@
     #w .rot > .v2 { opacity: 0; transform: translateY(6px); }
     #w .rot.alt > .v1 { opacity: 0; transform: translateY(-6px); }
     #w .rot.alt > .v2 { opacity: 1; transform: none; }
-    #w .rot > .high { font-weight: 700; }
+    #w .rot > .high { font-weight: 600; }
     @media (prefers-reduced-motion: reduce) { #w .rot > span { transition: none; transform: none !important; } }
     /* Golfjes los boven het getal, zodat ze de rij niet verschuiven. */
     /* Golfjes naast de huidige temperatuur: 'het wordt warmer'. */
@@ -94,10 +107,10 @@
     #w .wpop::before { content: ''; position: absolute; top: -5px; left: var(--ax, 40px); width: 12px; height: 12px; margin-left: -6px; background: inherit; transform: rotate(45deg); border-radius: 3px 0 0 0; } /* alleen de punt afgerond: de rest valt naadloos in het ballonnetje */
     #w .wpop .t { font-size: 13.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #w .wpop .n { font-size: 12px; opacity: .65; margin-top: 1px; white-space: nowrap; }
-    #w .wpop .t b { font-weight: 700; }
+    #w .wpop .t b { font-weight: 600; }
     #w .wpop .lg { display: flex; gap: 2px; margin: 5px -6px 0; }
     #w .wpop .lg > span { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 8px; font-size: 12.5px; color: #3a3d42; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    #w .wpop .lg > span.cur { background: #ececf0; color: #17171a; font-weight: 700; } /* neutraal: past bij elke kaartkleur */
+    #w .wpop .lg > span.cur { background: #ececf0; color: #17171a; font-weight: 600; } /* neutraal: past bij elke kaartkleur */
     #w .wpop .lg .waves { margin: 0; align-self: center; width: 12px; height: 16px; color: #17171a; }
     #w .wpop .lg .waves svg { width: 12px; height: 16px; }
     #w .wpop .lg .waves path { opacity: .22; } /* duidelijk verschil tussen aan en uit */
@@ -125,15 +138,15 @@
     #w .temp .d { font-size: 23px; line-height: 1; position: relative; align-self: flex-start; }
     #w .ctrl { display: flex; align-items: center; gap: 2px; }
     #w button { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      border-radius: 999px; background: var(--pill); color: inherit; font: inherit; font-weight: 600; transition: transform .06s; }
+      border-radius: 999px; background: var(--pill); color: inherit; font: inherit; font-weight: 500; transition: transform .06s; }
     #w button:active { transform: scale(.94); }
     #w .ctrl button { width: 40px; height: 40px; padding: 0; flex: none; }
     #w .ctrl button svg { width: 18px; height: 18px; display: block; }
     /* Op het maximum: + wordt een rondje met 'max' (tikken doet niets). */
-    #w .ctrl .maxb { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; padding: 0;
+    #w .ctrl .maxb { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 500; padding: 0;
       background: transparent; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fg) 55%, transparent); }
     #w .ctrl .val { position: relative; width: 60px; text-align: center; }
-    #w .ctrl output { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #w .ctrl output { display: block; font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
     /* Ruimte onder de grote temperatuur (zone van de thermostaat in Homey) */
     #w .room { font-size: 18px; font-weight: 600; line-height: 22px; height: 22px; margin-top: -4px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #w .sub { display: flex; align-items: center; gap: 6px; font-size: 14px; height: 20px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -157,12 +170,13 @@
     /* Raam open? Eén rustige regel: vraag, één knop en een kruisje. De rest van de kaart blijft zoals hij was. */
     #w .sub.askrow { overflow: visible; }
     #w .sub .ask { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-    #w .sub .yes { flex: none; height: 26px; margin: -3px 0 -3px 4px; padding: 0 11px; font-size: 13.5px; font-weight: 600; background: var(--solid); color: var(--solid-text); }
+    #w .sub .yes { flex: none; height: 26px; margin: -3px 0 -3px 4px; padding: 0 11px; font-size: 13.5px; font-weight: 500; background: var(--solid); color: var(--solid-text); }
     #w .sub .no { flex: none; width: 26px; height: 26px; margin: -3px 0; padding: 0; background: none; opacity: .75; }
     #w .sub .no svg { width: 12px; height: 12px; }
     #w .err { font-size: 13px; }
     /* Geen thermostaat: zelfde opbouw als normaal, maar de onderdelen die een thermostaat nodig hebben vervaagd. */
     #w.nodevice .ghost { opacity: .4; pointer-events: none; }
+    #w.onvacation .barwrap, #w.onvacation .ticks { opacity: .35; }
     /* Twee pagina's (alleen dashboard): nu en verloop van vandaag. Swipen of op de puntjes tikken. */
     #w { touch-action: pan-y; }
     /* Schuifbaan: beide pagina's naast elkaar; de inhoud volgt je vinger tot aan de rand van de kaart. */
@@ -175,15 +189,31 @@
       background: linear-gradient(180deg, rgba(120,120,128,.22), rgba(120,120,128,.30));
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
       -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
-      opacity: 0; transform: scale(.94); transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
+      opacity: 0; transform: scale(.94); transition: opacity var(--swipe-t), transform var(--swipe-t); } /* zelfde timing als kaart en bolletjes */
     @media (prefers-color-scheme: dark) { #w .stackframe { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.10)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); } }
     #w.stacking .stackframe { opacity: 1; transform: none; }
+    /* Piepkleine bolletjes onderin: op welke kaart je bent. Alleen zichtbaar tijdens het vegen. */
+    /* Onder de kaart, buiten het kader: vaste ruimte eronder, zodat de widget niet van hoogte verandert. */
+    #w { position: relative; }
+    /* Dashboard: ruimte onder de kaart, binnen het grijze vlak dat tijdens het vegen verschijnt; daar staan de bolletjes. */
+    /* (geen extra ruimte: de kaart vult de widget; tijdens het vegen krimpt hij en komen de bolletjes eronder) */
+    /* Strookje onderin (rand + bolletje + rand) dat afknipt: de bolletjes schuiven erin en eruit zonder buiten de container te komen. */
+    #w .dots { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; overflow: hidden; z-index: 4; display: flex; align-items: center; justify-content: center; gap: 3px;
+      pointer-events: none; opacity: 0; transition: opacity var(--swipe-t); }
+    #w.stacking .dots i { transform: none; }
+    #w .dots i { width: 4px; height: 4px; border-radius: 50%; background: rgba(128,128,128,.5); transform: translateY(10px); /* weg: naar beneden, gelijk met het groeien van de kaart */
+      transition: transform var(--swipe-t), background-color .3s ease, box-shadow .3s ease; }
+    #w .dots i.on { background: #fff; box-shadow: 0 0 0 .5px rgba(0,0,0,.18); } /* actieve kaart: rond en licht, vloeiend van bolletje naar bolletje */
+    @media (prefers-color-scheme: dark) { #w .dots i.on { box-shadow: none; } }
+    #w.stacking .dots { opacity: 1; transform: none; } /* erbij: gelijk met het krimpen van de kaart */
+    #w { --swipe-t: .34s cubic-bezier(.2,.8,.2,1); } /* één timing voor kaart, grijs vlak en bolletjes */
+    @media (prefers-reduced-motion: reduce) { #w .dots { transition: none; } }
     /* Android (WebView): de vervaging wordt elk frame opnieuw berekend en laat het vegen haperen. Daar zonder. */
     .android #w .stackframe { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(120,120,128,.32); }
     @media (prefers-color-scheme: dark) { .android #w .stackframe { background: rgba(255,255,255,.14); } }
     @media (prefers-reduced-motion: reduce) { #w .stackframe { transition: opacity .2s; transform: none; } }
     #w .track { position: relative; }
-    #w .track > .p1 { position: absolute; top: 0; left: 0; right: 0; }
+    #w .track > .p1, #w .track > .p2 { position: absolute; top: 0; left: 0; right: 0; }
     #w .track > .pg { will-change: transform; }
     #w .chart { display: block; width: 100%; flex: none; }
     /* Details bij vasthouden: lijn, stip en kaartje */
@@ -194,26 +224,77 @@
     #w .wtip .tt { font-size: 11px; opacity: .7; display: flex; justify-content: center; align-items: center; gap: 10px; }
     #w .wtip .tt .to { margin-left: auto; } /* buiten: rechtsboven in de hoek, zelfde tint als de tijd */
     #w .wtip .tt .to svg { width: 13px; height: 13px; }
-    #w .wtip .tv { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    #w .wtip .tv { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.15; }
     #w .wtip .tr { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
     #w .wtip span { display: inline-flex; align-items: center; gap: 3px; }
     #w .wtip svg { width: 13px; height: 13px; flex: none; } #w .wtip .tv svg { width: 15px; height: 18px; opacity: .8; }
     @media (prefers-color-scheme: dark) { #w .wtip { background: #f5f5f5; color: #17171a; } #w .chart .scrub circle { fill: #22232b; } }
     /* Verloopkaart: wit (donker: donkergrijs), zelfde rustige kleuren als het verloop in de instellingen */
-    #w .track > .p1 { background-color: #ffffff; color: #17171a; }
-    #w .p1::before, #w .p1::after { display: none; }
+    #w .track > .p1, #w .track > .p2 { background-color: #ffffff; color: #17171a; }
+    /* Derde kaart: uitzonderingen (afwezig, vakantie, pauzeren) */
+    #w .p2 .xt { font-size: 15px; font-weight: 600; height: 20px; display: flex; align-items: center; justify-content: space-between; }
+    /* Drie tegels naast elkaar, zoals de apparaattegels in Homey: icoon in een rondje, naam, één korte regel. Vullen de kaarthoogte. */
+    #w .track > .p2 { bottom: 0; }
+    #w.vacbig .track > .p0 { min-height: calc(384px - var(--calcut, 0px)); } /* vakantiekalender open: de kaarten (en dus de widget) groeien mee */
+    #w .p2 .xl.x2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* zonder Afwezig (thuis/afwezig-detectie staat aan) */
+    #w .p2 .xl { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-height: 0; } /* precies drie kolommen, tekst wordt afgekapt in plaats van uit te steken */
+    #w .p2 .xo { flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; height: auto; padding: 12px 10px 11px 12px; border-radius: 8px; /* binnen een kaart met 12px afronding: minder rond dan de kaart */
+      background: #f2f1f7; color: inherit; text-align: left; transition: background-color .2s, color .2s; }
+    /* Opbouw zoals de apparaattegels in Homey: icoon linksboven, aan/uit-knop rechtsboven, naam en Aan/Uit onderaan. */
+    #w .p2 .xo .xh { display: flex; width: 100%; flex-direction: row; justify-content: space-between; align-items: flex-start; }
+    #w .p2 .xo .xm svg { width: 26px; height: 26px; margin-top: 2px; }
+    #w .p2 .xo .xi { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #dedfe7; color: #626167; margin: -4px -2px 0 0; transition: background-color .2s, color .2s; } /* 8px van boven- en rechterrand */
+    #w .p2 .xo .xi svg { width: 22px; height: 22px; } /* gemeten op Homey: rondje 31pt, aan/uit-teken ±16pt, lijn 2pt, uit = grijs teken */
+    #w .p2 .xo small .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; background: currentColor; } /* aan: gekleurd bolletje, zoals 'Aan • 55%' in Homey */
+    #w .p2 .xo span:not(.xi):not(.xm):not(.xh):not(.xs) { display: flex; flex-direction: column; min-width: 0; width: 100%; }
+    #w .p2 .xo b { font-size: 15px; font-weight: 500; line-height: 1.2; } /* zoals de apparaattegels van Homey: titel medium, status normaal */
+    #w .p2 .xo small { font-size: 12px; font-weight: 400; opacity: .6; line-height: 1.25; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } /* smal scherm: twee regels */
+    /* Aan: zoals een apparaat dat aan staat in Homey: tegel wit, rondje licht getint, teken in de kleur van de modus. */
+    #w .p2 .xo.on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    #w .p2 .xo.on .xi { background: #dcf5e9; color: #2f9e72; } #w .p2 .xo.on .dot { color: #7fd8b0; }
+    #w .p2 .xo.on[data-xkey=away] .xi { background: #e9eafd; color: #5a63c9; } #w .p2 .xo.on[data-xkey=away] .dot { color: #a9aef5; }
+    #w .p2 .xo.on[data-xkey=paused] .xi { background: #e5ebf8; color: #4f619a; } #w .p2 .xo.on[data-xkey=paused] .dot { color: #9eb0dc; }
+    #w .p2 .xo.on[data-xkey=vacation] .xi { background: #d9f4f5; color: #14909b; } #w .p2 .xo.on[data-xkey=vacation] .dot { color: #7fd9de; }
+    /* Vakantie gepland (nog niet begonnen): lagune-rand en -icoon, 'Gepland' in die kleur. */
+    @media (max-width: 350px) { #w .p2 .xo { padding: 11px 8px 10px 10px; } #w .p2 .xo b { font-size: 14px; } } /* smalle Android-telefoons: titel past nog op één regel */
+    #w .p2 .xo.plan { box-shadow: inset 0 0 0 1.5px #1fb0bb; }
+    #w .p2 .xo.plan .xm { color: #14909b; }
+    #w .p2 .xo small .nw { font-style: normal; white-space: nowrap; padding-right: 15px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238e8e93%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4.5%2019.5h4l11-11-4-4-11%2011v4zM14%206l4%204%22/%3E%3C/svg%3E") no-repeat right 1px center / 11px 11px; } /* potlood als achtergrond van het laatste woord: kan nooit los op een eigen regel staan (iOS deed dat met een los icoon) */
+    #w .p2 .xo[data-xkey=vacation] small { display: block; -webkit-line-clamp: unset; overflow: visible; } /* vakantie: niet afkappen (iOS zette het potloodje anders los op een derde regel); ruimte genoeg */
+    #w .p2 .xo.plan .xi.lit { background: #d9f4f5; color: #14909b; } /* gepland: staat klaar, dus de knop is al 'aan' */
+    #w .p2 .xo[data-xkey] .xi.pn { background: transparent; color: #626167; opacity: .8; } /* potlood: tertiair, zonder rondje (tik op de tegel wijzigt) */
+    #w .p2 .xo.plan .pl { color: #11838d; font-weight: 500; }
+    #w .p2 .xo.plan small { opacity: .85; }
+    #w .p2 .xo.busy { opacity: 1; } /* bezig: alleen het rondje draait, verder niets veranderen */
+    #w .spin { animation: xspin .8s linear infinite; } /* laadindicator in tegels (dashboard) en knoppen (instellingen) */
+    @keyframes xspin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { #w .spin { animation-duration: 2.4s; } }
+    #w .vq { font-size: 14px; opacity: .8; margin: 2px 0 4px; }
+    /* Titel met terugpijl: tik = terug zonder vakantie */
+    #w .xback { all: unset; display: inline-flex; align-items: center; gap: 2px; align-self: flex-start; font-size: 15px; font-weight: 600; height: 20px; padding: 10px 10px 10px 0; margin: -10px 0 -10px -4px; cursor: pointer; }
+    #w .xback svg { width: 18px; height: 18px; }
+    #w .p1::before, #w .p1::after, #w .p2::before, #w .p2::after { display: none; } /* effen: geen glans achter tegels en grafiek */
     #w .chart .g { stroke: #ecebe8; }
     #w .chart .l { fill: #9a9aa0; font-size: 10px; }
     #w .chart .heat { fill: #fbe3a6; opacity: .75; }
     #w .chart .in { stroke: #17171a; }
     #w .chart .sp { stroke: #45c08f; }
+    #w .chart .b-vacation { fill: #d6f2f3; } #w .chart .i-vacation { stroke: #0f6f77; }
     #w .chart .win { fill: #9cc9f5; opacity: .4; } #w .chart .winb circle { fill: #d3e6fb; }
     #w .chart .b-schedule { fill: #d7f3e6; } #w .chart .b-manual { fill: #f7b52c; } #w .chart .b-away { fill: #8b8f96; } #w .chart .b-off { fill: #c9cbd1; } #w .chart .b-window { fill: #d3e6fb; } /* raam open: koele lichtblauwe tint */
     #w .chart .i-schedule { stroke: #1d6f4f; } #w .chart .i-manual { stroke: #4a3000; } #w .chart .i-away, #w .chart .i-off { stroke: #fff; } #w .chart .i-window { stroke: #1f5fa8; }
     @media (prefers-color-scheme: dark) {
-      #w .track > .p1 { background-color: #22232b; color: #f5f5f5; } /* zelfde blauwgrijs als de apparaattegels in Homey */
+      #w .track > .p1, #w .track > .p2 { background-color: #22232b; color: #f5f5f5; } /* zelfde blauwgrijs als de apparaattegels in Homey */
+      #w .p2 .xo { background: #17191e; box-shadow: inset 0 0 0 1px #24262c; } /* zelfde als de apparaattegels eronder in Homey */
+      #w .p2 .xo .xi { background: rgba(255,255,255,.08); color: #a3a4ab; }
+      #w .p2 .xo.on { background: #2a2c33; box-shadow: none; } #w .p2 .xo.on .xi { background: rgba(94,227,168,.16); color: #5ee3a8; } #w .p2 .xo.on .dot { color: #5ee3a8; }
+      #w .p2 .xo.on[data-xkey=away] .xi { background: rgba(180,184,255,.18); color: #b4b8ff; } #w .p2 .xo.on[data-xkey=away] .dot { color: #b4b8ff; }
+      #w .p2 .xo.on[data-xkey=paused] .xi { background: rgba(195,205,228,.18); color: #c3cde4; } #w .p2 .xo.on[data-xkey=paused] .dot { color: #c3cde4; }
+      #w .p2 .xo.plan { box-shadow: inset 0 0 0 1.5px rgba(127,227,230,.6); } #w .p2 .xo.plan .pl, #w .p2 .xo.plan .xm { color: #7fe3e6; } #w .p2 .xo.plan .xi.lit { background: rgba(127,227,230,.16); color: #7fe3e6; } #w .p2 .xo[data-xkey] .xi.pn { background: transparent; color: #a3a4ab; }
+      #w .p2 .xo.on[data-xkey=vacation] .xi { background: rgba(127,227,230,.16); color: #7fe3e6; } #w .p2 .xo.on[data-xkey=vacation] .dot { color: #7fe3e6; }
       #w .chart .g { stroke: #3a3b40; } #w .chart .in { stroke: #f5f5f5; }
       #w .chart .heat { fill: rgba(247,181,44,.28); opacity: 1; }
+      #w .chart .b-vacation { fill: #14393b; } #w .chart .i-vacation { stroke: #7fe3e6; }
       #w .chart .win { fill: rgba(140,196,255,.22); opacity: 1; } #w .chart .winb circle { fill: #173452; }
       #w .chart .b-schedule { fill: #1c4636; } #w .chart .b-away { fill: #6b6f76; } #w .chart .b-off { fill: #4a4c52; } #w .chart .b-window { fill: #173452; } #w .chart .i-window { stroke: #8cc4ff; }
       #w .chart .i-schedule { stroke: #6fdcae; }
@@ -222,9 +303,93 @@
     /* Op de instellingenpagina dezelfde ronding als de andere kaarten daar */
     .in-settings #w .pg { border-radius: 20px; padding: 16px; }
     /* Alleen op de instellingenpagina: Afwezig en Pauzeren in de tegel */
-    #w .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; flex: none; }
-    #w .acts button { height: 42px; padding: 0 8px; font-size: 14.5px; white-space: nowrap; min-width: 0; }
+    /* Afwezig · Pauzeren · Vakantie: 16px ruimte links en rechts in elke knop. Past het niet, dan zijwaarts scrollen tot de rand van de kaart. */
+    #w .acts { display: flex; gap: 8px; margin: 4px -16px 0; padding: 0 16px; flex: none; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-padding: 0 16px; }
+    #w .acts::-webkit-scrollbar { display: none; }
+    #w .acts button { flex: 1 0 auto; height: 42px; padding: 0 16px; font-size: 14.5px; white-space: nowrap; }
     #w .acts button svg { width: 17px; height: 17px; flex: none; }
+    #w .acts.acts3 { grid-template-columns: 1fr 1fr 1fr; }
+    #w .acts.acts3 button { gap: 5px; font-size: 14px; }
+    #w .acts button.on { background: #fff; color: #17171a; } /* actieve uitzondering: wit vlak, valt op in elke kaartkleur */
+    #w .acts button.armed { box-shadow: inset 0 0 0 2px #fff; } /* vakantie gepland: staat klaar (witte rand), nog niet aan (wit vlak) */
+    @media (prefers-color-scheme: dark) { #w .acts button.on { background: var(--fg); color: var(--cardbg); } #w .acts button.armed { box-shadow: inset 0 0 0 2px var(--fg); } }
+    #w .vac { display: flex; flex-direction: column; gap: 6px; }
+    #w .vac .vq { font-size: 13.5px; }
+    /* Drie snelle keuzes naast elkaar (titel + datum), daaronder de hoofdknop: zelf een datum kiezen. */
+    #w .vopts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; flex: 1; min-height: 0; }
+    .dash #w .p2 .vac { flex: 1; min-height: 0; } /* dashboard: keuzes vullen de kaart, datumknop onderaan */
+    #w .vopts > * { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; padding: 9px 10px; border-radius: 8px; background: #f1f1f4; cursor: pointer; min-width: 0; }
+    #w .vopts b { font-size: 14px; font-weight: 500; line-height: 1.2; } /* mag over twee regels: niets afkappen */
+    #w .vopts small { font-size: 12px; opacity: .65; white-space: nowrap; }
+    #w .vdate { all: unset; box-sizing: border-box; position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 999px; font-size: 15px; font-weight: 500;
+      background: #f1f1f4; color: inherit; cursor: pointer; }
+    #w .vdate svg { width: 18px; height: 18px; }
+    #w .vdate:disabled { opacity: .45; cursor: default; }
+    #w .vbtns { display: flex; gap: 8px; flex: none; } /* knoppen houden hun hoogte; de regels erboven geven mee */
+    #w .vbtns .vdate { flex: 1; min-width: 0; padding: 0 10px; white-space: nowrap; }
+    #w .vdate.sec { background: transparent !important; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 22%, transparent); } /* annuleren: rustiger dan opslaan */
+    /* Van en tot: gewone regels (label links, datum en tijd rechts), zonder kaders eromheen. */
+      background: #f1f1f4; color: inherit; font: 600 16px/1.2 inherit; font-family: inherit; text-align: right; color-scheme: light; cursor: pointer; }
+    /* Eigen kalender: vertrek en terugkomst als bolletje, de dagen ertussen als band. */
+    #w .vcal { gap: 2px; }
+    #w .calh { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex: none; }
+    #w .calh .xback { margin: -6px 0 -6px -4px; } /* tikvlak 40px, maar op dezelfde middellijn als de maandkiezer */
+    #w .calnav { display: flex; align-items: center; gap: 2px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+    #w .calnav button { all: unset; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; cursor: pointer; }
+    #w .calnav button svg { width: 18px; height: 18px; }
+    #w .calnav .caltoday { width: auto; height: 28px; padding: 0 10px; margin-right: 4px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--vt, #11838d); background: color-mix(in srgb, currentColor 12%, transparent); } /* terug naar vandaag: klein, tekst in plaats van icoon */
+    @media (prefers-color-scheme: dark) { #w .calnav .caltoday { --vt: #7fe3e6; } }
+    @media (max-width: 340px) { #w .calnav { font-size: 13px; } #w .calnav button { width: 22px; } #w .calnav .caltoday { width: auto; padding: 0 7px; margin-right: 2px; font-size: 12.5px; } #w .calh { gap: 4px; } } #w .calnav button:disabled { opacity: .25; cursor: default; }
+    #w .calw { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 11px; opacity: .55; text-align: center; flex: none; padding: 2px 0; }
+    #w .calw, #w .calg { margin-left: calc((210px - 100%) / 12); margin-right: calc((210px - 100%) / 12); } /* breder: de rondjes van ma en zo vallen precies op de rand van de inhoud */
+    #w .calg { flex: none; display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 30px; row-gap: 3px; } /* altijd ruimte tussen de weken, ook als de rijen laag zijn */
+    #w .calg button { all: unset; position: relative; display: grid; place-items: center; cursor: pointer; font-size: 14px; font-variant-numeric: tabular-nums; overflow: visible; }
+    #w .calg > span { position: relative; display: block; height: 30px; min-height: 0; margin: 0; padding: 0; }
+    #w .calg > span.cont i { position: relative; display: grid; place-items: center; height: 30px; color: var(--vt, #11838d); } #w .calg > span.cont svg { width: 16px; height: 16px; } /* periode loopt door naar de andere maand */
+    @media (prefers-color-scheme: dark) { #w .calg > span.cont i { --vt: #7fe3e6; } } /* leeg vakje (andere maand): alleen de band */ #w .calg > span::before, #w .calg button::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 30px; transform: translateY(-50%); } /* band even hoog als de rondjes; 4px tussen de weken */
+    #w .calg .mid::before { background: rgba(31,176,187,.15); } #w .calg .a.rng::before { left: 50%; background: rgba(31,176,187,.15); } #w .calg .b.rng::before { right: 50%; background: rgba(31,176,187,.15); }
+    #w .calg button span { position: relative; z-index: 1; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; } /* rondje en band allebei 30px */
+    #w .calg .a span, #w .calg .b span { background: #1597a3; color: #fff; font-weight: 600; }
+    #w .calg .today span { font-weight: 600; } #w .calg button:disabled { opacity: .28; cursor: default; } #w .calg .past span { text-decoration: line-through; }
+    #w .calg .mid.c0::before { left: calc(50% - 15px); border-radius: 6px 0 0 6px; } #w .calg .mid.c6::before { right: calc(50% - 15px); border-radius: 0 6px 6px 0; } /* band stopt bij de dag zelf, niet bij de rand van de kalender */ #w .calg .a.rng.c6::before, #w .calg .b.rng.c0::before { display: none; } /* begin op zondag / eind op maandag: geen los stukje band naast het rondje */ /* band per week afgerond, zoals Airbnb */
+    #w .calf { display: flex; justify-content: space-between; align-items: center; gap: 4px; flex: none; padding-top: 6px; margin-top: auto; } /* korte maand: ruimte boven de tijden, weken blijven dicht op elkaar */ /* breedte naar inhoud: dag + weekdag + tijd passen ook in een smalle widget */
+    #w .cf { display: flex; align-items: center; gap: 4px; flex: none; min-height: 32px; cursor: pointer; }
+    #w .cf b { font-size: 15px; font-weight: 400; white-space: nowrap; } #w .cf b.dim { opacity: .45; font-weight: 500; }
+    #w .cf.next b { opacity: 1; color: #11838d; font-weight: 400; } /* dit kies/wijzig je nu */
+    #w .carr { opacity: .4; font-size: 15px; }
+        @media (max-width: 340px) { #w .cf input { padding: 4px 5px; } #w .cf b, #w .cf input { font-size: 14px; } } /* smal: iets kleiner, weekdag blijft */
+    @media (max-width: 330px) { #w .cf .wd { display: none; } } /* alleen op de allersmalste schermen zonder weekdag */ /* smal: '28 nov' zonder weekdag, zodat dag en tijd allebei op 16px passen */
+    #w .cf input { -webkit-appearance: none; appearance: none; position: relative; box-sizing: border-box; min-width: 0; flex: none; min-height: 32px; margin: 0; padding: 4px 6px; border: 0; border-radius: 8px;
+      background: #f1f1f4; color: inherit; font-family: inherit; font-size: 15px; font-weight: 400; line-height: 1.2; color-scheme: light; cursor: pointer; } /* even groot als de dag */
+    #w .cf input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; margin: 0; padding: 0; opacity: 0; background: none; cursor: pointer; }
+    #w .calbtns { display: flex; gap: 8px; flex: none; margin-top: 8px; } #w .calbtns .vdate { flex: 1; height: 42px; min-width: 0; }
+    #w .calgo:not(:disabled) { background: #1597a3 !important; color: #fff; } /* opslaan = hoofdactie, in de kleur van vakantie (binnen een modus: kleur van die modus) */
+    @media (prefers-color-scheme: dark) { #w .calgo:not(:disabled) { background: #7fe3e6 !important; color: #08292b; } }
+    #w .calbtns .calsec { flex: none; padding: 0 18px; } /* kleiner dan opslaan: uitzetten zit bewust een stapje verder weg */
+    #w .vdate.dg { background: #fbe7e3 !important; color: #cc3a1f; font-weight: 500; } /* uitzetten/stoppen: zelfde lichtrood als 'Verwijderen' in het schema */
+    @media (prefers-color-scheme: dark) { #w .vdate.dg { background: #4a2420 !important; color: #ff8a75; } }
+    #w .vcancel { all: unset; align-self: center; font-size: 13px; font-weight: 500; opacity: .7; padding: 6px 10px; margin: -4px 0 -6px; cursor: pointer; }
+    #w .vplanrow { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 2px 0 -6px; }
+    #w .vplan { display: flex; align-items: center; gap: 5px; margin: 0; white-space: nowrap; } #w .vplan svg { width: 14px; height: 14px; flex: none; } /* geplande vakantie: één korte regel */
+    #w .vopts small svg { width: 14px; height: 14px; flex: none; }
+    /* Op slot (Homey verwerkt een keuze): niets aan te tikken, de andere keuzes wat lichter. */
+    #w.locked { pointer-events: none; }
+    #w.locked .vopts > *:not(.wait), #w.locked .vdate:not(.wait), #w.locked .p2 .xo:not(.wait), #w.locked .acts button:not(.busy) { opacity: .45; transition: opacity .2s; }
+    @media (prefers-color-scheme: dark) { #w .vopts > *, #w .vdate { background: #2f3039; }
+      #w .cf input { background: #2f3039; color-scheme: dark; } #w .cf.next b { color: #7fe3e6; }
+      #w .calg .mid::before, #w .calg .a.rng::before, #w .calg .b.rng::before { background: rgba(127,227,230,.18); } #w .calg .a span, #w .calg .b span { background: #7fe3e6; color: #08292b; } }
+    /* Instellingen: de keuze staat als eigen 'slide' op een neutrale kaart, net als de derde kaart op het dashboard. */
+    #w.vacpick .p0 { background-color: #ffffff; background-image: none; color: #17171a; }
+    #w.vacpick .p0::before, #w.vacpick .p0::after { display: none; }
+    #w.vacpick .vacwrap, #w.vacpick .vac { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    #w .vacwrap.sin { animation: vac-in .34s cubic-bezier(.2,.8,.2,1) var(--sid, 0ms) both; }
+    #w .p0.sback > * { animation: vac-back .34s cubic-bezier(.2,.8,.2,1) var(--sbd, 0ms) both; }
+    #w .wfade { animation: w-fade .3s ease; } @keyframes w-fade { from { opacity: 0; } }
+    @keyframes vac-in { from { transform: translateX(40px); opacity: 0; } }
+    @keyframes vac-back { from { transform: translateX(-40px); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { #w .vacwrap.sin, #w .p0.sback > * { animation: none; } }
+    @media (prefers-color-scheme: dark) { #w.vacpick .p0 { background-color: #22232b; color: #f5f5f5; } }
+
     #w button.busy { opacity: .7; pointer-events: none; animation: w-pulse 1s ease-in-out infinite; }
     @keyframes w-pulse { 50% { opacity: .45; } }
     #w .right { display: inline-flex; align-items: center; gap: 6px; }
@@ -303,7 +468,7 @@
 
 <script>
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart', window: 'Raam open', deviceWindow: 'Raam open', deviceOff: 'Thermostaat uit' };
+const MODES = { schedule: 'Volgens schema', preheat: 'Voorverwarmen', manual: 'Handmatig', away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart', window: 'Raam open', deviceWindow: 'Raam open', deviceOff: 'Thermostaat uit', vacation: 'Vakantie' };
 /** Weericoon bij de buitentemperatuur, passend bij het weer buiten (kind uit status.weather). */
 const WX = (() => {
   const S = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -350,6 +515,7 @@ let confirmPoll = null;
 // Dezelfde widget dient ook als statustegel op de instellingenpagina (tile.html?in=settings):
 // daar geen dagbalk (het weekschema staat eronder), wel de knoppen Afwezig en Pauzeren in de tegel.
 const IN_SETTINGS = new URLSearchParams(location.search).get('in') === 'settings';
+if (!IN_SETTINGS) document.documentElement.classList.add('dash'); // ruimte onder de kaart voor de bolletjes
 if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android'); // zie .stackframe
 /**
  * Tikje bij − en +. Op het dashboard via Homey; in de instellingen heeft Homey daar geen functie voor,
@@ -377,6 +543,9 @@ if (IN_SETTINGS) {
   }
 }
 const ICON_ACT = {
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></svg>',
+  vacation: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(1.084) translate(-11 -12.45)" stroke-width="1.85"><g transform="translate(2 -1) rotate(-20 9 13.5)"><path d="M9 7c-1.6 1.6-3.25 4-3.25 6.5M9 7c1.6 1.6 3.25 4 3.25 6.5"/><path d="M2.5 13.5a6.5 6.5 0 0 1 13 0z"/><path d="M9 13.5v6.4"/></g><path d="M5 20h14"/></g></svg>', // schuine strandparasol met baleinen in het zand; opgeschaald tot 18×18 en gecentreerd, net als de andere iconen
   away: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
@@ -384,10 +553,165 @@ const ICON_ACT = {
 };
 function settingsActions(s) {
   if (!IN_SETTINGS || s.mode === 'setup') return '';
-  return `<div class="acts">
-      ${s.away ? `<button data-act="home">${ICON_ACT.home}Zet op thuis</button>` : `<button data-act="away">${ICON_ACT.away}Zet op afwezig</button>`}
-      ${s.enabled ? `<button data-act="pause">${ICON_ACT.pause}Pauzeren</button>` : `<button data-act="enable">${ICON_ACT.play}Start schema</button>`}
-    </div>`;
+  // Drie uitzonderingen als knoppen; de actieve is gemarkeerd, nog een tik zet hem uit. Vakantie vraagt eerst de terugkomstdag.
+  if (vacOpen) return vacChooser();
+  const on = exceptionsOn(s);
+  const auto = !!(s.presence && s.presence.auto); // detectie aan: Afwezig gaat vanzelf, geen knop
+  return `<div class="acts${auto ? '' : ' acts3'}">
+      ${auto ? '' : `<button class="${on.away ? 'on' : ''}" data-act="${on.away ? 'home' : 'away'}" data-xkey="away" data-keep aria-pressed="${on.away}">${xBusy === 'away' ? SPINNER : ICON_ACT.away}Afwezig</button>`}
+      <button class="${on.paused ? 'on' : ''}" data-act="${on.paused ? 'enable' : 'pause'}" data-xkey="paused" data-keep aria-pressed="${on.paused}">${xBusy === 'paused' ? SPINNER : ICON_ACT.pause}Pauzeren</button>
+      <button class="${on.vacation ? 'on' : !on.vacation && s.vacationPlan && !s.vacationPlan.off ? 'armed' : ''}" ${on.vacation ? 'data-act="vacationEnd"' : 'data-vacopen'} data-xkey="vacation" data-keep aria-pressed="${on.vacation}">${xBusy === 'vacation' ? SPINNER : ICON_ACT.vacation}Vakantie</button>
+    </div>${!on.vacation && s.vacationPlan && !s.vacationPlan.off ? `<div class="vplanrow"><button class="vcancel vplan" data-vacopen aria-label="Geplande vakantie wijzigen">Vakantie gepland: ${esc(dayRange(s.vacationPlan.from, s.vacationPlan.until))}${ICON.edit}</button></div>` : ''}`; // geplande vakantie: tik = kalender (wijzigen, uit- of aanzetten)
+}
+/** Welke uitzondering staat aan? */
+function exceptionsOn(s) { const paused = !s.enabled; const vacation = !paused && !!s.vacation; return { paused, vacation, away: !paused && !vacation && !!s.away }; } // er licht er altijd maar één op
+/** Terugkomstdag als tekst: 'morgen' of 'zondag 15 nov'. */
+function retDay(ms) {
+  const d = new Date(ms); const t = new Date(); t.setHours(0, 0, 0, 0);
+  const days = Math.round((new Date(d).setHours(0, 0, 0, 0) - t.getTime()) / 86400000);
+  const tm = d.getHours() || d.getMinutes() ? ` ${pad2(d.getHours())}:${pad2(d.getMinutes())}` : ''; // tijd erbij als die gekozen is
+  if (days === 0) return `vandaag${tm}`;
+  if (days === 1) return `morgen${tm}`;
+  return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' }) + tm;
+}
+/** Begin (middernacht, lokale tijd) van de dag over `n` dagen. */
+function dayStart(n) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d.getTime(); }
+let vacOpen = false; let vacInit = null; let vacSaved = null; let vacOrigin = null; // kaart waarvandaan de vakantiekeuze geopend is (daar keer je na opslaan naar terug)
+let vacPick = 'from'; let vacHasFrom = false; let vacMonth = 0; // welke dag de volgende tik kiest; is er al een vertrekdag; welke maand
+let sbackAt = 0; let sbackTimer = null; let sinAt = -1e9; // terugschuiven na de vakantiekeuze: begin en einde
+let vacH = 0; let vacAnim = null; // instellingen: hoogte van de kaart vóór de keuze, en welke kant hij op schuift
+let vacBusy = null; // welke terugkomdag-knop wacht op de Homey (aantal dagen of 'date')
+/** Widget op slot zolang de Homey een uitzondering verwerkt: geen andere keuze of veeg tussendoor. */
+let locked = false;
+function lock(on) { locked = on; const w = document.getElementById('w'); if (w) w.classList.toggle('locked', on); if (on) startWait(); else stopWait(); }
+/** Duurt het even (thermostaat in de cloud, zoals Tado)? Na 1,5 s een wisselende wachtregel, zodat je ziet dat er nog iets gebeurt. */
+const WAIT_MSGS = ['Thermostaat bijwerken…', 'Nog even wachten…', 'De thermostaat is wat traag…', 'Even wachten nog…', 'Bijna klaar…', 'Nog heel even…']; // in de brede knop: ruimte genoeg
+let waitIdx = -1; let waitTimer = null;
+function startWait() {
+  stopWait();
+  waitTimer = setTimeout(function next() {
+    waitIdx = waitIdx < WAIT_MSGS.length - 1 ? waitIdx + 1 : 1; // na de eerste blijven de andere drie rouleren
+    document.querySelectorAll('[data-waitmsg]').forEach((el) => { el.textContent = WAIT_MSGS[waitIdx]; el.classList.remove('wfade'); void el.offsetWidth; el.classList.add('wfade'); });
+    waitTimer = setTimeout(next, 3500); // rustig wisselen, niet opjagen
+  }, 1500);
+}
+function stopWait() { clearTimeout(waitTimer); waitTimer = null; waitIdx = -1; }
+const waitText = (idle) => (waitIdx >= 0 ? WAIT_MSGS[waitIdx] : idle);
+let xBusy = null; // welke tegel wacht op de Homey ('away' | 'paused' | 'vacation')
+const POWER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v7M6.86 5.87A8 8 0 1 0 17.14 5.87"/></svg>'; // aan/uit: vierkant teken, precies in het midden (zoals Homey), zoals op de apparaattegels in Homey
+const PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5h4l11-11-4-4-11 11v4zM14 6l4 4"/></svg>'; // potlood: precies in het midden van 24×24
+const PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const SPINNER = '<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 1-9 9"/></svg>';
+/** Vakantie kiezen: meteen twee datums, wanneer je weg gaat en wanneer je terug bent. Pas op de knop gaat hij in. */
+let vacFrom = 0; let vacUntil = null; // concept in de keuze (begin van de dag, ms)
+const addDays = (ms, n) => { const d = new Date(ms); d.setDate(d.getDate() + n); return d.getTime(); };
+const isoDay = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const shortDay = (ms) => new Date(ms).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+/** Korte periode: 'wo 5 – do 20 mei', of 'wo 28 apr – ma 3 mei' over een maandgrens heen. */
+const dayRange = (a, b) => { const A = new Date(a); const B = new Date(b); const m = (d) => d.toLocaleDateString('nl-NL', { month: 'short' }).replace('.', '');
+  const wd = (d) => d.toLocaleDateString('nl-NL', { weekday: 'short' }).replace('.', '');
+  return A.getMonth() === B.getMonth() && A.getFullYear() === B.getFullYear() ? `${wd(A)} ${A.getDate()} – ${wd(B)} ${B.getDate()} ${m(B)}` : `${wd(A)} ${A.getDate()} ${m(A)} – ${wd(B)} ${B.getDate()} ${m(B)}`; };
+/** Dag onderin de kalender: weekdag apart, zodat hij op smalle schermen weg kan ('za 28 nov' → '28 nov'). */
+const footDay = (ms) => { const [wd, ...rest] = shortDay(ms).split(' '); return `<span class="wd">${esc(wd)} </span>${esc(rest.join(' '))}`; };
+const pad2 = (n) => String(n).padStart(2, '0');
+const isoLocal = (ms) => { const d = new Date(ms); return `${isoDay(ms)}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+/** Dag, en de tijd erbij als die niet middernacht is: 'zo 22 nov' of 'zo 22 nov 18:00'. */
+const whenDay = (ms) => { const d = new Date(ms); return shortDay(ms) + (d.getHours() || d.getMinutes() ? ` ${pad2(d.getHours())}:${pad2(d.getMinutes())}` : ''); };
+const startsNow = () => vacFrom <= Date.now() + 60000;
+const goLabel = (editing) => (editing ? 'Opslaan' : startsNow() ? 'Vakantie starten' : 'Vakantie plannen');
+const vacOk = () => vacUntil != null && vacUntil >= Math.max(Date.now(), vacFrom) + 30 * 60000; // minstens een half uur weg
+/** Datum en tijd als twee losse velden van de telefoon (zoals tado). */
+const dayOf = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+const monthStart = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
+const atNine = (day) => { const d = new Date(day); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0).getTime(); };
+const withDay = (day, timeOf) => { const d = new Date(day); const t = new Date(timeOf); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), t.getHours(), t.getMinutes()).getTime(); };
+/** Kalender als eerste scherm, zoals Airbnb: tik vertrek, tik terugkomst, de periode ertussen kleurt mee. Een derde tik begint opnieuw. */
+function calView() {
+  const st = (data && data.status) || {}; const active = !!st.vacation;
+  const now = Date.now(); const today = dayOf(now);
+  const pickEnd = vacHasFrom && vacPick === 'until';
+  const maxDay = dayOf(pickEnd ? addDays(Math.max(now, vacFrom), 365) : addDays(now, 365)); // vertrek binnen een jaar; terug hooguit een jaar na vertrek (alleen voor het bladeren)
+  const m = new Date(vacMonth); const y = m.getFullYear(); const mo = m.getMonth();
+  const lead = (new Date(y, mo, 1).getDay() + 6) % 7; const n = new Date(y, mo + 1, 0).getDate();
+  const a = vacHasFrom ? dayOf(vacFrom) : null; const b = vacUntil != null ? dayOf(vacUntil) : null;
+  // Volle weken: ook de dagen van de vorige en volgende maand (lichter, wel te kiezen), zodat de band doorloopt.
+  const total = Math.ceil((lead + n) / 7) * 7; // alleen de weken van deze maand; de widget past zijn hoogte aan
+  let cells = '';
+  for (let i = 0; i < total; i++) {
+    const dt = new Date(y, mo, 1 - lead + i); const t = dt.getTime(); const col = i % 7; const d = dt.getDate();
+    const other = dt.getMonth() !== mo;
+    if (other) { // andere maand: geen getal of rondje, alleen de band als je periode erdoor loopt
+      const inR = a != null && b != null && b > a && t >= a && t <= b;
+      // Loopt de periode door naar een andere maand? Dan een klein pijltje aan het einde (of begin) van de band.
+      const cont = inR && i === total - 1 ? 'r' : inR && i === 0 ? 'l' : ''; // dit vakje hoort al bij een andere maand
+      cells += `<span class="${[inR ? 'mid' : '', col === 0 ? 'c0' : '', col === 6 ? 'c6' : '', cont ? 'cont' : ''].filter(Boolean).join(' ')}"${cont ? ' aria-label="Periode loopt door"' : ''}>${cont ? `<i>${cont === 'r' ? ICON_ACT.back.replace('<svg ', '<svg style="transform:scaleX(-1)" ') : ICON_ACT.back}</i>` : ''}</span>`;
+      continue;
+    }
+    const rng = a != null && b != null && b > a;
+    const cls = [t === a ? 'a' : '', t === b ? 'b' : '', rng && (t === a || t === b) ? 'rng' : '', rng && t > a && t < b ? 'mid' : '',
+      col === 0 ? 'c0' : '', col === 6 ? 'c6' : '', t === today ? 'today' : '', t < today ? 'past' : '', other ? 'oth' : ''].filter(Boolean).join(' ');
+    const off = t < today || t > maxDay;
+    cells += `<button type="button" class="${cls}" data-calday="${t}"${off ? ' disabled' : ''} aria-label="${new Date(t).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}"${t === a || t === b ? ' aria-pressed="true"' : ''}><span>${d}</span></button>`;
+  }
+  const prevOk = new Date(y, mo, 1).getTime() > monthStart(today); const nextOk = new Date(y, mo + 1, 1).getTime() <= maxDay;
+  // Andere maand dan nu? Dan een klein tekstknopje 'Vandaag' (geen icoon) en de maand kort, zodat het past.
+  const away = new Date(y, mo, 1).getTime() !== monthStart(today);
+  const label = new Date(y, mo, 1).toLocaleDateString('nl-NL', { month: away ? 'short' : 'long', year: 'numeric' }).replace('.', '');
+  const nxt = ICON_ACT.back.replace('<svg ', '<svg style="transform:scaleX(-1)" ');
+  // Onderin: vertrek en terugkomst naast elkaar, elk met dag en tijd. Wat je nu kiest is gekleurd.
+  const tin = (k, ms, what) => `<input type="time" data-vacin="${k}" data-part="t" value="${isoLocal(ms).slice(11)}" aria-label="Tijd dat je ${what}">`;
+  // Welke dag de volgende tik kiest staat gekleurd; tik op vertrek of terugkomst om te kiezen welke je wijzigt.
+  const nextK = !vacHasFrom ? 'from' : vacUntil == null ? 'until' : vacPick;
+  const cell = (k, label, day, time) => `<div class="cf${nextK === k ? ' next' : ''}" role="button" tabindex="0" data-calpick="${k}" aria-label="${label} wijzigen">${day}${time}</div>`; // geen kopjes: de volgorde (vertrek → terug) zegt het al
+  const started = active && vacFrom <= now + 60000; // lopend en vertrek niet verzet
+  const fromCell = started ? cell('from', 'Vertrek', '<b class="dim">Al begonnen</b>', '')
+    : vacHasFrom ? cell('from', 'Vertrek', `<b>${footDay(vacFrom)}</b>`, tin('from', vacFrom, 'weggaat')) : cell('from', 'Vertrek', '<b class="dim">Kies dag</b>', '');
+  const untilCell = vacUntil != null ? cell('until', 'Terug', `<b>${footDay(vacUntil)}</b>`, tin('until', vacUntil, 'terug bent')) : cell('until', 'Terug', '<b class="dim">Kies dag</b>', '');
+  const busy = vacBusy != null; const ok = vacOk();
+  // Bestaande vakantie: naast opslaan een rustige knop om hem uit (of weer aan) te zetten, of een lopende te stoppen.
+  const plan = !active && st.vacationPlan;
+  // Alleen zolang je de opgeslagen vakantie ongewijzigd ziet: anders is onduidelijk wat je aan- of uitzet (je kijkt dan naar een concept).
+  const asSaved = !!vacSaved && vacHasFrom && vacFrom === vacSaved.from && vacUntil === vacSaved.until;
+  // Lopend: Stoppen. Gepland en aan: Uitzetten. Gepland maar uit: Wissen (Opslaan zet hem al weer aan).
+  const secAct = !asSaved ? null : active ? 'vacationEnd' : plan ? (plan.off ? 'vacationEnd' : 'vacationPlanOff') : null;
+  const sec = secAct ? `<button class="vdate dg calsec" data-vacsec="${secAct}">${active ? 'Stoppen' : plan.off ? 'Wissen' : 'Uitzetten'}</button>` : '';
+  return `<div class="vac vcal"><div class="calh"><button class="xback" data-vacclose aria-label="Terug, niets wijzigen">${ICON_ACT.back}Vakantie</button>
+    <span class="calnav">${away ? '<button type="button" class="caltoday" data-caltoday>Vandaag</button>' : ''}<button type="button" data-calnav="-1" aria-label="Vorige maand"${prevOk ? '' : ' disabled'}>${ICON_ACT.back}</button><span>${label}</span><button type="button" data-calnav="1" aria-label="Volgende maand"${nextOk ? '' : ' disabled'}>${nxt}</button></span></div>
+    <div class="calw"><span>ma</span><span>di</span><span>wo</span><span>do</span><span>vr</span><span>za</span><span>zo</span></div>
+    <div class="calg">${cells}</div>
+    <div class="calf">${fromCell}<span class="carr" aria-hidden="true">→</span>${untilCell}</div>
+    <div class="calbtns">${sec}<button class="vdate calgo${busy ? ' wait' : ''}" data-vacgo${ok || busy ? '' : ' disabled'}>${busy ? SPINNER : goLabel(!!(st.vacation || st.vacationPlan))}</button></div></div>`;
+}
+function vacChooser() { return calView(); } // vakantie kiezen = de kalender (dagen en tijden in één scherm)
+/** Derde kaart (dashboard): uitzonderingen. */
+function renderExceptions(p2, s) {
+  if (!p2) return;
+  if (vacOpen) { p2.innerHTML = vacChooser(); return; } // terugkomstdag kiezen; titel met terugpijl zit in de keuze zelf
+  const on = exceptionsOn(s);
+  // Bezig (na een tik, tot de Homey de nieuwe stand bevestigt): draaiend rondje in het icoon, kleur blijft zoals hij was.
+  const opt = (k, icon, title, idle, active, attrs, label) => `<button class="xo${on[k] ? ' on' : ''}${k === 'vacation' && plan && !on[k] ? ' plan' : ''}${xBusy === k ? ' wait' : ''}" ${attrs} data-xkey="${k}" data-keep aria-pressed="${on[k]}" aria-label="${label}"${xBusy === k ? ' aria-busy="true"' : ''}><span class="xh"><span class="xm">${icon}</span><span class="xi">${xBusy === k ? SPINNER : POWER}</span></span><span><b>${title}</b><small>${on[k] ? '<i class="dot"></i>' + active : idle}</small></span></button>`;
+  const back = s.vacation ? whenDay(s.vacation.until) : '';
+  const plan = !s.vacation && s.vacationPlan ? `Vanaf ${whenDay(s.vacationPlan.from)}` : null; // gepland: tik om te wijzigen
+  // Thuis/afwezig-detectie aan? Dan regelt die afwezig al vanzelf: geen aparte tegel (zou dubbel en verwarrend zijn).
+  const auto = !!(s.presence && s.presence.auto);
+  // Vakantie: eerst instellen (+). Ingesteld (gepland of bezig): aan/uit om te stoppen/annuleren, potlood (of tik op de tegel) om te wijzigen.
+  const vacSet = !!(on.vacation || plan);
+  const planOff = !on.vacation && !!(s.vacationPlan && s.vacationPlan.off); // gepland maar uitgezet: datums blijven staan
+  const vacAct = on.vacation ? 'vacationEnd' : planOff ? 'vacationPlanOn' : 'vacationPlanOff';
+  const vacActLabel = on.vacation ? 'Vakantie stoppen' : planOff ? 'Geplande vakantie aanzetten' : 'Geplande vakantie uitzetten';
+  const vacBtns = vacSet
+    ? `<span class="xi${planOff ? '' : ' lit'}" role="button" data-act="${vacAct}" data-xkey="vacation" data-keep aria-label="${vacActLabel}">${xBusy === 'vacation' ? SPINNER : POWER}</span>`
+    : `<span class="xi" aria-hidden="true">${PLUS}</span>`;
+  // Klein potloodje achter de tijd (tik op de tegel = wijzigen), vast aan het laatste woord: nooit alleen op een nieuwe regel.
+  const withPen = (t) => { const i = t.lastIndexOf(' '); return `${esc(t.slice(0, i + 1))}<i class="nw">${esc(t.slice(i + 1))}</i>`; }; // potlood = achtergrond van het laatste woord
+  const vacSub = on.vacation ? `<i class="dot"></i>${withPen(`Tot ${back}`)}` : planOff ? withPen(`Uit · ${whenDay(s.vacationPlan.from)}`) : plan ? `<span class="pl">Gepland</span> ${withPen(whenDay(s.vacationPlan.from))}` : 'Instellen';
+  const vacLabel = on.vacation ? `Vakantie tot ${esc(retDay(s.vacation.until))}, tik om te wijzigen` : plan ? `Vakantie gepland ${esc(plan.toLowerCase())}, tik om te wijzigen` : 'Vakantie instellen';
+  const vacTile = `<button class="xo${on.vacation ? ' on' : ''}${plan && !planOff ? ' plan' : ''}${xBusy === 'vacation' ? ' wait' : ''}" data-vacopen data-xkey="vacation" aria-label="${vacLabel}"><span class="xh"><span class="xm">${ICON_ACT.vacation}</span>${vacBtns}</span><span><b>Vakantie</b><small>${vacSub}</small></span></button>`;
+  p2.innerHTML = `<div class="xl${auto ? ' x2' : ''}">
+    ${auto ? '' : opt('away', ICON_ACT.away, 'Afwezig', 'Uit', 'Aan', `data-act="${on.away ? 'home' : 'away'}"`, on.away ? 'Afwezig staat aan, tik om te stoppen' : 'Afwezig: lager tot iemand thuiskomt')}
+    ${opt('paused', ICON_ACT.pause, 'Pauzeren', 'Uit', 'Aan', `data-act="${on.paused ? 'enable' : 'pause'}"`, on.paused ? 'Gepauzeerd, tik om het schema te hervatten' : 'Pauzeren: het schema staat stil, de thermostaat kun je gewoon gebruiken')}
+    ${vacTile}
+  </div>`;
 }
 const COLD_BELOW = 16; // °C: kouder dan dit = blauw
 const HUMID_FROM = 65; // %: vanaf dit = te vochtig
@@ -486,11 +810,11 @@ const nextBlockAt = (s) => (s.nextBlock && s.nextBlock.inMinutes != null ? (s.up
 const deg = (v) => `${Number(v) % 1 ? Number(v).toFixed(1) : Number(v).toFixed(0)}°`;
 
 // ---- Duur van de handmatige stand ----
-// Snelkeuzes: tot het volgende blok in het schema, een vast aantal uren, of ∞ (tot je het schema hervat).
+// Snelkeuzes: tot het volgende blok in het schema, een half uur of een vast aantal uren, of ∞ (tot je het schema hervat).
 // Pas vanaf zoveel opwarmmetingen een tijd tonen; daarvoor is één afwijkende meting te bepalend.
 const MIN_SAMPLES = 3;
 const DUR_IDLE_MS = 5000; // zo lang blijven de keuzes staan na je laatste tik
-const CHOICES = [['next', 'Volgend blok'], [60, '1 uur'], [120, '2 uur'], [180, '3 uur'], ['manual', '∞']];
+const CHOICES = [['next', 'Volgend blok'], [30, '½ uur'], [60, '1 uur'], [120, '2 uur'], ['manual', '∞']];
 /** Resterende tijd in uren en minuten, zonder seconden. Naar boven afgerond: nooit '0m' zolang er nog tijd is. */
 function hm(ms) {
   if (ms <= 0) return '0m';
@@ -537,11 +861,11 @@ function durPanel(s) {
   const l = durLabel(s, d, sameAsNow ? s.override.until : untilOf(s, d));
   const enter = enterPanel ? ' enter' : ''; enterPanel = false;
   // In de instellingen vervangt het paneel de knoppen Afwezig/Pauzeren; iets hoger zodat de tegel niet verspringt.
-  const chips = `<div class="ch" role="group" aria-label="Hoe lang geldt deze temperatuur">${CHOICES.map(([v, t]) => `<button class="${v === 'next' ? 'nb' : ''}${String(v) === String(d) ? ' on' : ''}" data-dur="${v}" aria-pressed="${String(v) === String(d)}"${v === 'manual' ? ' aria-label="Tot je het schema hervat"' : ''}>${t}</button>`).join('')}</div>`;
+  const chips = `<div class="ch" role="group" aria-label="Hoe lang geldt deze temperatuur">${CHOICES.map(([v, t]) => `<button class="${v === 'next' ? 'nb' : ''}${String(v) === String(d) ? ' on' : ''}" data-dur="${v}" aria-pressed="${String(v) === String(d)}"${v === 'manual' ? ' aria-label="Tot je het schema hervat"' : v === 30 ? ' aria-label="Half uur"' : ''}>${t}</button>`).join('')}</div>`;
   if (!IN_SETTINGS) return `<div class="dur only${enter}">${chips.replace(/<\/div>$/, `<button class="cx" data-durclose aria-label="Klaar">${ICON.x}</button></div>`)}</div>`; // dashboard: alleen de knoppen (+ sluiten), over de dagbalk
   return `<div class="dur${enter}" style="height:74px">
       <div class="q"><b class="dl">${esc(l.t)}</b><span class="cd">${esc(l.cd)}</span><button class="x" data-durclose aria-label="Klaar">${ICON.x}</button></div>
-      <div class="ch" role="group" aria-label="Hoe lang geldt deze temperatuur">${CHOICES.map(([v, t]) => `<button class="${v === 'next' ? 'nb' : ''}${String(v) === String(d) ? ' on' : ''}" data-dur="${v}" aria-pressed="${String(v) === String(d)}"${v === 'manual' ? ' aria-label="Tot je het schema hervat"' : ''}>${t}</button>`).join('')}</div>
+      <div class="ch" role="group" aria-label="Hoe lang geldt deze temperatuur">${CHOICES.map(([v, t]) => `<button class="${v === 'next' ? 'nb' : ''}${String(v) === String(d) ? ' on' : ''}" data-dur="${v}" aria-pressed="${String(v) === String(d)}"${v === 'manual' ? ' aria-label="Tot je het schema hervat"' : v === 30 ? ' aria-label="Half uur"' : ''}>${t}</button>`).join('')}</div>
     </div>`;
 }
 /** Label en gekozen knop bijwerken voor duur d, zonder opnieuw te tekenen. */
@@ -585,7 +909,7 @@ startRotate();
 function infoItems(s) {
   const hum = s.humidity != null ? `${ICON.drop}${s.humidity}%` : '';
   const out = s.outdoor != null ? `${wxIcon(s.weather)}${fmt(s.outdoor)}` : '';
-  const humCls = s.humidity >= HUMID_FROM ? ' high' : '';
+  const humCls = ''; // geen vet bij hoge vochtigheid: zonder uitleg is het onduidelijk (HUMID_FROM blijft voor het label)
   const humLbl = `Luchtvochtigheid ${s.humidity}%${s.humidity >= HUMID_FROM ? ', te vochtig' : ''}`;
   if (s.mode !== 'manual' || !hum || !out) {
     return `${hum ? `<span class="it${humCls}" aria-label="${humLbl}">${hum}</span>` : ''}${out ? `<span class="it" aria-label="Buiten ${fmt(s.outdoor)}">${out}</span>` : ''}`;
@@ -651,6 +975,7 @@ const BAND_ICON = {
   away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
   window: '<path d="M7 7h10v10H7zM7 7 2.5 5v14L7 17M17 7l4.5-2v14L17 17"/>', // raam met twee open vleugels
+  vacation: '<g transform="translate(2 -1) rotate(-20 9 13.5)"><path d="M9 7c-1.6 1.6-3.25 4-3.25 6.5M9 7c1.6 1.6 3.25 4 3.25 6.5"/><path d="M2.5 13.5a6.5 6.5 0 0 1 13 0z"/><path d="M9 13.5v6.4"/></g><path d="M5 20h14"/>', // palmboom op een eilandje // parasol (klein: zon zonder stralen)
 };
 /** Periodes waarin de verwarming lager stond voor een open raam: [[van, tot], …]. */
 function windowSpans(h) {
@@ -662,57 +987,89 @@ function windowSpans(h) {
   });
   return out;
 }
-const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off', window: 'window', deviceWindow: 'window', deviceOff: 'off' };
+const BAND_KIND = { schedule: 'schedule', preheat: 'schedule', manual: 'manual', away: 'away', paused: 'off', setup: 'off', window: 'window', deviceWindow: 'window', deviceOff: 'off', vacation: 'vacation' };
 /** Vaste opbouw: kaart 'nu' (p0) en kaart 'verloop' (p1). Geeft p0 terug. */
 function frame(w) {
   let p0 = w.querySelector('.vp[data-ready] .p0');
   if (!p0) {
-    w.innerHTML = `<div class="vp" data-ready>${IN_SETTINGS ? '' : '<div class="stackframe" aria-hidden="true"></div>'}<div class="track"><div class="pg p0"></div>${IN_SETTINGS ? '' : '<div class="pg p1" aria-label="Verloop vandaag"></div>'}</div></div>`;
+    w.innerHTML = `<div class="vp" data-ready>${IN_SETTINGS ? '' : '<div class="stackframe" aria-hidden="true"></div>'}<div class="track"><div class="pg p0"></div>${IN_SETTINGS ? '' : '<div class="pg p1" aria-label="Verloop vandaag"></div><div class="pg p2" aria-label="Afwezig, pauzeren of vakantie"></div>'}</div>${IN_SETTINGS ? '' : '<div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>'}</div>`;
     p0 = w.querySelector('.p0'); place(0, false);
   }
   return p0;
 }
 // Eindeloos vegen: de andere kaart staat steeds aan de kant waar je naartoe veegt. Kaart van 'page' = huidige.
 const GAP = 12; let scaleNow = 1; let growTimer = null;
-const cards = () => [document.querySelector('#w .p0'), document.querySelector('#w .p1')];
+const STACK_GAP = 13; // zichtbare ruimte tussen de verkleinde kaarten tijdens het vegen
+/**
+ * Afstand tussen twee kaarten. Verkleind (vegen): minstens 13px, en altijd net meer dan de rand naast de kaart,
+ * zodat de buurkaart in rust nooit al net in beeld komt. Op ware grootte: 12px. cw = kaartbreedte.
+ */
+const stepW = (cw) => {
+  if (scaleNow === 1) return cw + GAP;
+  const side = (cw * (1 - scaleNow[0])) / 2; // rand links/rechts van de verkleinde kaart
+  return cw * scaleNow[0] + Math.max(STACK_GAP, Math.ceil(side + 0.5)); // net breder dan de rand: buurkaart blijft buiten beeld
+};
+const cards = () => ['.p0', '.p1', '.p2'].map((c) => document.querySelector(`#w ${c}`)).filter(Boolean);
 /** Huidige kaart op dx, de andere ernaast (rechts bij naar links vegen, links bij naar rechts vegen). */
 let othSide = 1; // aan welke kant de andere kaart nu buiten beeld ligt
+let othIdx = -1; // welke kaart er nu naast ligt
+/** Kaart naast de huidige aan kant `side` (1 = rechts = volgende, -1 = links = vorige); rondom, dus eindeloos vegen. */
+const neighbour = (side, n) => (page + (side > 0 ? 1 : -1) + n) % n;
 function place(dx, animate, otherSide) {
-  const [a, b] = cards(); if (!a || !b) return;
-  const W = (drag && drag.w) || a.offsetWidth + GAP; const side = otherSide || (dx > 0 ? -1 : 1);
-  const cur = page === 0 ? a : b; const oth = page === 0 ? b : a;
+  const all = cards(); if (all.length < 2) return; const n = all.length;
+  const W = stepW((drag && drag.cw) || all[0].offsetWidth); const side = otherSide || (dx > 0 ? -1 : 1);
+  const cur = all[page]; const ni = neighbour(side, n); const oth = all[ni];
   const tr = animate ? 'transform .34s cubic-bezier(.2,.8,.2,1), background-color .9s ease' : 'background-color .9s ease';
-  const sc = scaleNow === 1 ? '' : ` scale(${scaleNow[0]}, ${scaleNow[1]})`;
+  const sc = stackTf();
+  all.forEach((c, i) => { if (c !== cur && c !== oth) { c.style.transition = 'none'; c.style.zIndex = '0'; c.style.transform = `translate3d(${2 * W}px,0,0)`; } }); // de rest buiten beeld
   cur.style.zIndex = '2'; oth.style.zIndex = '1'; // huidige kaart altijd bovenop
   cur.style.transition = tr;
-  // Moet de andere kaart naar de andere kant? Dan springen (buiten beeld), niet animeren: anders vliegt hij erlangs.
-  oth.style.transition = side !== othSide ? 'background-color .9s ease' : tr; othSide = side;
+  // Is er een andere buurkaart dan net (andere kant)? Dan springen (buiten beeld), niet animeren: anders vliegt hij erlangs.
+  oth.style.transition = side !== othSide || ni !== othIdx ? 'background-color .9s ease' : tr; othSide = side; othIdx = ni;
   cur.style.transform = `translate3d(${dx}px,0,0)${sc}`;
   oth.style.transform = `translate3d(${dx + side * W}px,0,0)${sc}`;
 }
 function setScale(v, animate) { scaleNow = v; place(0, animate, 1); }
+/**
+ * Verkleinde kaart tijdens het vegen: 6px rondom, en onderin ruimte voor de bolletjes (6px erboven, 4px bolletje, 6px eronder).
+ * De kaart schuift daarvoor 5px omhoog; het grijze vlak blijft precies even hoog als de widget.
+ */
+const STACK_M = 4; // rand boven de verkleinde kaart, en ruimte boven en onder de bolletjes
+const DOTS_ROOM = 4 + STACK_M; // bolletje (4) + ruimte erboven; de ruimte eronder is de gewone rand
+function stackTf() {
+  if (scaleNow === 1) return '';
+  return ` translateY(${IN_SETTINGS ? 0 : -DOTS_ROOM / 2}px) scale(${scaleNow[0]}, ${scaleNow[1]})`;
+}
 /** Kader tonen en kaarten iets kleiner; 1 seconde na het landen krimpt het kader weer en worden de kaarten groot. */
 /** Zo veel kleiner dat het kader er rondom precies ~6px omheen valt (breedte en hoogte apart). */
 const stackScale = () => {
   const a = document.querySelector('#w .p0'); if (!a || !a.offsetWidth) return [0.95, 0.93];
-  return [1 - 12 / a.offsetWidth, 1 - 12 / a.offsetHeight]; // ~6px rondom
+  // Even veel kleiner in breedte en hoogte (anders lijkt de kaart platgedrukt). De hoogte bepaalt het: 6px boven, plek voor de bolletjes onder.
+  const k = 1 - (2 * (IN_SETTINGS ? 6 : STACK_M) + (IN_SETTINGS ? 0 : DOTS_ROOM)) / a.offsetHeight;
+  return [k, k];
 };
 function lift() { clearTimeout(growTimer); document.getElementById('w').classList.add('stacking'); }
 function settle(delay = 1000) {
   clearTimeout(growTimer);
-  growTimer = setTimeout(() => { document.getElementById('w').classList.remove('stacking'); setScale(1, true); }, delay);
+  const w = document.getElementById('w');
+  // Bolletjes verdwijnen tegelijk met het groeien van de kaart (zelfde duur en beweging).
+  growTimer = setTimeout(() => { w.classList.remove('stacking'); setScale(1, true); }, delay);
 }
 /** Naar de andere kaart: de huidige schuift weg naar `side` (-1 = links, 1 = rechts), de andere komt erin. */
 function flip(side) {
   if (IN_SETTINGS) return;
-  const [a] = cards(); const W = a.offsetWidth + GAP;
-  const cur = page === 0 ? a : cards()[1]; const oth = page === 0 ? cards()[1] : a;
-  const sc = scaleNow === 1 ? '' : ` scale(${scaleNow[0]}, ${scaleNow[1]})`;
+  const all = cards(); const n = all.length; const W = stepW(all[0].offsetWidth);
+  // De huidige schuift naar `side`; van de andere kant komt de buurkaart (naar links vegen = volgende kaart).
+  const ni = neighbour(-side, n); const cur = all[page]; const oth = all[ni];
+  const sc = stackTf();
   const tr = 'transform .34s cubic-bezier(.2,.8,.2,1), background-color .9s ease';
   cur.style.transition = tr; oth.style.transition = tr;
   cur.style.zIndex = '1'; oth.style.zIndex = '2'; // de binnenkomende kaart landt bovenop
   cur.style.transform = `translateX(${side * W}px)${sc}`; oth.style.transform = `translateX(0px)${sc}`;
-  page = 1 - page; othSide = side; // de oude kaart ligt nu aan die kant
+  const leaveVac = vacOpen && page === 2; // weg van de vakantiekalender: die sluit, dan wordt de widget weer klein
+  othIdx = page; page = ni; othSide = side; // de oude kaart ligt nu aan die kant
+  if (leaveVac) { closeVac(); render(); }
+  document.querySelectorAll('#w .dots i').forEach((d, i) => d.classList.toggle('on', i === page)); // bolletje van de nieuwe kaart
   if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
   if (page === 1 && (!hist || Date.now() - histAt > 5 * 60000)) loadHist();
   settle(1000);
@@ -777,7 +1134,7 @@ function chartPage(p1, p0) {
     // Met kosten erbij is er weinig ruimte: dan alleen golfjes + tijd (de golfjes zeggen al 'verwarmd').
     summary = `<span class="it">${ICON.waves}${Math.floor(heatMin / 60)}u ${heatMin % 60}m${h.usage ? '' : ' verwarmd'}</span>`;
     // Kosten van vandaag (als 'Verbruik en kosten' aan staat): rechtsboven, bedrag vet met het verbruik erachter.
-    if (h.usage) cost = `<button class="cost" data-costinfo aria-expanded="${costInfo}" aria-label="Waar komt dit bedrag vandaan?"><b>€ ${h.usage.cost.toFixed(2).replace('.', ',')}</b> · ${String(h.usage.amount).replace('.', ',')} ${h.usage.unit}${INFO_ICON}</button>`;
+    if (h.usage) cost = `<button class="cost" data-costinfo aria-expanded="${costInfo}" aria-label="Waar komt dit bedrag vandaan?"><b>€ ${h.usage.cost.toFixed(2).replace('.', ',')}</b><span class="amt"> ${String(h.usage.amount).replace('.', ',')} ${h.usage.unit}</span>${INFO_ICON}</button>`; // zelfde schrijfwijze als het grote scherm in de instellingen
   }
   p1.style.height = `${H0}px`;
   p1.innerHTML = `<div class="top"><span class="info"><span class="mode">Verloop vandaag</span>${summary}</span>${cost}</div>
@@ -810,6 +1167,7 @@ function placeCostInfo(p1) {
 function render() {
   const w = document.getElementById('w');
   if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
+  const ae = document.activeElement; if (ae && ae.matches && ae.matches('[data-vacin]') && vacBusy == null) return; // datumkiezer open: niet hertekenen, anders sluit hij (of kiest hij al)
   const first = w.classList.contains('loading');
   w.removeAttribute('aria-busy'); w.removeAttribute('aria-label');
   if (data && data.status && data.status.mode === 'nodevice') {
@@ -852,6 +1210,10 @@ function render() {
   const paused = s.mode === 'paused'; // gepauzeerd: − en + hebben geen zin, alleen hervatten // nieuwe installatie, nog niet gestart: alleen kijken, niets bedienen
   w.classList.toggle('setup', setup);
   w.classList.remove('nodevice'); // weer een thermostaat: gewone weergave
+  w.classList.toggle('onaway', s.mode === 'away'); // afwezig: eigen avondkleur
+  w.classList.toggle('onpaused', paused); // gepauzeerd: leisteen (grijsblauw)
+  w.classList.toggle('onvacation', s.mode === 'vacation'); // dagbalk toont het schema, dat nu niet geldt: lichter
+  w.classList.toggle('locked', locked); // op slot blijft op slot, ook als er tussendoor ververst wordt
   const heating = !setup && target != null && s.indoor != null && target > s.indoor + 0.2;
   // Toestand (alleen op temperatuur): verwarmen gaat voor, dan te koud. Vochtig = alleen het getal vet.
   const cold = !setup && !heating && s.indoor != null && s.indoor < COLD_BELOW;
@@ -868,12 +1230,14 @@ function render() {
   if (durOpen && (!manual || ask) && pending == null) durOpen = false; // inmiddels terug naar het schema (of de raamvraag gaat voor)
   let sub;
   if (ask) sub = `${ICON.window}<span class="ask">Raam open?</span><button class="yes" data-act="windowOff" aria-label="${winOff ? 'Verwarming even uit' : 'Verwarming even lager'}">${winOff ? 'Verwarming uit' : 'Verwarming lager'}</button><button class="no" data-act="windowIgnore" aria-label="Negeren">${ICON.x}</button>`;
-  else if (s.mode === 'deviceWindow' || s.mode === 'deviceOff') sub = `${s.mode === 'deviceWindow' ? ICON.window : ''}<span>Je thermostaat regelt dit zelf</span>`; // tado e.d.: wij sturen niet tegenin
+  else if (s.mode === 'deviceWindow') sub = `${ICON.window}<span>Je thermostaat regelt dit zelf</span>`; // tado e.d.: wij sturen niet tegenin
+  else if (s.mode === 'deviceOff') sub = '<span>Staat zelf uit · + zet hem weer aan</span>'; // de app zet hem niet zelf aan, jij wel met − of +
   else if (win) sub = `${ICON.window}<span>Verwarming ${winOff ? 'uit' : 'lager'} tot ${esc(clock(s.window.until))}</span>`;
   else if (manual && s.override.until == null) sub = `${ICON.hand}<span>Tot je het schema hervat</span><span class="cd">∞</span>${ICON.edit}`;
   else if (manual) { const l = durLabel(s, s.override.duration || 'next', s.override.until); sub = `${ICON.hand}<span>${esc(l.t)}</span><span class="cd">${l.cd}</span>${ICON.edit}`; }
   else if (setup) sub = '<span>Start via de app-instellingen</span>';
   else if (paused) sub = '<span>Schema staat stil</span>';
+  else if (s.mode === 'vacation' && s.vacation) { const r = retDay(s.vacation.until); sub = `${ICON_ACT.vacation}<span>${/^(morgen|vandaag)/.test(r) ? `${esc(cap(r))} terug` : `Terug op ${esc(r)}`}</span>`; } // niet 'terug op morgen'
   else if (s.mode === 'away') sub = `${ICON_ACT.away}<span>Tot iemand thuiskomt</span>`; // niet het volgende schema-moment: dat geldt nu niet
   else if (s.mode === 'preheat') sub = `${ICON.flame}<span>Voorverwarmen voor ${esc(nextAt(s))}</span>`;
   else if (s.nextBlock && nextBlockAt(s)) sub = `<span>${esc(cap(whenAt(nextBlockAt(s))))} → ${deg(s.nextBlock.temp)}</span>`;
@@ -883,10 +1247,29 @@ function render() {
     const dd = curDur(s); const same = s.mode === 'manual' && s.override && chosenDur == null;
     const lb = durLabel(s, dd, same ? s.override.until : untilOf(s, dd));
     subHtml = `<button class="sub" data-durclose aria-label="Klaar met kiezen">${ICON.hand}<span class="dl">${esc(lb.t)}</span><span class="cd">${esc(lb.cd)}</span></button>`;
-  } else subHtml = manual && !ask ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub${ask ? ' askrow' : ''}">${sub}</div>`;
+  } else if (s.mode === 'vacation' && s.vacation && !ask) subHtml = `<button class="sub" data-vacedit aria-label="Terugkomdag wijzigen">${sub}${ICON.edit}</button>`;
+  else subHtml = manual && !ask ? `<button class="sub" data-duropen aria-label="Duur wijzigen">${sub}</button>` : `<div class="sub${ask ? ' askrow' : ''}">${sub}</div>`;
   const waiting = heating && (pending == null) && s.targetConfirmed === false;
   clearTimeout(confirmPoll); if (waiting) confirmPoll = setTimeout(load, 3000); // wacht op bevestiging: vaker kijken
   const p0 = frame(w);
+  // Instellingen: terugkomdag kiezen schuift als tweede 'slide' in dezelfde kaart (zelfde hoogte), zoals de derde kaart op het dashboard.
+  const pickNow = IN_SETTINGS && vacOpen;
+  if (w.classList.contains('vacpick') !== pickNow) { // kaart wisselt tussen kleur en wit: direct, zonder trage kleurovergang
+    const c0 = w.querySelector('.p0'); if (c0) { c0.style.transition = 'none'; requestAnimationFrame(() => requestAnimationFrame(() => { c0.style.transition = ''; })); }
+  }
+  w.classList.toggle('vacpick', pickNow);
+  w.classList.toggle('vacbig', !IN_SETTINGS && vacOpen);
+  { const m = new Date(vacMonth || Date.now()); const lead = (new Date(m.getFullYear(), m.getMonth(), 1).getDay() + 6) % 7; const n = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    w.style.setProperty('--calcut', `${(6 - Math.ceil((lead + n) / 7)) * 33}px`); } // korte maand: widget lager, geen lege ruimte // kalender: widget even hoger, dan past een maand van zes weken
+  if (IN_SETTINGS && vacOpen) {
+    p0.style.minHeight = vacH ? `${vacH}px` : '';
+    if (vacAnim === 'in') sinAt = performance.now();
+    const sinEl = performance.now() - sinAt; // opnieuw getekend tijdens het inschuiven: verder waar hij was
+    p0.innerHTML = `<div class="vacwrap${sinEl < 340 ? ' sin' : ''}" style="--sid:-${Math.round(sinEl)}ms">${vacChooser()}</div>`;
+    vacAnim = null; setTimeout(fitHeight, 0); return;
+  }
+  p0.style.minHeight = '';
+  const back = vacAnim === 'out'; vacAnim = null;
   p0.innerHTML = `
     <div class="top">
       <span class="info">
@@ -895,11 +1278,12 @@ function render() {
       </span>
       ${win ? `<button class="resume" data-act="windowEnd">${ICON.window}Raam dicht</button>`
         : s.mode === 'manual' ? `<button class="resume" data-act="resume">${ICON.cal}Hervat schema</button>`
-        : paused && !IN_SETTINGS ? `<button class="resume" data-act="enable">${ICON_ACT.play}Hervat</button>` : ''}
+        : paused && !IN_SETTINGS ? `<button class="resume" data-act="enable">${ICON_ACT.play}Hervat</button>`
+        : s.mode === 'vacation' ? `<button class="resume" data-act="vacationEnd">${ICON.cal}Ik ben terug</button>` : ''}
     </div>
     <div class="mid">
       <span class="tw">${bigTemp(s.indoor)}<button class="wbtn" data-waveinfo aria-label="Wat betekenen de golfjes?"><span class="waves${heatLevel(target, s.indoor, heating, s.learned)}${heating && (pending != null || s.targetConfirmed === false) ? ' blink' : ''}" aria-hidden="true">${ICON.waves}</span></button></span>
-      ${setup || paused || win || s.mode === 'deviceWindow' || s.mode === 'deviceOff' ? '' : `<div class="ctrl">
+      ${setup || paused || win || s.mode === 'deviceWindow' || s.mode === 'vacation' ? '' : `<div class="ctrl">
         <button data-d="-0.5" aria-label="Kouder">${ICON.minus}</button>
         <span class="val"><output aria-label="Ingesteld">${fmt(target)}</output></span>
         ${s.maxTemp != null && target >= s.maxTemp ? '<button class="maxb" data-max aria-label="Maximumtemperatuur bereikt">max</button>' : `<button data-d="0.5" aria-label="Warmer">${ICON.plus}</button>`}
@@ -910,7 +1294,12 @@ function render() {
     : `<div class="zone${durOpen ? ' open' : ''}${durOpen && enterPanel ? ' fresh' : ''}"><div class="rowl">${subHtml}${todayBar(data.schedule || {}, s)}</div>${durOpen ? durPanel(s) : ''}</div>`}
     ${durOpen && IN_SETTINGS ? '' : settingsActions(s)}
     ${waveInfo && !setup ? waveInfoPanel(s, target, heating, heating && (pending != null || s.targetConfirmed === false)) : ''}`;
+  // Terug van de keuze: inhoud schuift van links terug. Tekent de widget zich tijdens dat schuiven opnieuw (nieuwe stand
+  // van de Homey), dan gaat de beweging verder waar hij was in plaats van opnieuw te beginnen (anders hapert hij heen en weer).
+  if (back) { sbackAt = performance.now(); clearTimeout(sbackTimer); p0.classList.add('sback'); sbackTimer = setTimeout(() => p0.classList.remove('sback'), 400); }
+  p0.style.setProperty('--sbd', p0.classList.contains('sback') ? `-${Math.round(performance.now() - sbackAt)}ms` : '0ms');
   renderChart();
+  if (s.mode !== 'setup') renderExceptions(document.querySelector('#w .p2'), s);
   placeWaveInfo(p0);
   placeManual();
   if (enterRow && !durOpen) { w.querySelectorAll('.sub, .barwrap, .ticks').forEach((el) => el.classList.add('enter')); enterRow = false; }
@@ -1019,7 +1408,7 @@ function wScrubEnd() {
 
 // De inhoud volgt je vinger; loslaten = naar de dichtstbijzijnde pagina. Aan de randen wat weerstand.
 document.addEventListener('touchstart', (e) => {
-  if (IN_SETTINGS || !document.querySelector('#w .track') || document.querySelector('#w.nodevice')) return; // geen thermostaat: niets te vegen
+  if (locked || IN_SETTINGS || !document.querySelector('#w .track') || document.querySelector('#w.nodevice')) return; // geen thermostaat: niets te vegen
   const t = e.touches[0]; drag = { x: t.clientX, y: t.clientY, dx: 0, mode: null, pts: [[e.timeStamp, 0]] };
   // Op het verloop even stilhouden = details bekijken (in plaats van vegen).
   drag.onChart = page === 1 && !!e.target.closest('.p1 .chart');
@@ -1051,7 +1440,7 @@ document.addEventListener('touchmove', (e) => {
   drag.pts.push([e.timeStamp, dx]); if (drag.pts.length > 6) drag.pts.shift(); // voor de snelheid bij loslaten
   if (!drag.lifted) { // kader verschijnt, kaarten iets kleiner; maten één keer opmeten
     drag.lifted = true; lift(); scaleNow = stackScale();
-    const a = document.querySelector('#w .p0'); drag.w = a ? a.offsetWidth + GAP : 0;
+    const a = document.querySelector('#w .p0'); drag.cw = a ? a.offsetWidth : 0; drag.w = a ? a.offsetWidth + GAP : 0; // cw: kaartbreedte (één keer meten, niet per beeldje)
     const vp = document.querySelector('#w .vp'); drag.vw = vp ? vp.offsetWidth : 300;
   }
   // Eén keer per beeldje tekenen: Android stuurt soms meer bewegingen dan er frames zijn.
@@ -1137,21 +1526,151 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const act = e.target.closest('[data-act]');
-  if (act && !act.classList.contains('busy')) {
+  if (act && !act.classList.contains('busy') && !locked) {
     // Meteen laten zien dat er iets gebeurt; de Homey bevestigt een paar seconden later.
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
     act.classList.add('busy');
-    if (!act.classList.contains('no')) act.textContent = 'Bezig…'; // kruisje blijft een kruisje
+    if (!act.classList.contains('no') && !act.hasAttribute('data-keep')) act.textContent = 'Bezig…'; // kruisje en de grote knoppen blijven zoals ze zijn
+    if (act.dataset.xkey) { xBusy = act.dataset.xkey; lock(true); render(); } // tegel of knop: draaiend rondje in het icoon, kleur pas na bevestiging
     if (act.dataset.act === 'resume' && data && data.status) {
       const st = data.status;
       const t = scheduledNow(data.schedule || {});
       data.status = { ...st, mode: 'schedule', override: null, thermostatTarget: t != null ? t : st.thermostatTarget };
       setTimeout(render, 250);
     }
-    try { data = await H.api('POST', '/action', { action: act.dataset.act }); } catch (err) { console.error(err); }
-    render(); refreshSoon();
+    try { data = await postAction({ action: act.dataset.act }); } catch (err) { console.error(err); }
+    if (xBusy) lock(false);
+    xBusy = null; render(); refreshSoon(); // pas nu de nieuwe kleur
   }
 });
+
+// Vakantie: terugkomstdag kiezen (snelle keuze of datum), dan meteen aan.
+/** Actie naar de Homey, maar nooit eindeloos wachten: na 20 s geven we het op (widget gaat weer van slot). */
+function postAction(body) {
+  const call = Promise.race([H.api('POST', '/action', body), new Promise((_, rej) => setTimeout(() => rej(new Error('Geen antwoord van de Homey')), 20000))]);
+  // Minstens 1 s laden: anders flitst het rondje alleen even, en voelt het niet alsof er iets gebeurd is.
+  return Promise.all([call, new Promise((r) => setTimeout(r, 1000))]).then(([res]) => res);
+}
+function openVac() {
+  vacOpen = true; vacOrigin = IN_SETTINGS ? null : page;
+  const s = (data && data.status) || {};
+  const now = Math.floor(Date.now() / 60000) * 60000; // nu, op de minuut
+  if (s.vacation) { vacFrom = s.vacation.since || now; vacUntil = s.vacation.until; vacHasFrom = true; vacPick = 'until'; } // lopend: eerst de terugkomst; tik op 'Al begonnen' om het vertrek te verzetten
+  else if (s.vacationPlan) { vacFrom = s.vacationPlan.from; vacUntil = s.vacationPlan.until; vacHasFrom = true; vacPick = 'from'; } // tik = nieuwe periode
+  else { vacFrom = now; vacUntil = null; vacHasFrom = false; vacPick = 'from'; } // leeg: eerst vertrek, dan terugkomst
+  vacMonth = monthStart(vacHasFrom ? vacFrom : now);
+  vacSaved = vacHasFrom && vacUntil != null ? { from: vacFrom, until: vacUntil } : null; // de opgeslagen vakantie (ook een uitgezette)
+  vacInit = vacSaved && !(s.vacationPlan && s.vacationPlan.off) ? vacSaved : null; // zo stond hij al (een uitgezette planning: opslaan zet hem weer aan)
+  if (IN_SETTINGS) { const p0 = document.querySelector('#w .p0'); vacH = p0 ? p0.offsetHeight : 0; vacAnim = 'in'; }
+}
+function closeVac() { vacOpen = false; if (IN_SETTINGS) vacAnim = 'out'; }
+/** Naar kaart `t` vegen (dashboard), de kortste kant op. */
+function goPage(t) { if (IN_SETTINGS || t == null || t === page) return; flip(t === (page + 1) % 3 ? -1 : 1); }
+/** Kalender: uit-/aanzetten of stoppen. Meteen terug naar waar je vandaan kwam; rondje in de tegel tot de Homey bevestigt. */
+async function vacSecond(action) {
+  if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+  const origin = vacOrigin; const before = data;
+  if (data && data.status) { // alvast tonen
+    const st = { ...data.status };
+    if (action === 'vacationEnd') { st.vacation = null; st.vacationPlan = null; if (st.mode === 'vacation') st.mode = 'schedule'; }
+    else if (st.vacationPlan) st.vacationPlan = { ...st.vacationPlan, off: action === 'vacationPlanOff' };
+    data = { ...data, status: st };
+  }
+  closeVac(); xBusy = 'vacation'; lock(true); render(); goPage(origin);
+  try { data = await postAction({ action }); } catch (err) { console.error(err); data = before; }
+  xBusy = null; lock(false); render(); refreshSoon();
+}
+async function startVacation(until, key, from) {
+  // Meteen terug naar waar je vandaan kwam, met de nieuwe stand alvast in beeld: rondje in de vakantietegel tot de
+  // Homey bevestigt (dat kan even duren). Mislukt het, dan komt de kalender met je keuze terug.
+  if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+  const body = key === 'cancel' ? { action: 'vacationEnd' } : { action: 'vacation', until, ...(from > Date.now() + 60000 ? { from } : {}) };
+  const before = data; const keep = { vacFrom, vacUntil, vacHasFrom, vacPick, vacMonth }; const origin = vacOrigin;
+  if (data && data.status && key !== 'cancel') {
+    const st = { ...data.status };
+    if (body.from) { st.vacation = null; st.vacationPlan = { from: body.from, until }; if (st.mode === 'vacation') st.mode = 'schedule'; }
+    else { st.vacationPlan = null; st.vacation = { since: (st.vacation && st.vacation.since) || Date.now(), until }; st.mode = 'vacation'; st.enabled = true; st.away = false; }
+    data = { ...data, status: st };
+  }
+  closeVac(); xBusy = 'vacation'; lock(true); render();
+  goPage(origin);
+  let ok = false;
+  try { data = await postAction(body); ok = true; } catch (err) { console.error(err); }
+  xBusy = null; lock(false);
+  if (!ok) { data = before; vacOpen = true; ({ vacFrom, vacUntil, vacHasFrom, vacPick, vacMonth } = keep); vacOrigin = origin; if (IN_SETTINGS) vacAnim = 'in'; }
+  render();
+  if (!ok) goPage(2);
+  refreshSoon();
+}
+document.addEventListener('click', (e) => {
+  if (suppressClick) return;
+  if (locked) return;
+  // Kalender: maand wisselen, dagen kiezen (eerst vertrek, dan terugkomst).
+  if (e.target.closest('[data-caltoday]')) { vacMonth = monthStart(Date.now()); render(); return; } // terug naar deze maand
+  const nav = e.target.closest('[data-calnav]');
+  if (nav) { if (!nav.disabled) { const d = new Date(vacMonth); vacMonth = new Date(d.getFullYear(), d.getMonth() + Number(nav.dataset.calnav), 1).getTime(); render(); } return; }
+  const pk = e.target.closest('[data-calpick]');
+  if (pk && !e.target.closest('input')) { vacPick = pk.dataset.calpick; if (vacPick === 'from' || vacUntil == null) vacMonth = monthStart(Math.max(Date.now(), vacFrom)); render(); return; }
+  const day = e.target.closest('[data-calday]');
+  if (day) {
+    if (day.disabled) return;
+    const t = Number(day.dataset.calday); const st = (data && data.status) || {};
+    const nowMin = Math.floor(Date.now() / 60000) * 60000;
+    if (vacHasFrom && vacPick === 'until' && t >= dayOf(vacFrom)) {
+      if (t === dayOf(vacFrom) && t !== dayOf(nowMin)) return; // zelfde dag als vertrek: kies een latere dag
+      const u = atNine(t); // terugkomst standaard om 09:00
+      vacUntil = u <= Math.max(vacFrom, nowMin) ? addDays(Math.max(vacFrom, nowMin), 1) : u;
+      vacPick = st.vacation ? 'until' : 'from'; // lopend: volgende tik verzet weer de terugkomst; anders begint hij een nieuwe periode
+    } else {
+      vacFrom = Math.max(atNine(t), nowMin); // vertrek standaard om 09:00; vandaag en al later: vanaf nu
+      vacHasFrom = true; vacUntil = null; vacPick = 'until';
+    }
+    if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+    render(); return;
+  }
+  if (e.target.closest('[data-vacopen]')) { openVac(); render(); return; }
+  // Potloodje bij 'Terug op …': terugkomdag kiezen. Op het dashboard staat die keuze op de derde kaart, dus daarheen vegen.
+  if (e.target.closest('[data-vacedit]')) { openVac(); render(); if (!IN_SETTINGS && page !== 2) flip(1); return; }
+  if (e.target.closest('[data-vacclose]')) { closeVac(); render(); return; }
+  const sec = e.target.closest('[data-vacsec]');
+  if (sec) { vacSecond(sec.dataset.vacsec); return; }
+  if (e.target.closest('[data-vacgo]') && vacUntil != null) {
+    if (vacInit && vacInit.from === vacFrom && vacInit.until === vacUntil) { closeVac(); render(); goPage(vacOrigin); return; } // niets gewijzigd: alleen sluiten
+    startVacation(vacUntil, 'go', vacFrom); return;
+  }
+});
+// Datumkiezers: alleen het concept bijwerken, pas de knop zet de vakantie aan (dus niets gebeurt per ongeluk).
+function readDT(box, k) {
+  // Dag komt uit de kalender, tijd uit het tijdveld.
+  const t = box.querySelector(`[data-vacin="${k}"][data-part="t"]`);
+  const base = new Date(k === 'from' ? vacFrom : (vacUntil != null ? vacUntil : vacFrom));
+  const [h, mi] = ((t && t.value) || '00:00').split(':').map(Number);
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, mi).getTime();
+}
+// Bijwerken zonder de keuze opnieuw te tekenen: dan blijft de datumkiezer van de telefoon gewoon open.
+function setUntilInputs(box) {
+  const t = box.querySelector('[data-vacin="until"][data-part="t"]');
+  if (t && vacUntil != null) t.value = isoLocal(vacUntil).slice(11);
+}
+function onVacDate(e) {
+  const inp = e.target.closest && e.target.closest('[data-vacin]'); if (!inp || locked) return;
+  const box = inp.closest('.vac');
+  if (inp.dataset.vacin === 'from') {
+    const t = readDT(box, 'from'); const len = vacUntil != null && vacUntil > vacFrom ? vacUntil - vacFrom : 7 * 86400000;
+    vacFrom = t == null ? Date.now() : t;
+    if (vacUntil == null || vacUntil <= vacFrom) vacUntil = vacFrom + len; // terugkomst schuift mee: even lang weg, en altijd na vertrek
+  } else {
+    const t = readDT(box, 'until');
+    // Terugkomst vóór (of op) het vertrek kan niet: dan de dag na vertrek, op dezelfde tijd.
+    vacUntil = t != null && t <= vacFrom ? addDays(vacFrom, 1) : t;
+  }
+  setUntilInputs(box);
+  const go = box.querySelector('[data-vacgo]'); const st = (data && data.status) || {};
+  if (go && vacBusy == null) { go.disabled = !vacOk(); go.textContent = goLabel(!!(st.vacation || st.vacationPlan)); }
+  const sb = box.querySelector('[data-vacsec]'); if (sb && vacSaved && (vacFrom !== vacSaved.from || vacUntil !== vacSaved.until)) sb.remove(); // tijd gewijzigd: concept, dus geen aan/uit meer
+}
+document.addEventListener('input', onVacDate);
+document.addEventListener('change', onVacDate);
 
 // Instellingen: 'Kies thermostaat' springt naar de keuzelijst op de pagina eromheen.
 document.addEventListener('click', (e) => {
@@ -1159,6 +1678,11 @@ document.addEventListener('click', (e) => {
   try { const el = window.parent.document.getElementById('thermostat'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); } catch (err) { /* los geopend */ }
 });
 
+// Laadrondjes: de widget tekent zich tijdens het wachten soms opnieuw (statusmelding, verversen). Een nieuw rondje
+// begint dan weer bovenaan en lijkt te haperen. Daarom draait elk rondje mee op dezelfde klok: het loopt gewoon door.
+if (typeof MutationObserver === "function") new MutationObserver(() => {
+  document.querySelectorAll('#w .spin:not([data-ph])').forEach((el) => { el.setAttribute('data-ph', ''); el.style.animationDelay = `-${Math.round(performance.now() % 800)}ms`; });
+}).observe(document.getElementById('w'), { childList: true, subtree: true });
 function onHomeyReady(Homey) {
   H = Homey;
   // Meteen de hoogte van de skeleton doorgeven: die is gelijk aan de geladen widget.

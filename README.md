@@ -3,7 +3,7 @@
 Een Homey Pro-app die je thermostaat een slim weekschema geeft, **zonder abonnement**. Gemaakt voor de **tado X** via Matter, maar het werkt met elke thermostaat in Homey die `target_temperature` en `measure_temperature` heeft.
 
 - **Weekschema** met tijdsblokken per dag. Je stelt het in op de instellingenpagina van de app.
-- **Handmatig gaat voor.** Draait iemand aan de thermostaat, of past iemand de temperatuur aan in de tado-app of in Homey? Dan blijft die stand staan tot het volgende blok in het schema (of 1, 2 of 3 uur, of tot je het schema hervat). Daarna neemt het schema het weer over.
+- **Handmatig gaat voor.** Draait iemand aan de thermostaat, of past iemand de temperatuur aan in de tado-app of in Homey? Dan blijft die stand staan tot het volgende blok in het schema (of een half uur, 1 of 2 uur, of tot je het schema hervat). Daarna neemt het schema het weer over.
 - **Op tijd warm.** Bij elk opwarmmoment leert de app hoe snel het huis warm wordt (°C per uur) en hoe lang de cv nodig heeft om op gang te komen, ook in relatie tot de buitentemperatuur. Hij begint zo vroeg dat het op het ingestelde tijdstip al warm is.
 - **Thuis/afwezig**: automatisch via de locatie in de Homey-app (zet **Automatisch thuis en afwezig** aan), of via flowkaarten. Afwezig = de temperatuur als niemand thuis is (standaard 16°).
 - **Terugkijken** op de instellingenpagina: het verloop van een dag (kamertemperatuur, ingestelde temperatuur, schema of handmatig), uit Homey Insights. Houd je vinger op de grafiek voor details, of open hem op volledig scherm.

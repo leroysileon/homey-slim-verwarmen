@@ -12,7 +12,7 @@ module.exports = {
   },
   async postAction({ homey, body }) {
     const c = homey.app.controller;
-    await homey.app.runAction(body);
-    return { status: c.status, schedule: c.schedule };
+    const status = await homey.app.runAction(body); // kan een snelle status zijn (thermostaat volgt op de achtergrond)
+    return { status, schedule: c.schedule };
   },
 };

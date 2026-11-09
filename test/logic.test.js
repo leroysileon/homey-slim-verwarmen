@@ -259,6 +259,18 @@ test('duur van een lopende handmatige stand aanpassen', async () => {
   assert.match(c.status.modeLabel, /tot 22:30$/);
 });
 
+test('handmatig voor een half uur', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setManual(22);
+  await c.setOverrideDuration(30);
+  assert.match(c.status.modeLabel, /tot 12:30$/);
+  sim.now = at('12:31');
+  await c.tick();
+  assert.equal(c.state.override, null);
+  assert.equal(sim.target, 20);
+});
+
 test('standaardduur uit de instellingen geldt ook voor draaien aan de knop', async () => {
   const store = memoryStore({ schedule: SCHEDULE, state: {}, config: { overrideDefault: 120 } });
   const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20, store });
@@ -698,11 +710,13 @@ test('raam open: thermostaat met eigen detectie (tado) = onze detectie standaard
   extra = { ownWindow: 'tado', windowOpen: false };
   sim.target = 20; sim.now = at('12:55'); await c.tick();
   assert.equal(c.status.mode, 'schedule', 'raam dicht: gewoon verder, geen handmatige stand');
-  // Thermostaat zelf uitgezet: ook niet tegenin.
+  // De thermostaat meldt 'uit' (tado X doet dat ook bij een lage schematemperatuur): gewoon blijven regelen.
   extra = { mode: 'off' };
   sim.now = at('22:31'); await c.tick();
-  assert.equal(sim.target, 20, 'schema schrijft niets zolang de thermostaat uit staat');
-  assert.equal(c.status.mode, 'deviceOff');
+  assert.equal(sim.target, 16, 'schema gaat door');
+  assert.notEqual(c.status.mode, 'deviceOff');
+  await c.setManual(21);
+  assert.equal(sim.target, 21, 'zelf een temperatuur kiezen werkt ook');
 });
 
 test('geen thermostaat gekozen: duidelijke melding, geen oude status', async () => {
@@ -741,4 +755,128 @@ test('handmatig: bron wordt onthouden (thermostaat, Homey, flow) en raam-einde m
   sim.now = at('12:20'); await c.tick();
   const w = events.find((x) => x.e === 'window_closed');
   assert.ok(w && w.d.since && w.d.until > w.d.since, 'begin en einde voor de melding');
+});
+
+test('vakantie: temperatuur van afwezig tot de terugkomstdag, daarna weer het schema', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setVacation(at('00:00', 6)); // terug op vrijdag 6 nov
+  assert.equal(sim.target, 16, 'eco');
+  assert.equal(c.status.mode, 'vacation');
+  sim.now = at('12:00', 5); await c.tick();
+  assert.equal(sim.target, 16, 'nog op vakantie');
+  // Iemand komt even thuis (thuis/afwezig): vakantie blijft.
+  await c.setAway(false);
+  assert.equal(c.status.mode, 'vacation');
+  sim.now = at('00:05', 6); await c.tick();
+  assert.equal(c.state.vacation, null, 'terugkomstdag: vakantie voorbij');
+  assert.notEqual(c.status.mode, 'vacation');
+  // Pauzeren stopt een vakantie.
+  await c.setVacation(at('00:00', 10));
+  await c.setEnabled(false);
+  assert.equal(c.state.vacation, null);
+  await assert.rejects(c.setVacation(at('00:00', 1)), /toekomst/);
+});
+
+test('geplande vakantie: tot de vertrekdag niets anders, dan vanzelf vakantie tot de terugkomdag', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setVacation(at('00:00', 9), at('00:00', 6)); // weg vanaf vrijdag 6, terug maandag 9
+  assert.ok(c.state.vacationPlan, 'gepland');
+  assert.equal(c.state.vacation, null);
+  assert.notEqual(c.status.mode, 'vacation');
+  assert.deepEqual(c.status.vacationPlan, { from: at('00:00', 6), until: at('00:00', 9) });
+  sim.now = at('00:05', 6); await c.tick();
+  assert.equal(c.status.mode, 'vacation', 'vertrekdag: vakantie gaat in');
+  assert.equal(c.state.vacationPlan, null);
+  assert.equal(sim.target, 16);
+  sim.now = at('00:05', 9); await c.tick();
+  assert.equal(c.state.vacation, null, 'terugkomdag: voorbij');
+  // Plannen en annuleren; terug vóór vertrek kan niet.
+  await c.setVacation(at('00:00', 14), at('00:00', 12));
+  await c.stopVacation();
+  assert.equal(c.state.vacationPlan, null);
+  await assert.rejects(c.setVacation(at('00:00', 12), at('00:00', 12)), /na de vertrekdag/);
+  // Vertrekdag vandaag (begin van de dag ligt al achter ons) = meteen vakantie.
+  await c.setVacation(at('00:00', 14), at('00:00', 9));
+  assert.equal(c.status.mode, 'vacation');
+});
+
+test('geplande vakantie uit- en weer aanzetten: datums blijven, uit = gaat niet in', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setVacation(at('00:00', 9), at('00:00', 6));
+  await c.setVacationPlanOn(false);
+  assert.deepEqual(c.status.vacationPlan, { from: at('00:00', 6), until: at('00:00', 9), off: true }, 'uit, datums bewaard');
+  sim.now = at('00:05', 6); await c.tick();
+  assert.notEqual(c.status.mode, 'vacation', 'uit: gaat niet in op de vertrekdag');
+  assert.ok(c.state.vacationPlan, 'maar blijft bewaard');
+  await c.setVacationPlanOn(true);
+  assert.equal(c.status.mode, 'vacation', 'weer aan na de vertrekdag: meteen vakantie');
+  assert.equal(c.state.vacation.until, at('00:00', 9));
+  // Uit laten staan tot na de terugkomdag: opgeruimd.
+  await c.stopVacation();
+  await c.setVacation(at('00:00', 14), at('00:00', 12)); await c.setVacationPlanOn(false);
+  sim.now = at('00:05', 14); await c.tick();
+  assert.equal(c.state.vacationPlan, null);
+});
+
+test('lopende vakantie: vertrek verzetten naar later = nu stoppen en opnieuw plannen', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setVacation(at('00:00', 9));
+  assert.equal(c.status.mode, 'vacation');
+  await c.setVacation(at('00:00', 12), at('09:00', 10)); // toch pas woensdag weg
+  assert.equal(c.state.vacation, null, 'lopende vakantie gestopt');
+  assert.deepEqual(c.status.vacationPlan, { from: at('09:00', 10), until: at('00:00', 12) });
+  assert.notEqual(c.status.mode, 'vacation');
+  sim.now = at('09:05', 10); await c.tick();
+  assert.equal(c.status.mode, 'vacation', 'nieuwe vertrekdag: weer vakantie');
+});
+
+test('vakantie mag zo lang duren als je wilt (lopend en gepland)', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setVacation(sim.now + 300 * 86400000);
+  assert.equal(c.state.vacation.until, sim.now + 300 * 86400000, 'niet afgekapt');
+  await c.stopVacation();
+  const from = sim.now + 10 * 86400000;
+  await c.setVacation(from + 250 * 86400000, from);
+  assert.equal(c.state.vacationPlan.until, from + 250 * 86400000);
+});
+
+test('afwezig, pauzeren en vakantie sluiten elkaar uit', async () => {
+  const { c, sim } = setup({ now: at('12:00'), target: 20, indoor: 20 });
+  await c.tick();
+  await c.setEnabled(false); // pauze
+  await c.setAway(true); // thuis/afwezig-detectie: pauze blijft
+  assert.equal(c.state.enabled, false);
+  await c.setAway(true, true); // zelf gekozen: pauze uit, afwezig aan
+  assert.equal(c.state.enabled, true);
+  assert.equal(c.status.mode, 'away');
+  assert.equal(sim.target, 16);
+  await c.setVacation(at('00:00', 7)); // vakantie vervangt afwezig
+  assert.equal(c.state.away, false);
+  assert.equal(c.status.mode, 'vacation');
+  await c.setAway(true, true); // afwezig vervangt vakantie
+  assert.equal(c.state.vacation, null);
+  await c.setEnabled(false); // pauze zet afwezig uit
+  assert.equal(c.state.away, false);
+});
+
+test('tidyLog: na de laatste handmatige stand wordt alles schema', () => {
+  const { c } = setup({ now: at('12:00') });
+  c.modeLog = [{ t: 0, m: 'schedule' }, { t: 100, m: 'manual' }, { t: 200, m: 'schedule' }, { t: 210, m: 'away' }, { t: 220, m: 'paused' }, { t: 230, m: 'vacation' }];
+  assert.strictEqual(c.tidyLog(50), 3);
+  assert.deepStrictEqual(c.modeLog, [{ t: 0, m: 'schedule' }, { t: 100, m: 'manual' }, { t: 200, m: 'schedule' }]);
+});
+
+test('quickStatus: nieuwe stand meteen zichtbaar, ook als de thermostaat nog niet klaar is', async () => {
+  const { c, sim } = setup({ now: at('12:00') });
+  await c.tick();
+  c.io.writeTarget = () => new Promise(() => {}); // trage thermostaat: schrijven komt nooit terug
+  c.setVacation(sim.now + 3 * 86400000);
+  const s = c.quickStatus();
+  assert.equal(s.mode, 'vacation');
+  assert.equal(s.targetConfirmed, false);
 });

@@ -54,18 +54,18 @@
     /* Statustegel = de widget zelf (iframe), knoppen ruim eronder */
     #tileframe { display: block; width: 100%; height: 242px; border: 0; background: transparent; overflow: hidden; }
     #sv .actions { display: flex; flex-wrap: wrap; gap: 10px; }
-    #sv .err { margin-top: 12px; font-weight: 600; }
+    #sv .err { margin-top: 12px; font-weight: 500; }
 
     /* Dagkaarten */
     #sv .daycard { background: var(--card); border-radius: 20px; padding: 16px 14px 10px; margin-bottom: 12px; }
     @media (max-width: 370px) { #sv .daycard { padding-left: 10px; padding-right: 10px; } }
     #sv .daycard .head { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; width: 100%; cursor: pointer; min-height: 32px; }
-    #sv .daycard .head .t { font-size: 22px; font-weight: 500; }
-    #sv .daycard .head .today { font-size: 15px; font-weight: 600; color: var(--warm-text); margin-left: 8px; }
+    #sv .daycard .head .t { font-size: 22px; font-weight: 600; }
+    #sv .daycard .head .today { font-size: 15px; font-weight: 500; color: var(--warm-text); margin-left: 8px; }
     #sv .daycard > .head .chev { transition: transform .2s; color: var(--muted); }
     #sv .daycard.open > .head .chev { transform: rotate(180deg); }
     #sv .bar { display: flex; height: 30px; margin-top: 14px; border-radius: 8px; overflow: hidden; gap: 2px; }
-    #sv .bar i { display: flex; align-items: center; height: 100%; padding: 0 7px; font-style: normal; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; }
+    #sv .bar i { display: flex; align-items: center; height: 100%; padding: 0 7px; font-style: normal; font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; }
     #sv .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; margin: 8px 0 0; }
     #sv .foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 6px; }
     #sv .copybtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; color: var(--link); font-weight: 500; font-size: 14px; min-height: 36px; }
@@ -98,7 +98,7 @@
       #sv .slot .stepper button { background: rgba(255,255,255,.1); }
     }
     #sv .slot .sh { all: unset; box-sizing: border-box; display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 10px 14px 10px 16px; }
-    #sv .slot .sh .range { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .slot .sh .range { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
     #sv .slot .sh .st { font-size: 14px; color: var(--muted); }
     #sv .slot .sh svg.chev { width: 22px; height: 22px; color: var(--muted); transition: transform .2s; flex: none; }
     #sv .slot.fixed .sh { cursor: default; align-items: center; min-height: 58px; padding: 8px 12px 8px 16px; }
@@ -118,7 +118,7 @@
     #sv .slot.fixed::before { left: 7.5px; top: 10.5px; bottom: 10.5px; opacity: .55; }
     @keyframes slotFlash { 0%, 35% { box-shadow: 0 0 0 3px var(--ink); } 100% { box-shadow: 0 0 0 3px transparent; } }
     /* Label bij het blok dat nu actief is */
-    #sv .slot .nowtag { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 16px; vertical-align: 1px;
+    #sv .slot .nowtag { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; line-height: 16px; vertical-align: 1px;
       background: var(--ink); color: var(--card); }
     #sv .slot.fixed .nowtag { background: var(--muted); }
     #sv .slot .se { display: flex; align-items: center; gap: 4px; padding: 8px 6px 8px 8px; }
@@ -128,7 +128,7 @@
     /* Tijd links, temperatuur rechts, dan het pijltje. */
     #sv .slot .sh .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     #sv .slot .se .sh svg.chev { flex: none; }
-    #sv .slot .sh .tv { margin-left: auto; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; transition: opacity .15s; }
+    #sv .slot .sh .tv { margin-left: auto; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; transition: opacity .15s; }
     #sv .slot.fixed .sh .tv { margin-right: 30px; } /* gelijk met de temperaturen naast een pijltje */
     #sv .slot .se .sh svg.chev { width: 20px; height: 20px; color: var(--ink); opacity: .6; transition: transform .22s ease; }
     #sv .slot.open .se .sh svg.chev { transform: rotate(180deg); }
@@ -136,16 +136,16 @@
     #sv .slot .ed { display: flex; align-items: center; padding: 2px 10px 12px; overflow: hidden; }
     /* Open kop: begin- en eindtijd als velden, sluitpijltje rechts */
     /* Open kop lijkt op de dichte: zelfde letter, plek en pijltje; alleen een lichte laag achter de tijden. */
-    #sv .slot .se .sh.oh { cursor: default; gap: 0; padding: 8px 12px 8px 16px; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
-    #sv .slot .se .sh.oh input[type=time] { width: 56px; height: 34px; min-height: 34px; line-height: 34px; font-size: 15px; font-weight: 600; padding: 0 5px; margin: 0 -1px 0 -5px; border-radius: 8px; text-align: center; }
+    #sv .slot .se .sh.oh { cursor: default; gap: 0; padding: 8px 12px 8px 16px; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    #sv .slot .se .sh.oh input[type=time] { width: 56px; height: 34px; min-height: 34px; line-height: 34px; font-size: 15px; font-weight: 500; padding: 0 5px; margin: 0 -1px 0 -5px; border-radius: 8px; text-align: center; }
     #sv .slot .se .sh.oh input[type=time]::-webkit-date-and-time-value { text-align: center; line-height: 34px; min-height: 34px; }
     #sv .slot .se .sh.oh input.end { margin-left: 0; }
     #sv .slot .se .sh.oh .to { font-size: 15px; color: var(--ink); opacity: 1; padding: 0 5px 0 4px; }
     #sv .slot .se .sh.oh .stepper { margin-left: auto; gap: 0; }
     #sv .slot .se .sh.oh .stepper button { width: 32px; min-height: 32px; height: 32px; }
     /* Maximumtemperatuur: 'max' als labeltje in de balk en de kop, en als rondje in plaats van + bij bewerken. */
-    #sv .mx { margin-left: 4px; padding: 1px 5px; border-radius: 999px; background: rgba(0,0,0,.12); font-size: 10px; font-weight: 700; vertical-align: 1px; }
-    #sv .slot .stepper .maxs { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; font-size: 11px; font-weight: 700; padding: 0; opacity: .8; }
+    #sv .mx { margin-left: 4px; padding: 1px 5px; border-radius: 999px; background: rgba(0,0,0,.12); font-size: 10px; font-weight: 600; vertical-align: 1px; }
+    #sv .slot .stepper .maxs { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; font-size: 11px; font-weight: 600; padding: 0; opacity: .8; }
     #sv .slot .se .sh.oh .stepper output { min-width: 50px; padding: 0 8px; font-size: 18px; }
     /* Verwijderen: brede, lichtrode knop met rode tekst (destructief, maar rustig) */
     #sv .slot .ed button.danger { flex: 1; min-height: 44px; border-radius: 999px; font-size: 15px; font-weight: 500; background: #fbe7e3; color: #cc3a1f; }
@@ -178,9 +178,9 @@
     #sv .block { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 8px 6px 8px 18px; position: relative;
       background: var(--card-2); border-radius: 14px; margin-bottom: 8px; }
     #sv .block::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 4px; border-radius: 2px; background: var(--c); }
-    #sv .block .from small { display: block; text-align: center; font-size: 13px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+    #sv .block .from small { display: block; text-align: center; font-size: 13px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
     #sv .stepper { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
-    #sv .stepper output { min-width: 50px; padding: 0 5px; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .stepper output { min-width: 50px; padding: 0 5px; text-align: center; font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
     #sv .stepper button { width: 36px; min-height: 36px; padding: 0; flex: none; }
     #sv .stepper button svg, #sv .fstep button svg { width: 16px; height: 16px; display: block; }
     #sv .del { width: 34px; min-height: 36px; padding: 0; background: none; color: var(--muted); }
@@ -200,7 +200,7 @@
     #setup .card { margin-bottom: 12px; }
     #setup .step { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
     #setup .step:first-child { border-top: 0; padding-top: 2px; }
-    #setup .num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--card-2); color: var(--muted); }
+    #setup .num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 14px; background: var(--card-2); color: var(--muted); }
     #setup .num.done { background: #45c08f; color: #fff; }
     #setup .num.now { background: var(--text); color: var(--card); }
     #setup .num svg { width: 15px; height: 15px; }
@@ -213,15 +213,15 @@
     #setup .found small { display: block; color: var(--muted); }
     #setup .links { display: flex; gap: 10px; flex: none; }
     #setup button.wide { width: 100%; margin-top: 10px; }
-    #setup button.start { width: 100%; background: #45c08f; color: #fff; font-weight: 600; font-size: 16px; min-height: 50px; }
+    #setup button.start { width: 100%; background: #45c08f; color: #fff; font-weight: 500; font-size: 16px; min-height: 50px; }
     #setup button.start:disabled { opacity: .45; }
     #setup .done-card .first + button.start { margin-top: 16px; } /* ruimte tussen uitleg en 'Schema instellen' */
     #setup .note { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); margin: 10px 4px 0; }
     #setup .note svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
-    #setup .dayl { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; margin-top: 14px; }
+    #setup .dayl { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 500; margin-top: 14px; }
     #setup .dayl span { color: var(--muted); font-weight: 400; }
     #setup .pbar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; gap: 2px; margin-top: 6px; }
-    #setup .pbar i { display: flex; align-items: center; padding: 0 6px; font-style: normal; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+    #setup .pbar i { display: flex; align-items: center; padding: 0 6px; font-style: normal; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; }
     #setup .ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
     #setup .done-card { text-align: center; }
     #setup .done-card .check { width: 56px; height: 56px; border-radius: 50%; background: #45c08f; color: #fff; display: grid; place-items: center; margin: 4px auto 10px; }
@@ -243,7 +243,7 @@
     #sv .hfoot { display: flex; align-items: flex-end; gap: 8px; margin: 8px 0 0 2px; }
     #sv .hsum { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; font-size: 12.5px; color: var(--muted); }
     #sv .hsum span { display: flex; flex-direction: column; }
-    #sv .hsum b { font-size: 16px; color: var(--text); font-weight: 600; }
+    #sv .hsum b { font-size: 16px; color: var(--text); font-weight: 500; }
     #sv .hsum .ul { font-style: normal; display: flex; flex-direction: row; align-items: center; white-space: nowrap; }
     #sv .hsum .info { margin: -8px -8px -8px 0; }
     /* .ucost erbij: anders wint de algemene i-regel verderop (16px) door gelijke specificiteit. */
@@ -255,7 +255,7 @@
     #sv .hsum .ucost[aria-expanded="true"] .info { color: var(--link); }
     #sv .hnote { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; line-height: 1.4; color: var(--text); }
     #sv .hempty { text-anchor: middle; font-size: 13px; fill: var(--muted); }
-    #sv svg#hChart { display: block; width: 100%; height: auto; touch-action: manipulation; cursor: crosshair; } /* niet de 22px van icoontjes */
+    #sv svg#hChart { display: block; width: 100%; height: auto; touch-action: pan-y; /* zijwaarts schuiven = details, nooit de pagina; op en neer scrolt gewoon */ cursor: crosshair; } /* niet de 22px van icoontjes */
     /* Details bij vasthouden/schuiven: lijn, stip en een kaartje */
     #sv .hwrap { position: relative; }
     svg.hchart .hscrub line { stroke: var(--text); stroke-width: 1.2; }
@@ -264,7 +264,7 @@
       background: var(--text); color: var(--card); border-radius: 12px; padding: 8px 12px; white-space: nowrap; width: max-content; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
     #sv .htip .tt { font-size: 12px; opacity: .7; display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 2px; }
     #sv .htip .tt .to { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; } /* buiten: rechtsboven in de hoek, zelfde tint als de tijd */
-    #sv .htip .tv { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .htip .tv { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
     #sv .htip .tr { display: flex; gap: 14px; font-size: 14px; margin-top: 2px; font-variant-numeric: tabular-nums; }
     #sv .htip .tr span, #sv .htip .tv span { display: inline-flex; align-items: center; gap: 4px; } /* waar de handmatige stand vandaan kwam */
     #sv .htip svg { width: 15px !important; height: 15px !important; flex: none; }
@@ -278,13 +278,13 @@
     svg.hchart .hheat { fill: #fbe3a6; opacity: .75; }
     svg.hchart .hwin { fill: #9cc9f5; opacity: .4; }
     svg.hchart .hwinb circle { fill: #d3e6fb; stroke: var(--card); stroke-width: 2; }
-    svg.hchart .b-schedule { fill: #d7f3e6; } svg.hchart .b-manual { fill: #f7b52c; } svg.hchart .b-away { fill: #8b8f96; } svg.hchart .b-off { fill: #c9cbd1; } svg.hchart .b-window { fill: #d3e6fb; } /* raam open: koele lichtblauwe tint */
+    svg.hchart .b-schedule { fill: #d7f3e6; } svg.hchart .b-manual { fill: #f7b52c; } svg.hchart .b-away { fill: #8b8f96; } svg.hchart .b-off { fill: #c9cbd1; } svg.hchart .b-window { fill: #d3e6fb; } /* raam open: koele lichtblauwe tint */ svg.hchart .b-vacation { fill: #d6f2f3; } svg.hchart .i-vacation { stroke: #0f6f77; }
     svg.hchart .i-schedule { stroke: #1d6f4f; } svg.hchart .i-manual { stroke: #4a3000; } svg.hchart .i-away, svg.hchart .i-off { stroke: #fff; } svg.hchart .i-window { stroke: #1f5fa8; }
     @media (prefers-color-scheme: dark) {
       svg.hchart .hheat { fill: rgba(247,181,44,.28); opacity: 1; }
       svg.hchart .hwin { fill: rgba(140,196,255,.22); opacity: 1; }
       svg.hchart .hwinb circle { fill: #173452; }
-      svg.hchart .b-schedule { fill: #1c4636; } svg.hchart .b-away { fill: #6b6f76; } svg.hchart .b-off { fill: #4a4c52; } svg.hchart .b-window { fill: #173452; } svg.hchart .i-window { stroke: #8cc4ff; }
+      svg.hchart .b-schedule { fill: #1c4636; } svg.hchart .b-away { fill: #6b6f76; } svg.hchart .b-off { fill: #4a4c52; } svg.hchart .b-window { fill: #173452; } svg.hchart .i-window { stroke: #8cc4ff; } svg.hchart .b-vacation { fill: #14393b; } svg.hchart .i-vacation { stroke: #7fe3e6; }
       svg.hchart .i-schedule { stroke: #6fdcae; }
     }
 
@@ -324,6 +324,7 @@
     #sv .qscroll.more-l.more-r { box-shadow: var(--glass-edge), inset -14px 0 12px -12px rgba(0,0,0,.14), inset 14px 0 12px -12px rgba(0,0,0,.14); }
     #sv .qscroll button { flex: none; min-height: 38px; padding: 0 12px; margin: 0 -2px; /* knopvlak groeit om het woord heen en overlapt de ruimte ertussen */ font-size: 13.5px; background: transparent; color: var(--text); white-space: nowrap;
       transition: background-color .2s, color .2s; }
+    @media (max-width: 380px) { #sv .qscroll button { padding: 0 9px; } } /* smal (S21): alle drie passen, niets valt half weg */
     #sv .qscroll button:first-child { margin-left: 0; } #sv .qscroll button:last-child { margin-right: 0; }
     #sv .qscroll button.on { position: relative; z-index: 1; } /* actieve knop ligt bovenop zijn buren */
     #sv .qscroll button.on { background: var(--text); color: var(--card); }
@@ -349,7 +350,9 @@
     /* Groot scherm: samenvatting kort op één regel in de kopregel, zoals in de widget. */
     #sv .fsline { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: var(--muted);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-    #sv .fsline b { color: var(--text); font-weight: 600; }
+    #sv .fsline { color: var(--text); }
+    #sv .fsline b { font-weight: 600; }
+    #sv .fsline .fsinfo span { opacity: .85; }
     #sv .fsline svg { width: 11px; height: 14px; flex: none; }
     #sv .fsline .fsinfo { all: unset; display: inline-flex; align-items: center; gap: 5px; padding: 6px 0; margin: -6px 0; cursor: pointer; }
     #sv .fsline .fsinfo i { display: inline-grid; place-items: center; color: var(--muted); }
@@ -374,7 +377,7 @@
     /* Velden */
     #sv .card { background: var(--card); border-radius: 20px; padding: 16px 14px 18px; }
     #sv input, #sv select { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 48px; padding: 0 14px;
-      border-radius: 12px; background: var(--card-2); color: var(--text); font: inherit; font-weight: 500; }
+      border-radius: 12px; background: var(--card-2); color: var(--text); font: inherit; font-weight: 400; }
     #sv select { appearance: none; -webkit-appearance: none; height: 48px; line-height: 48px; padding: 0 42px 0 14px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a9aa0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -384,11 +387,11 @@
     #sv input[type=time]::-webkit-datetime-edit { display: flex; justify-content: center; }
     #sv input[type=time] { -webkit-appearance: none; appearance: none; width: 80px; height: 40px; min-height: 40px; line-height: 40px; font-size: 19px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; padding: 0 10px; background: var(--card); }
     #sv input[type=checkbox] { all: revert; width: 24px; height: 24px; accent-color: var(--warm); flex: none; }
-    #sv label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
+    #sv label { display: block; font-size: 14px; font-weight: 400; color: var(--muted); margin: 16px 0 6px; }
     #sv label:first-child { margin-top: 0; }
     #sv #preWrap > label, #sv #priceWrap > label, #sv #usageWrap > label { margin-top: 16px; }
     /* Groepen in de instellingen: geen lijnen, maar een duidelijk kopje met ruimte erboven. */
-    #sv .cg { all: unset; display: block; font-size: 17px; font-weight: 700; margin: 34px 2px 0; }
+    #sv .cg { all: unset; display: block; font-size: 17px; font-weight: 600; margin: 34px 2px 0; }
     #sv .card > .cg:first-of-type { margin-top: 0; } /* alleen de eerste kop van de kaart (Apparaten), niet die in het blok erna */
     #sv .cg + label, #sv .cg + label.toggle { margin-top: 10px; }
     /* Blok met schakelaar waarin de extra velden verschijnen (Verbruik en kosten). */
@@ -413,7 +416,7 @@
     /* Homey zet labels standaard in hoofdletters; hier niet. */
     #sv label, #sv label *, #sv small, #sv h1, #sv h2, #sv h3 { text-transform: none !important; letter-spacing: normal !important; }
     #sv .fstep { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 52px; padding: 0 6px; border-radius: 12px; background: var(--card-2); }
-    #sv .fstep output { flex: 1; text-align: center; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .fstep output { flex: 1; text-align: center; font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
     #sv .fstep button { width: 44px; min-height: 44px; padding: 0; flex: none; background: transparent; } /* geen rondje: − en + spreken voor zich */
     #sv .fstep button:active { background: var(--press); }
     #sv label.toggle { display: flex; align-items: center; gap: 14px; margin: 22px 0 0; padding: 14px; border-radius: 14px; background: var(--card-2); cursor: default; color: var(--text); }
@@ -426,9 +429,12 @@
     #sv .toggle .ti { flex: none; align-self: flex-start; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
       background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
     #sv .toggle .ti svg { display: block; width: 16px; height: 16px; }
+    /* Geldpas over de vlam: uitsparing en vulling in precies de kleur van het rondje. */
+    #sv .toggle .ti .cut { fill: color-mix(in srgb, var(--text) 8%, var(--card-2)); stroke: color-mix(in srgb, var(--text) 8%, var(--card-2)); }
+    #sv .toggle .ti .pas { fill: color-mix(in srgb, var(--text) 8%, var(--card-2)); }
     #sv .toggle .tt { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    #sv .toggle .tt b { font-size: 17px; font-weight: 600; }
-    #sv .toggle .tt small { font-size: 14px; line-height: 1.35; font-weight: 500; }
+    #sv .toggle .tt b { font-size: 17px; font-weight: 500; }
+    #sv .toggle .tt small { font-size: 14px; line-height: 1.35; font-weight: 400; }
     #sv .toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
     #sv .toggle .knob { flex: none; position: relative; width: 52px; height: 32px; border-radius: 999px; background: var(--line); transition: background .15s; }
     #sv .toggle .knob::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
@@ -444,6 +450,8 @@
     #sv .fresh .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .6; transition: background .3s; }
     #sv .fresh .dot { background: var(--warm); opacity: 1; } /* melding: oranje stip */
     #sv .fresh .dot.ping { animation: sv-ping 1s ease-out; }
+    #sv .fresh.busy .dot { animation: sv-busy .7s ease-in-out infinite alternate; } #sv .fresh.busy button.link { opacity: .45; pointer-events: none; } /* bezig met opnieuw proberen */
+    @keyframes sv-busy { from { transform: scale(.6); opacity: .5; } to { transform: scale(1.25); opacity: 1; } }
     @keyframes sv-ping { 0% { box-shadow: 0 0 0 0 rgba(242,162,58,.7); } 100% { box-shadow: 0 0 0 9px rgba(242,162,58,0); } }
     #sv .switch { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
     #sv .switch label { margin: 0; color: var(--text); font-size: 16px; }
@@ -451,14 +459,14 @@
     #sv #saveConfig { display: flex; width: 100%; min-height: 52px; font-size: 17px; } /* opslaan over de hele breedte */
 
     #sv .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
-    #sv .stats span { display: block; font-size: 14px; font-weight: 500; color: var(--muted); }
-    #sv .stats b { font-size: 20px; font-weight: 600; }
+    #sv .stats span { display: block; font-size: 14px; font-weight: 400; color: var(--muted); }
+    #sv .stats b { font-size: 20px; font-weight: 500; }
     /* Klein i-knopje achter een label; tikken toont/verbergt een korte uitleg onder de cijfers. */
     #sv :is(.stats, .hsum) .info { all: unset; display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -6px -6px -6px -2px; vertical-align: middle; color: var(--muted); cursor: pointer; border-radius: 50%; }
     #sv :is(.stats, .hsum) .info svg { width: 16px; height: 16px; }
     #sv :is(.stats, .hsum) .info[aria-expanded="true"] { color: var(--link); }
     #sv :is(.stats, .hsum) .info:focus-visible { outline: 2px solid var(--link); }
-    #sv .stats .note { grid-column: 1 / -1; margin: -4px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--text); }
+    #sv .stats .note { grid-column: 1 / -1; margin: -4px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card-2); font-size: 14px; line-height: 1.4; font-weight: 400; color: var(--text); }
     #sv .rows { margin-top: 16px; }
     #sv .rows .r { position: relative; overflow: hidden; border-top: 1px solid var(--line); touch-action: pan-y; }
     /* Naar links vegen (zoals iOS): de meting schuift opzij en het rode vlak rekt mee met je vinger.
@@ -468,7 +476,7 @@
     #sv .rows .r.open .rc, #sv .rows .r:focus-within .rc { transform: translateX(-120px); } /* knop (108) + ruimte (12) */
     #sv .rows .del { all: unset; box-sizing: border-box; position: absolute; top: 5px; right: 0; bottom: 5px; width: 0; overflow: hidden;
       display: flex; align-items: center; justify-content: center; border-radius: 10px;
-      background: var(--danger); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      background: var(--danger); color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; -webkit-tap-highlight-color: transparent;
       transition: width .28s cubic-bezier(.2,.8,.2,1); }
     #sv .rows .r.open .del, #sv .rows .r:focus-within .del { width: 108px; }
     /* Icoon en tekst staan altijd midden in het rode vlak; bij een smal vlak vervagen ze (niet afknippen of verspringen). */
@@ -478,8 +486,8 @@
     #sv .rows .r.drag .rc, #sv .rows .r.drag .del { transition: none; }
     #sv .rows .r.gone { transition: height .22s ease, opacity .22s ease; opacity: 0; }
     @media (prefers-reduced-motion: reduce) { #sv .rows .rc, #sv .rows .del, #sv .rows .del .lbl, #sv .rows .r.gone { transition: none; } }
-    #sv .rows .r1 { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 500; }
-    #sv .rows .r1 b { white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+    #sv .rows .r1 { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 400; }
+    #sv .rows .r1 b { white-space: nowrap; font-weight: 500; font-variant-numeric: tabular-nums; }
     #sv .rows .r2 { font-size: 13px; color: var(--muted); margin-top: 1px; }
 
     /* Opslaan-balk */
@@ -487,12 +495,12 @@
       padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line);
       transform: translateY(110%); transition: transform .2s; z-index: 5; }
     #sv .savebar.show { transform: none; }
-    #sv .savebar span { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* één regel */
+    #sv .savebar span { flex: 1; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* één regel */
     /* Zelfde maat als 'Tijdsblok verwijderen'. */
     #sv .savebar button { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 15px; } /* tekst ernaast past ook op een smal scherm */
     /* Melding: klein pilletje onderaan, valt weinig op en verdwijnt vanzelf. */
     #sv .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 8px); z-index: 20;
-      padding: 8px 14px; border-radius: 18px; background: color-mix(in srgb, var(--text) 88%, transparent); color: var(--bg); font-size: 14px; font-weight: 600;
+      padding: 8px 14px; border-radius: 18px; background: color-mix(in srgb, var(--text) 88%, transparent); color: var(--bg); font-size: 14px; font-weight: 500;
       width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box; text-align: center; line-height: 1.35; /* past altijd, met 16px rand */
       pointer-events: none; opacity: 0; transition: opacity .2s, transform .2s; }
     #sv .toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -501,11 +509,11 @@
     /* Meting verwijderd: zelfde pilletje, met een knop om het terug te draaien. */
     #sv .toast.undo { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 16px; }
     #sv .toast.undo.show { pointer-events: auto; }
-    #sv .toast.undo button { all: unset; box-sizing: border-box; min-height: 36px; padding: 0 12px; border-radius: 999px; font-weight: 700; color: var(--bg); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    #sv .toast.undo button { all: unset; box-sizing: border-box; min-height: 36px; padding: 0 12px; border-radius: 999px; font-weight: 600; color: var(--bg); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
     #sv .toast.undo button:focus-visible { outline: 2px solid var(--bg); outline-offset: -2px; }
     /* Meting die niet meetelt (wijkt te veel af): wat lichter. */
     #sv .rows .r.ign .r1 { opacity: .55; }
-    #sv .rows .r2 .ign { color: var(--text); font-weight: 600; }
+    #sv .rows .r2 .ign { color: var(--text); font-weight: 500; }
     /* Nog geen thermostaat gekozen: alleen tonen wat zonder thermostaat zin heeft (tegel met melding, schema, Apparaten). */
     /* !important: kaarten hebben zelf een display (bijv. .card.empty is flex); dit aan/uit moet altijd winnen. */
     #sv.nodev [data-needdev] { display: none !important; }
@@ -519,7 +527,7 @@
     #sv .card.empty span:not(.ei) { font-size: 14px; line-height: 1.4; color: var(--muted); max-width: 300px; }
     /* Dubbele raam-open-detectie (tado doet het ook): opvallend vak met een knop om de onze uit te zetten. */
     #sv .ownwarn { display: flex; align-items: center; gap: 12px; margin: 2px 0 16px; padding: 12px 14px; border-radius: 12px;
-      background: color-mix(in srgb, var(--warm) 16%, var(--card)); color: var(--text); font-size: 14px; line-height: 1.4; font-weight: 500; }
+      background: color-mix(in srgb, var(--warm) 16%, var(--card)); color: var(--text); font-size: 14px; line-height: 1.4; font-weight: 400; }
     #sv .ownwarn[hidden] { display: none; }
     #sv .ownwarn span { flex: 1; }
   </style>
@@ -592,9 +600,9 @@
     <select id="overrideDefault">
       <!-- Zelfde keuzes als de snelkeuzes in de widget. -->
       <option value="next">tot volgend blok</option>
+      <option value="30">½ uur</option>
       <option value="60">1 uur</option>
       <option value="120">2 uur</option>
-      <option value="180">3 uur</option>
       <option value="manual">tot je het schema hervat</option>
     </select>
 
@@ -659,7 +667,7 @@
     <!-- Optioneel: na aanzetten verschijnen meter en prijs ín hetzelfde blok. -->
     <div class="tsec"><div class="tblock">
     <label class="toggle" for="usageOn" id="usageToggle">
-      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.6 1.8 2.5 2C11.7 7.5 11.5 5.5 12 3z"/></svg></span>
+      <span class="ti" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(-1 -0.5) scale(.95)"><path d="M10.5 2.5c1 3.4 5 5.3 5 9.8a5 5 0 0 1-10 0c0-2.4 1.4-3.4 1.9-5.3.8 1.1 1.5 1.7 2.4 1.9-.4-2.3-.1-4.3.7-6.4z"/></g><rect class="cut" x="10.5" y="12.5" width="11" height="8" rx="1.8" stroke-width="5"/><rect class="pas" x="10.5" y="12.5" width="11" height="8" rx="1.8"/><path d="M10.5 15.3h11M17.5 18.1h1.8" stroke-width="1.7"/></svg></span><!-- vlam met een geldpas erover: verbruik en kosten -->
       <span class="tt"><b>Verbruik en kosten</b><small class="desc">Laat bij Terugkijken zien hoeveel gas of stroom er die dag is gebruikt en wat dat kostte. Werkt met een slimme meter in Homey.</small></span>
       <input id="usageOn" type="checkbox" role="switch"><span class="knob" aria-hidden="true"></span>
     </label>
@@ -709,7 +717,7 @@ const DEFAULT_BLOCKS = [{ time: '06:30', temp: 20 }, { time: '08:30', temp: 16 }
 const WEEKEND_BLOCKS = [{ time: '08:00', temp: 20 }, { time: '23:00', temp: 16 }];
 const MODES = {
   schedule: 'Volgens schema', preheat: 'Aan het voorverwarmen', manual: 'Handmatig',
-  away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart', window: 'Raam open', deviceWindow: 'Raam open', deviceOff: 'Thermostaat uit',
+  away: 'Niemand thuis', paused: 'Gepauzeerd', setup: 'Nog niet gestart', window: 'Raam open', deviceWindow: 'Raam open', deviceOff: 'Thermostaat uit', vacation: 'Vakantie',
 };
 /** Weericoon bij de buitentemperatuur, passend bij het weer buiten (kind uit status.weather). */
 const WX = (() => {
@@ -767,7 +775,7 @@ function isDefaultSchedule(sch) {
   return DAY_KEYS.every((k) => JSON.stringify(sch[k] || []) === JSON.stringify(k === 'sat' || k === 'sun' ? WEEKEND_BLOCKS : DEFAULT_BLOCKS));
 }
 function renderSchedHint() { $('schedHint').hidden = scheduleCustom || !isDefaultSchedule(JSON.parse(saved || '{}')); }
-const open = new Set([todayKey]);
+const open = new Set(); // alles dicht; de knop Vandaag klapt vandaag open en scrolt ernaartoe
 let clip = null; // { from: dag, blocks }: gekopieerde dag, te plakken op andere dagen
 let flashId = null; // nieuw blok dat even oplicht
 let opening = null; // blok dat net opengaat: alleen dan de groei-animatie
@@ -1094,7 +1102,7 @@ function schedulePoll() {
 }
 const pageStart = Date.now();
 function tickFresh() {
-  const el = $('fresh'); if (!el) return;
+  const el = $('fresh'); if (!el || $('freshRow').classList.contains('busy')) return; // bezig: tekst laten staan
   // Alles gaat goed (elke 15 s nieuw): niets tonen. Pas als het ruim een halve minuut niet lukt, een melding.
   const stale = lastAt ? Date.now() - lastAt > 45000 : Date.now() - pageStart > 20000;
   $('freshRow').classList.toggle('show', stale); // schuift zacht in en uit
@@ -1145,7 +1153,7 @@ function renderLearned(l) {
   const recent = (l.recent || []).filter((r) => !hiddenAt.has(r.at)); // net verwijderd (nog terug te draaien): niet tonen
   const samples = Math.max(0, l.samples - ((l.recent || []).length - recent.length));
   const rows = recent.slice().reverse().map((r) => `<div class="r${r.at === swOpen ? ' open' : ''}${r.ignored ? ' ign' : ''}" data-at="${r.at}"><div class="rc"><div class="r1"><span>${logDate(r.at)} · ${fmt(r.from)} → ${fmt(r.to)}</span><b>${fmt(r.rate, '°/u')}</b></div>`
-    + `<div class="r2">${r.ignored ? '<span class="ign">Telt niet mee, wijkt te veel af</span> · ' : ''}${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}cv op gang in ${Math.round(r.deadTime)} min</div></div>`
+    + `<div class="r2">${r.ignored ? '<span class="ign">Telt niet mee</span> · ' : ''}${r.outdoor != null ? `buiten ${fmt(r.outdoor)} · ` : ''}opstart ${Math.round(r.deadTime)} min</div></div>`
     + `<button class="del" data-del="${r.at}" aria-label="Meting van ${esc(logDate(r.at).toLowerCase())}, ${fmt(r.from)} naar ${fmt(r.to)}, verwijderen"><span class="lbl">${TRASH_ICON}Verwijder</span></button></div>`).join('');
   // Stiptheid: hoe het meestal ging bij de laatste keren (mediaan). Binnen 5 minuten = op tijd.
   const late = l.late;
@@ -1381,7 +1389,12 @@ function renderConfig() {
   cfgVals.maxPreheat = config.maxPreheat != null ? Number(config.maxPreheat) : 180;
   cfgVals.maxTemp = config.maxTemp != null ? Number(config.maxTemp) : 21;
   renderCfgVals();
-  $('overrideDefault').value = String(config.overrideDefault || 'next');
+  // Een oude keuze die niet meer in de lijst staat (bijv. 3 uur) blijft staan, zodat opslaan hem niet ongemerkt wijzigt.
+  const od = String(config.overrideDefault || 'next');
+  if (/^\d+$/.test(od) && ![...$('overrideDefault').options].some((o) => o.value === od)) {
+    const m = Number(od); $('overrideDefault').add(new Option(m % 60 ? `${m} minuten` : `${m / 60} uur`, od));
+  }
+  $('overrideDefault').value = od;
   if (!$('overrideDefault').value) $('overrideDefault').value = 'next';
   $('preheat').checked = config.preheat !== false;
   $('autoPres').checked = config.autoPresence === true;
@@ -1555,9 +1568,10 @@ const BAND_ICON = {
   away: '<path d="M13 12v.01M3 21h18M5 21V5a2 2 0 0 1 2-2h7.5M17 13.5V21M14 7h7m-3-3 3 3-3 3"/>',
   off: '<path d="M9 6v12M15 6v12"/>',
   window: '<path d="M7 7h10v10H7zM7 7 2.5 5v14L7 17M17 7l4.5-2v14L17 17"/>', // raam met twee open vleugels
+  vacation: '<g transform="translate(2 -1) rotate(-20 9 13.5)"><path d="M9 7c-1.6 1.6-3.25 4-3.25 6.5M9 7c1.6 1.6 3.25 4 3.25 6.5"/><path d="M2.5 13.5a6.5 6.5 0 0 1 13 0z"/><path d="M9 13.5v6.4"/></g><path d="M5 20h14"/>', // palmboom op een eilandje // parasol (klein: zon zonder stralen)
 };
 const MODE_BAND = { schedule: ['schedule', 'Thuis · schema'], preheat: ['schedule', 'Thuis · schema'], manual: ['manual', 'Handmatig'],
-  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''], window: ['window', 'Raam open'], deviceWindow: ['window', 'Raam open'], deviceOff: ['off', 'Thermostaat uit'] };
+  away: ['away', 'Afwezig'], paused: ['off', 'Gepauzeerd'], setup: ['off', ''], window: ['window', 'Raam open'], deviceWindow: ['window', 'Raam open'], deviceOff: ['off', 'Thermostaat uit'], vacation: ['vacation', 'Vakantie'] };
 /** Periodes waarin de verwarming lager stond voor een open raam (zelf herkend of door de thermostaat gemeld): [[van, tot], …]. */
 function windowSpans(h) {
   const until = h.day === 0 ? Math.min(h.now, h.end) : h.end; const out = [];
@@ -1679,11 +1693,14 @@ function sumHtml(h, heatMin, withInfo) {
 function fsLine(h, heatMin) {
   if (!h.indoor.length) return '';
   const avg = h.indoor.reduce((a, r) => a + r[1], 0) / h.indoor.length; const u = h.usage;
-  return `${TIP_ICON.waves}<b>${Math.floor(heatMin / 60)}u ${heatMin % 60}m</b> · gem. <b>${fmt(avg)}</b>`
+  // Zelfde opmaak als de widget op het dashboard: alleen het bedrag dik (plus het gemiddelde, waar de widget geen ruimte voor heeft).
+  return `${TIP_ICON.waves}<span>${Math.floor(heatMin / 60)}u ${heatMin % 60}m</span> · gem. ${fmt(avg)}`
     // Bedrag en verbruik samen als één knop: tik erop (of op het i-tje) voor de uitleg.
     + (u ? ` · <button class="fsinfo${$('fsNote').hidden ? '' : ' on'}" id="fsInfo" aria-label="${euro(u.cost)}, ${String(u.amount).replace('.', ',')} ${u.unit}: waar komt dit bedrag vandaan?" aria-expanded="${!$('fsNote').hidden}" aria-controls="fsNote"><b>${euro(u.cost)}</b><span>${String(u.amount).replace('.', ',')} ${u.unit}</span><i>${INFO_ICON}</i></button>` : '');
 }
+let scrubbing = false; let scrubRedraw = null; // tijdens het schuiven niet hertekenen (verversen), anders verdwijnt het kaartje
 function renderHistory(h) {
+  if (scrubbing && h) { scrubRedraw = h; return; }
   const svg = $('hChart');
   if (!h) { svg.innerHTML = '<text class="hempty" x="170" y="90">Verloop kon niet worden geladen.</text>'; $('hSum').innerHTML = ''; return; }
   lastHist = h;
@@ -1769,9 +1786,13 @@ function attachScrub(ctx) {
     if (!st.mode) return; // nog niet ver genoeg geschoven
     if (st.mode === 'v' && ctx === MAIN) { scrubEnd(ctx); return; }
     if (e.cancelable) e.preventDefault();
+    if (ctx === MAIN) scrubbing = true;
     scrubAt(ctx, t.clientX, t.clientY);
   }, { passive: false });
-  ['touchend', 'touchcancel'].forEach((ev) => el.addEventListener(ev, () => { scrubEnd(ctx); st = null; }));
+  ['touchend', 'touchcancel'].forEach((ev) => el.addEventListener(ev, () => {
+    scrubEnd(ctx); st = null;
+    if (ctx === MAIN && scrubbing) { scrubbing = false; if (scrubRedraw) { const h = scrubRedraw; scrubRedraw = null; renderHistory(h); } }
+  }));
 }
 attachScrub(MAIN);
 
@@ -1968,7 +1989,16 @@ async function onHomeyReady(Homey) {
   // Live: de app stuurt na elke wijziging de nieuwe stand. Ophalen elke 15 s blijft als vangnet.
   if (typeof Homey.on === 'function') Homey.on('status', (st) => { lastVia = 'live'; renderStatus(st); schedulePoll(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });
-  $('refresh').addEventListener('click', () => { $('fresh').textContent = 'Ophalen…'; loadStatus(); });
+  // Opnieuw proberen: zichtbaar bezig (minstens even), en lukt het nog niet, dan de pagina opnieuw laden.
+  // Na een herstart van de app (bijv. een update) krijgt een open instellingenpagina zo zijn verbinding terug.
+  $('refresh').addEventListener('click', async () => {
+    const row = $('freshRow'); if (row.classList.contains('busy')) return;
+    row.classList.add('busy'); $('fresh').textContent = 'Ophalen…';
+    const [s] = await Promise.all([call('api', 'GET', '/status', null).catch(() => null), new Promise((r) => setTimeout(r, 900))]);
+    if (s && s.updatedAt) { row.classList.remove('busy'); renderStatus(s); schedulePoll(); return; }
+    $('fresh').textContent = 'Nog geen verbinding, opnieuw laden…';
+    setTimeout(() => location.reload(), 900);
+  });
   setInterval(tickFresh, 1000);
   // Wisselt het toestel tussen licht en donker terwijl de pagina open is: kleuren van het weekschema opnieuw uitrekenen.
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { renderWeek(); });

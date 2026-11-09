@@ -27,7 +27,11 @@ const now = Date.now();
 let samples = [4, 3, 2, 1].map((d, i) => ({ at: Date.now() - d * 86400000 - i * 3600000, from: 15 + i * 0.3, to: 18 - (i % 2), rate: [1.1, 2.9, 1.2, 1.4][i], deadTime: [15, 8, 16, 12][i], outdoor: [6, 3, 2.5, 4][i] }));
 // Raam open? Zichtbaar bij het starten; /__mode?m=ask zet hem terug.
 let windowAsk = { at: Date.now(), from: 20.4, to: 19.7 }; let windowUntil = 0;
-function windowAction(action) {
+let vacationUntil = 0; let vacationPlan = null;
+function windowAction(action, body = {}) {
+  if (action === 'vacation') { if (body.from > Date.now()) { if (mode === 'vacation') { vacationUntil = 0; mode = 'schedule'; } vacationPlan = { from: Number(body.from), until: Number(body.until) }; return true; } vacationPlan = null; vacationUntil = Number(body.until); mode = 'vacation'; windowAsk = null; return true; }
+  if (action === 'vacationPlanOn' || action === 'vacationPlanOff') { if (vacationPlan) { vacationPlan = { ...vacationPlan }; if (action === 'vacationPlanOff') vacationPlan.off = true; else delete vacationPlan.off; } return true; }
+  if (action === 'vacationEnd') { vacationUntil = 0; vacationPlan = null; mode = 'schedule'; return true; }
   if (action === 'windowOff') { windowAsk = null; windowUntil = Date.now() + 30 * 60000; mode = 'window'; return true; }
   if (action === 'windowIgnore') { windowAsk = null; return true; }
   if (action === 'windowEnd') { windowUntil = 0; mode = 'schedule'; return true; }
@@ -39,7 +43,7 @@ const status = () => ({
   override: mode === 'manual' ? { temp: manualTemp, since: now, until: manualUntil, duration: manualDur } : null,
   overrideDefault: store.config.overrideDefault || 'next',
   nextChangeAt: Date.now() + 466 * 60000,
-  away: mode === 'away', enabled: mode !== 'paused',
+  away: mode === 'away', enabled: mode !== 'paused', vacation: mode === 'vacation' ? { since: now, until: vacationUntil } : null, vacationPlan,
   window: mode === 'window' ? { since: now, until: windowUntil } : null, windowAsk: mode === 'window' || store.config.windowDetect === false ? null : windowAsk, windowTemp: store.config.windowAction === 'eco' ? (store.config.ecoTemp || 16) : 5,
   windowInfo: { on: store.config.windowDetect === true, own: store.config.thermostatId === 'tado' ? 'tado' : null, minutes: Number(store.config.windowMinutes) || 15, drop: 0.9, asked: 5, off: 1, ignored: 3 },
   learned: { samples: samples.length, rate: 1.35, deadTime: 14, heatingNow: false, ignored: samples.some((x) => x.rate > 2.5) ? 1 : 0, late: 12, factor: 1.15, recent: samples.slice(-5).map((x) => (x.rate > 2.5 ? { ...x, ignored: true } : x)) },
@@ -102,7 +106,7 @@ http.createServer((req, res) => {
         if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
         mode = 'manual'; manualTemp = b.temp; confirmedAt = Date.now() + 6000;
       } else if (b.action === 'setDuration') { manualDur = b.duration; manualUntil = untilOf(b.duration); } else if (b.action === 'resume') mode = 'schedule';
-      else windowAction(b.action);
+      else if (!windowAction(b.action, b)) mode = { away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule' }[b.action] || mode;
       return send(200, { status: status(), schedule: store.schedule });
     }
     if (url.startsWith('/__api/setting/')) {
@@ -133,7 +137,7 @@ http.createServer((req, res) => {
         mode = 'manual'; manualTemp = temp; confirmedAt = Date.now() + 6000; return send(200, status());
       }
       if (action === 'setDuration') { manualDur = duration; manualUntil = untilOf(duration); return send(200, status()); }
-      if (windowAction(action)) return send(200, status());
+      if (windowAction(action, JSON.parse(data || '{}'))) return send(200, status());
       if (action === 'deleteSample') { const at = Number(JSON.parse(data || '{}').at); samples = samples.filter((x) => x.at !== at); return send(200, status()); }
       mode = { resume: 'schedule', away: 'away', home: 'schedule', pause: 'paused', enable: 'schedule', start: 'schedule' }[action] || mode;
       return send(200, status());

@@ -2,3 +2,6 @@ node_modules/
 .homeybuild/
 env.json
 dev/states.html
+
+# Stijlgids: alleen lokaal (privé), niet naar GitHub
+docs/stijlgids/
