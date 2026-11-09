@@ -558,10 +558,13 @@
     #sv .c-hand .lk { color: #ffd166; } #sv .c-systeem .lk { color: #4fd1e8; } #sv .c-flow .lk { color: #e38cff; }
     #sv .c-fout .lk, #sv .c-fout .lm { color: #ff6b6b; } #sv .c-app .lk, #sv .c-app .lm { color: #ffffff; font-weight: 700; }
     #sv .c-onbekend .lk { color: #8a9587; }
-    #sv .ll.r .lk, #sv .ll.r .lm, #sv .ll.r .lt { color: #5d665b; } /* ruw: details, alleen met [ruw] */
+    #sv .ll.r .lk, #sv .ll.r .lm, #sv .ll.r .lt { color: #5d665b; } /* details: alleen als 'details' aan staat */
     #sv .ll.sub .lt { visibility: hidden; } #sv .ll.sub .lk { color: #5d665b; text-align: right; } /* gevolg, onder de oorzaak */
     #sv .ll.sub .lm { color: #aab5a7; }
     #sv .logv .tgl.on { color: #0b0d0c; background: #c9d4c6; }
+    /* Fout: één regel, tik om alles te zien. */
+    #sv .ll.c-fout { cursor: pointer; }
+    #sv .ll.c-fout:not(.open) .lm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #sv .ll.new { animation: lnew 1.2s ease-out; } @keyframes lnew { from { background: #22301f; } to { background: transparent; } }
     #sv .logempty { color: #6f7a6d; padding: 12px 0; }
     #sv .ll.old { opacity: .55; } /* teruggehaald van vóór het logboek */
@@ -736,8 +739,9 @@
       <div class="logrow1"><button id="logBack" aria-label="Terug">&lt; terug</button><b>slimverwarmen.log</b><span class="loglive" id="logLive">○ live</span></div>
       <div class="logmeta" id="logMeta"></div>
       <div class="logrow2" id="logFlt">
-        <button class="flt on" data-k="">alles</button><button class="flt" data-k="hand">handmatig</button><button class="flt" data-k="systeem">systeem</button><button class="flt" data-k="flow">flow</button><button class="flt" data-k="fout">fout</button>
-        <span style="flex:1"></span><button class="tgl" id="logRaw" aria-pressed="false">[ruw]</button><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
+        <button class="flt on" data-k="hand" aria-pressed="true">handmatig</button><button class="flt on" data-k="systeem" aria-pressed="true">systeem</button><button class="flt on" data-k="flow" aria-pressed="true">flow</button><button class="flt on" data-k="fout" aria-pressed="true">fout</button>
+        <button class="flt" id="logRaw" aria-pressed="false" title="Ook de losse details: bevestigingen van de thermostaat en interne meldingen">details</button>
+        <span style="flex:1"></span><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
       </div>
     </div>
     <div class="logbody" id="logBody" aria-live="off"></div>
@@ -847,7 +851,11 @@ function bigTemp(v) {
 
 // ---------- Logboek ----------
 // Nieuwste bovenaan, per dag een scheidingsregel, tijd tot op de milliseconde in de tijdzone van de Homey.
-let logData = null; let logKind = ''; let logTimer = null;
+let logData = null; let logTimer = null;
+// Welke categorieën te zien zijn (meerdere tegelijk); bewaard op dit toestel.
+const LOG_CATS = ['hand', 'systeem', 'flow', 'fout'];
+let logOn = new Set(LOG_CATS);
+try { const v = JSON.parse(localStorage.getItem('sv-log-on')); if (Array.isArray(v)) logOn = new Set(v.filter((k) => LOG_CATS.includes(k))); } catch (e) { /* geen opslag: alles aan */ }
 function logFmt(tz) {
   const day = new Intl.DateTimeFormat('nl-NL', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const clock = new Intl.DateTimeFormat('nl-NL', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
@@ -861,7 +869,7 @@ const LOG_TYPE_MAX = 40; // zoveel regels typen we uit bij het openen; de rest s
 const logReduce = matchMedia('(prefers-reduced-motion: reduce)');
 let logTyping = false; let logDirty = false; let logShownLast = 0; let logRaw = false;
 /**
- * Categorie (c), bron (s), ruw (r) en oorzaak (p) van een regel. Nieuwe regels hebben ze al; oudere (van vóór deze
+ * Categorie (c), bron (s), detail (r) en oorzaak (p) van een regel. Nieuwe regels hebben ze al; oudere (van vóór deze
  * indeling) leiden we af uit soort en tekst.
  */
 function logCls(e) {
@@ -887,7 +895,9 @@ function logCls(e) {
 }
 /** Zichtbare regels, nieuwste eerst; een gevolg (p) staat direct onder zijn oorzaak. */
 function logRows() {
-  const vis = (logData.entries || []).map((e) => ({ e, x: logCls(e) })).filter((o) => (logRaw || !o.x.r) && (!logKind || o.x.c === logKind));
+  // Start en onbekende regels horen bij geen filter: die staan er alleen als alles aan staat.
+  const allOn = LOG_CATS.every((k) => logOn.has(k));
+  const vis = (logData.entries || []).map((e) => ({ e, x: logCls(e) })).filter((o) => (logRaw || !o.x.r) && (LOG_CATS.includes(o.x.c) ? logOn.has(o.x.c) : allOn));
   const byT = new Set(vis.map((o) => o.e.t)); const kids = new Map(); const tops = [];
   for (const o of vis) {
     if (o.x.p && byT.has(o.x.p)) { if (!kids.has(o.x.p)) kids.set(o.x.p, []); kids.get(o.x.p).push(o); } else tops.push(o);
@@ -914,7 +924,7 @@ function renderLog(animateFrom) {
     const cls = `ll c-${lesc(x.c || 'x')}${x.r ? ' r' : ''}${o.sub ? ' sub' : ''}${e.h ? ' old' : ''}${type ? ' wait' : ''}`;
     html += `<div class="${cls}" title="${f.clock(e.t)}.${f.ms(e.t)}"><span class="lt">${f.clock(e.t)}</span><span class="lk">${o.sub ? '└' : lesc(x.s)}</span><span class="lm">${lesc(e.m)}</span></div>`;
   }
-  $('logBody').innerHTML = html || '<div class="logempty">(niets in deze selectie)</div>';
+  $('logBody').innerHTML = html || `<div class="logempty">${logOn.size ? '(niets in deze selectie)' : '(zet een filter aan)'}</div>`;
   logShownLast = all.length ? all[all.length - 1].t : 0;
   if (typed) typeLog();
 }
@@ -953,16 +963,25 @@ function closeLog() { $('logv').hidden = true; document.documentElement.style.ov
 function logText() {
   const tz = (logData && logData.tz) || 'Europe/Amsterdam'; const f = logFmt(tz);
   const CAT = { hand: 'handmatig', systeem: 'systeem', flow: 'flow', fout: 'fout', app: 'app', onbekend: '?' };
-  return ((logData && logData.entries) || []).map((e) => { const x = logCls(e); return `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${(x.r ? 'detail' : CAT[x.c] || x.c || '-').padEnd(9)} ${String(x.s).padEnd(6)} ${e.m}${e.h ? '  (teruggehaald)' : ''}`; }).join('\n');
+  return ((logData && logData.entries) || []).map((e) => { const x = logCls(e); return `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${(x.r ? 'details' : CAT[x.c] || x.c || '-').padEnd(9)} ${String(x.s).padEnd(6)} ${e.m}${e.h ? '  (teruggehaald)' : ''}`; }).join('\n');
 }
 function wireLog() {
   $('logOpen').addEventListener('click', openLog);
   $('logBack').addEventListener('click', closeLog);
-  $('logRaw').addEventListener('click', () => { logRaw = !logRaw; $('logRaw').classList.toggle('on', logRaw); $('logRaw').setAttribute('aria-pressed', String(logRaw)); renderLog(); });
+  try { logRaw = localStorage.getItem('sv-log-details') === '1'; } catch (e) { /* standaard uit */ }
+  const syncRaw = () => { $('logRaw').classList.toggle('on', logRaw); $('logRaw').setAttribute('aria-pressed', String(logRaw)); };
+  syncRaw();
+  $('logRaw').addEventListener('click', () => { logRaw = !logRaw; try { localStorage.setItem('sv-log-details', logRaw ? '1' : '0'); } catch (e) { /* niet bewaren */ } syncRaw(); renderLog(); });
+  const syncFlt = () => document.querySelectorAll('#logFlt .flt[data-k]').forEach((x) => { const on = logOn.has(x.dataset.k); x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+  syncFlt();
   $('logFlt').addEventListener('click', (e) => {
-    const b = e.target.closest('.flt'); if (!b) return;
-    logKind = b.dataset.k; document.querySelectorAll('#logFlt .flt').forEach((x) => x.classList.toggle('on', x === b)); renderLog(0); // filter: opnieuw uittypen
+    const b = e.target.closest('.flt[data-k]'); if (!b) return;
+    const k = b.dataset.k; if (logOn.has(k)) logOn.delete(k); else logOn.add(k);
+    try { localStorage.setItem('sv-log-on', JSON.stringify([...logOn])); } catch (err) { /* niet bewaren */ }
+    syncFlt(); renderLog();
   });
+  // Fout: tik om de hele melding te zien (of weer in te klappen).
+  $('logBody').addEventListener('click', (e) => { const r = e.target.closest('.ll.c-fout'); if (r) r.classList.toggle('open'); });
   $('logCopy').addEventListener('click', async () => {
     const txt = logText(); let ok = false;
     try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {

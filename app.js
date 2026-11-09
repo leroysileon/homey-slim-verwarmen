@@ -11,7 +11,7 @@ const TICK_MS = 60 * 1000;
 const JOURNAL_MAX = 800; // regels in het logboek (instellingen > Logboek)
 
 /**
- * Logboekregel: { t, k (soort), m (tekst), c (categorie), s (bron), p (tijd van de oorzaak), r (ruw: alleen bij [ruw]) }.
+ * Logboekregel: { t, k (soort), m (tekst), c (categorie), s (bron), p (tijd van de oorzaak), r (detail: alleen als 'details' aan staat) }.
  * Categorieën: hand (telefoon of thermostaat), systeem (de app zelf), flow, fout, app (start).
  */
 const deg = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? `${String(Math.round(Number(v) * 10) / 10).replace('.', ',')}°` : '?');
@@ -56,7 +56,7 @@ class SlimVerwarmenApp extends Homey.App {
   async onInit() {
     // Logboek: alles wat de app logt, doet en meldt, met tijdstip. Te lezen in de instellingen (Logboek).
     // Eigen functies naast die van Homey (this.log/this.error zelf niet overschrijven: die kunnen alleen-lezen zijn).
-    this.note = (...args) => { this.log(...args); this.journal('info', line(args), { r: 1 }); }; // details: alleen bij [ruw]
+    this.note = (...args) => { this.log(...args); this.journal('info', line(args), { r: 1 }); }; // detail: alleen als 'details' aan staat
     this.fail = (...args) => { this.error(...args); this.journal('fout', line(args), { c: 'fout', s: 'fout' }); };
     this.journal('start', `app ${this.homey.manifest.version} gestart (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`, { c: 'app', s: 'start' });
     this.api = await HomeyAPI.createAppAPI({ homey: this.homey });
