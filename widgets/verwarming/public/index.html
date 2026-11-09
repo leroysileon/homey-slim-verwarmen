@@ -360,6 +360,16 @@
         @media (max-width: 340px) { #w .cf input { padding: 4px 5px; } #w .cf b, #w .cf input { font-size: 14px; } } /* smal: iets kleiner, weekdag blijft */
     @media (max-width: 330px) { #w .cf .wd { display: none; } } /* alleen op de allersmalste schermen zonder weekdag */ /* smal: '28 nov' zonder weekdag, zodat dag en tijd allebei op 16px passen */
     #w .cf .tsel { display: inline-flex; align-items: center; flex: none; min-height: 32px; padding: 0 6px; border-radius: 8px; background: #f1f1f4; font-size: 15px; font-weight: 400; font-variant-numeric: tabular-nums; }
+    #w .cf .tsel { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; flex: none; min-height: 32px; padding: 4px 7px; border-radius: 8px; background: #f1f1f4; font-size: 15px; font-weight: 400; font-variant-numeric: tabular-nums; cursor: pointer; }
+    #w .cf .tsel.on { box-shadow: inset 0 0 0 1.5px #1597a3; } /* deze tijd staat in het draaiwiel */
+    #w .wheel { position: relative; display: flex; justify-content: center; align-items: stretch; gap: 6px; height: 170px; flex: none; margin: 4px 0 2px; }
+    #w .wheel .wband { position: absolute; left: 0; right: 0; top: 68px; height: 34px; border-radius: 10px; background: #f1f1f4; pointer-events: none; }
+    #w .wcol { position: relative; width: 72px; height: 170px; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; padding: 68px 0; box-sizing: border-box; overscroll-behavior: contain;
+      -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+    #w .wcol::-webkit-scrollbar { display: none; }
+    #w .wit { height: 34px; display: grid; place-items: center; scroll-snap-align: center; font-size: 21px; font-variant-numeric: tabular-nums; opacity: .5; cursor: pointer; }
+    #w .wit.on { opacity: 1; font-weight: 500; }
+    #w .wsep { position: relative; align-self: center; font-size: 21px; font-weight: 500; }
     #w .cf .tsel select { -webkit-appearance: none; appearance: none; border: 0; margin: 0; padding: 4px 1px; background: transparent; color: inherit; font: inherit; font-size: 15px; cursor: pointer; text-align: center; color-scheme: light; } /* uur en minuut (per 5) als keuzelijst: ziet eruit als één tijd */
     #w .cf input { -webkit-appearance: none; appearance: none; position: relative; box-sizing: border-box; min-width: 0; flex: none; min-height: 32px; margin: 0; padding: 4px 6px; border: 0; border-radius: 8px;
       background: #f1f1f4; color: inherit; font-family: inherit; font-size: 15px; font-weight: 400; line-height: 1.2; color-scheme: light; cursor: pointer; } /* even groot als de dag */
@@ -378,7 +388,7 @@
     #w.locked { pointer-events: none; }
     #w.locked .vopts > *:not(.wait), #w.locked .vdate:not(.wait), #w.locked .p2 .xo:not(.wait), #w.locked .acts button:not(.busy) { opacity: .45; transition: opacity .2s; }
     @media (prefers-color-scheme: dark) { #w .vopts > *, #w .vdate { background: #2f3039; }
-      #w .cf input, #w .cf .tsel { background: #2f3039; color-scheme: dark; } #w .cf .tsel select { color-scheme: dark; } #w .cf.next b { color: #7fe3e6; }
+      #w .cf input, #w .cf .tsel, #w .wheel .wband { background: #2f3039; color-scheme: dark; } #w .cf .tsel.on { box-shadow: inset 0 0 0 1.5px #7fe3e6; } #w .cf .tsel select { color-scheme: dark; } #w .cf.next b { color: #7fe3e6; }
       #w .calg .mid::before, #w .calg .a.rng::before, #w .calg .b.rng::before { background: rgba(127,227,230,.18); } #w .calg .a span, #w .calg .b span { background: #7fe3e6; color: #08292b; } }
     /* Instellingen: de keuze staat als eigen 'slide' op een neutrale kaart, net als de derde kaart op het dashboard. */
     #w.vacpick .p0 { background-color: #ffffff; background-image: none; color: #17171a; }
@@ -628,6 +638,35 @@ const dayOf = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(),
 const monthStart = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
 const atNine = (day) => { const d = new Date(day); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0).getTime(); };
 const withDay = (day, timeOf) => { const d = new Date(day); const t = new Date(timeOf); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), t.getHours(), t.getMinutes()).getTime(); };
+let vacTime = null; let wheelBusy = 0; // draaiwiel open voor 'from' of 'until'; tot wanneer er nog gedraaid wordt
+const WH = 34; // regelhoogte in het draaiwiel
+/** Draaiwiel zoals de wekker van je telefoon: uren en minuten per 5, de middelste regel is de gekozen tijd. */
+function wheelHtml(k) {
+  const d = new Date(k === 'from' ? vacFrom : vacUntil); const h = d.getHours(); const m = Math.min(55, Math.round(d.getMinutes() / 5) * 5);
+  const col = (name, vals, sel, label) => `<div class="wcol" data-wcol="${name}" data-sel="${vals.indexOf(sel)}" role="listbox" aria-label="${label}">${vals.map((v) => `<div class="wit${v === sel ? ' on' : ''}" data-wv="${v}" role="option">${pad2(v)}</div>`).join('')}</div>`;
+  return `<div class="wheel" data-wheel="${k}"><div class="wband"></div>${col('h', Array.from({ length: 24 }, (_, v) => v), h, 'Uur')}<div class="wsep">:</div>${col('m', Array.from({ length: 12 }, (_, v) => v * 5), m, 'Minuten')}</div>`;
+}
+function positionWheels() { document.querySelectorAll('#w [data-wcol]').forEach((c) => { c.scrollTop = Number(c.dataset.sel) * WH; }); }
+/** Gekozen tijd uit het wiel overnemen, zonder opnieuw te tekenen (dan blijft het draaien soepel). */
+function wheelPick() {
+  const w = document.querySelector('#w [data-wheel]'); if (!w) return;
+  const k = w.dataset.wheel;
+  const get = (n) => { const c = w.querySelector(`[data-wcol="${n}"]`); const i = Math.max(0, Math.min(c.children.length - 1, Math.round(c.scrollTop / WH))); c.dataset.sel = i; [...c.children].forEach((x, j) => x.classList.toggle('on', j === i)); return Number(c.children[i].dataset.wv); };
+  const h = get('h'); const m = get('m');
+  const base = new Date(k === 'from' ? vacFrom : vacUntil); const t = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m).getTime();
+  if (k === 'from') { const len = vacUntil != null && vacUntil > vacFrom ? vacUntil - vacFrom : 7 * 86400000; vacFrom = t; if (vacUntil != null && vacUntil <= vacFrom) vacUntil = vacFrom + len; }
+  else vacUntil = t <= vacFrom ? addDays(vacFrom, 1) : t;
+  const box = w.closest('.vac');
+  box.querySelectorAll('[data-timeopen]').forEach((b) => { const v = b.dataset.timeopen === 'from' ? vacFrom : vacUntil; if (v != null) b.textContent = isoLocal(v).slice(11); });
+  const go = box.querySelector('[data-vacgo]'); const st = (data && data.status) || {};
+  if (go && vacBusy == null) { go.disabled = !vacOk(); go.textContent = goLabel(!!(st.vacation || st.vacationPlan)); }
+  const sb = box.querySelector('[data-vacsec]'); if (sb && vacSaved && (vacFrom !== vacSaved.from || vacUntil !== vacSaved.until)) sb.remove();
+}
+let wheelTimer = null;
+document.addEventListener('scroll', (e) => {
+  const c = e.target && e.target.closest && e.target.closest('[data-wcol]'); if (!c) return;
+  wheelBusy = Date.now() + 500; clearTimeout(wheelTimer); wheelTimer = setTimeout(wheelPick, 110);
+}, true);
 /** Kalender als eerste scherm, zoals Airbnb: tik vertrek, tik terugkomst, de periode ertussen kleurt mee. Een derde tik begint opnieuw. */
 function calView() {
   const st = (data && data.status) || {}; const active = !!st.vacation;
@@ -662,12 +701,8 @@ function calView() {
   const label = new Date(y, mo, 1).toLocaleDateString('nl-NL', { month: away ? 'short' : 'long', year: 'numeric' }).replace('.', '');
   const nxt = ICON_ACT.back.replace('<svg ', '<svg style="transform:scaleX(-1)" ');
   // Onderin: vertrek en terugkomst naast elkaar, elk met dag en tijd. Wat je nu kiest is gekleurd.
-  // Tijd als twee keuzelijsten (uur en minuut per 5): de telefoon toont dan alleen tijden om de 5 minuten (een tijdveld kan dat niet afdwingen).
-  const tin = (k, ms, what) => {
-    const d = new Date(ms); let h = d.getHours(); let m = Math.round(d.getMinutes() / 5) * 5; if (m === 60) { m = 55; }
-    const opt = (v, sel) => `<option value="${v}"${v === sel ? ' selected' : ''}>${pad2(v)}</option>`;
-    return `<span class="tsel"><select data-vacin="${k}" data-part="h" aria-label="Uur dat je ${what}">${Array.from({ length: 24 }, (_, v) => opt(v, h)).join('')}</select>:<select data-vacin="${k}" data-part="m" aria-label="Minuten">${Array.from({ length: 12 }, (_, v) => opt(v * 5, m)).join('')}</select></span>`;
-  };
+  // Tijd: een knop; een tik toont het draaiwiel (uren en minuten per 5) in plaats van de kalender.
+  const tin = (k, ms, what) => { const t = isoLocal(ms).slice(11); return `<button type="button" class="tsel${vacTime === k ? ' on' : ''}" data-timeopen="${k}" aria-label="Tijd dat je ${what}: ${t}">${t}</button>`; };
   // Welke dag de volgende tik kiest staat gekleurd; tik op vertrek of terugkomst om te kiezen welke je wijzigt.
   const nextK = !vacHasFrom ? 'from' : vacUntil == null ? 'until' : vacPick;
   const cell = (k, label, day, time) => `<div class="cf${nextK === k ? ' next' : ''}" role="button" tabindex="0" data-calpick="${k}" aria-label="${label} wijzigen">${day}${time}</div>`; // geen kopjes: de volgorde (vertrek → terug) zegt het al
@@ -683,6 +718,12 @@ function calView() {
   // Lopend: Stoppen. Gepland en aan: Uitzetten. Gepland maar uit: Wissen (Opslaan zet hem al weer aan).
   const secAct = !asSaved ? null : active ? 'vacationEnd' : plan ? (plan.off ? 'vacationEnd' : 'vacationPlanOff') : null;
   const sec = secAct ? `<button class="vdate dg calsec" data-vacsec="${secAct}">${active ? 'Stoppen' : plan.off ? 'Wissen' : 'Uitzetten'}</button>` : '';
+  if (vacTime && (vacTime === 'from' ? vacHasFrom : vacUntil != null)) {
+    return `<div class="vac vcal"><div class="calh"><button class="xback" data-timeclose aria-label="Terug naar de kalender">${ICON_ACT.back}${vacTime === 'from' ? 'Vertrektijd' : 'Terugkomtijd'}</button><span class="calnav"><button type="button" class="caltoday" data-timeclose>Klaar</button></span></div>
+    ${wheelHtml(vacTime)}
+    <div class="calf">${fromCell}<span class="carr" aria-hidden="true">→</span>${untilCell}</div>
+    <div class="calbtns">${sec}<button class="vdate calgo${busy ? ' wait' : ''}" data-vacgo${ok || busy ? '' : ' disabled'}>${busy ? SPINNER : goLabel(!!(st.vacation || st.vacationPlan))}</button></div></div>`;
+  }
   return `<div class="vac vcal"><div class="calh"><button class="xback" data-vacclose aria-label="Terug, niets wijzigen">${ICON_ACT.back}Vakantie</button>
     <span class="calnav">${away ? '<button type="button" class="caltoday" data-caltoday>Vandaag</button>' : ''}<button type="button" data-calnav="-1" aria-label="Vorige maand"${prevOk ? '' : ' disabled'}>${ICON_ACT.back}</button><span>${label}</span><button type="button" data-calnav="1" aria-label="Volgende maand"${nextOk ? '' : ' disabled'}>${nxt}</button></span></div>
     <div class="calw"><span>ma</span><span>di</span><span>wo</span><span>do</span><span>vr</span><span>za</span><span>zo</span></div>
@@ -694,7 +735,7 @@ function vacChooser() { return calView(); } // vakantie kiezen = de kalender (da
 /** Derde kaart (dashboard): uitzonderingen. */
 function renderExceptions(p2, s) {
   if (!p2) return;
-  if (vacOpen) { p2.innerHTML = vacChooser(); return; } // terugkomstdag kiezen; titel met terugpijl zit in de keuze zelf
+  if (vacOpen) { p2.innerHTML = vacChooser(); if (vacTime) positionWheels(); return; } // terugkomstdag kiezen; titel met terugpijl zit in de keuze zelf
   const on = exceptionsOn(s);
   // Bezig (na een tik, tot de Homey de nieuwe stand bevestigt): draaiend rondje in het icoon, kleur blijft zoals hij was.
   const opt = (k, icon, title, idle, active, attrs, label) => `<button class="xo${on[k] ? ' on' : ''}${k === 'vacation' && plan && !on[k] ? ' plan' : ''}${xBusy === k ? ' wait' : ''}" ${attrs} data-xkey="${k}" data-keep aria-pressed="${on[k]}" aria-label="${label}"${xBusy === k ? ' aria-busy="true"' : ''}><span class="xh"><span class="xm">${icon}</span><span class="xi">${xBusy === k ? SPINNER : POWER}</span></span><span><b>${title}</b><small>${on[k] ? '<i class="dot"></i>' + active : idle}</small></span></button>`;
@@ -1175,6 +1216,7 @@ function placeCostInfo(p1) {
 function render() {
   const w = document.getElementById('w');
   if (!loaded) return; // skeleton laten staan tot de eerste poging klaar is
+  if (vacTime && Date.now() < wheelBusy) { setTimeout(render, 520); return; } // wiel draait nog: niet onder je vinger vandaan tekenen
   const ae = document.activeElement; if (ae && ae.matches && ae.matches('[data-vacin]') && vacBusy == null) return; // datumkiezer open: niet hertekenen, anders sluit hij (of kiest hij al)
   const first = w.classList.contains('loading');
   w.removeAttribute('aria-busy'); w.removeAttribute('aria-label');
@@ -1268,12 +1310,12 @@ function render() {
   w.classList.toggle('vacpick', pickNow);
   w.classList.toggle('vacbig', !IN_SETTINGS && vacOpen);
   { const m = new Date(vacMonth || Date.now()); const lead = (new Date(m.getFullYear(), m.getMonth(), 1).getDay() + 6) % 7; const n = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
-    w.style.setProperty('--calcut', `${(6 - Math.ceil((lead + n) / 7)) * 33}px`); } // korte maand: widget lager, geen lege ruimte // kalender: widget even hoger, dan past een maand van zes weken
+    w.style.setProperty('--calcut', `${(6 - (vacTime ? 5 : Math.ceil((lead + n) / 7))) * 33}px`); } // korte maand: widget lager, geen lege ruimte // kalender: widget even hoger, dan past een maand van zes weken
   if (IN_SETTINGS && vacOpen) {
     p0.style.minHeight = vacH ? `${vacH}px` : '';
     if (vacAnim === 'in') sinAt = performance.now();
     const sinEl = performance.now() - sinAt; // opnieuw getekend tijdens het inschuiven: verder waar hij was
-    p0.innerHTML = `<div class="vacwrap${sinEl < 340 ? ' sin' : ''}" style="--sid:-${Math.round(sinEl)}ms">${vacChooser()}</div>`;
+    p0.innerHTML = `<div class="vacwrap${sinEl < 340 ? ' sin' : ''}" style="--sid:-${Math.round(sinEl)}ms">${vacChooser()}</div>`; if (vacTime) positionWheels();
     vacAnim = null; setTimeout(fitHeight, 0); return;
   }
   p0.style.minHeight = '';
@@ -1560,7 +1602,7 @@ function postAction(body) {
   return Promise.all([call, new Promise((r) => setTimeout(r, 1000))]).then(([res]) => res);
 }
 function openVac() {
-  vacOpen = true; vacOrigin = IN_SETTINGS ? null : page;
+  vacOpen = true; vacTime = null; vacOrigin = IN_SETTINGS ? null : page;
   const s = (data && data.status) || {};
   const now = Math.floor(Date.now() / 60000) * 60000; // nu, op de minuut
   if (s.vacation) { vacFrom = s.vacation.since || now; vacUntil = s.vacation.until; vacHasFrom = true; vacPick = 'until'; } // lopend: eerst de terugkomst; tik op 'Al begonnen' om het vertrek te verzetten
@@ -1571,7 +1613,7 @@ function openVac() {
   vacInit = vacSaved && !(s.vacationPlan && s.vacationPlan.off) ? vacSaved : null; // zo stond hij al (een uitgezette planning: opslaan zet hem weer aan)
   if (IN_SETTINGS) { const p0 = document.querySelector('#w .p0'); vacH = p0 ? p0.offsetHeight : 0; vacAnim = 'in'; }
 }
-function closeVac() { vacOpen = false; if (IN_SETTINGS) vacAnim = 'out'; }
+function closeVac() { vacOpen = false; vacTime = null; if (IN_SETTINGS) vacAnim = 'out'; }
 /** Naar kaart `t` vegen (dashboard), de kortste kant op. */
 function goPage(t) { if (IN_SETTINGS || t == null || t === page) return; flip(t === (page + 1) % 3 ? -1 : 1); }
 /** Kalender: uit-/aanzetten of stoppen. Meteen terug naar waar je vandaan kwam; rondje in de tegel tot de Homey bevestigt. */
@@ -1617,6 +1659,11 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-caltoday]')) { vacMonth = monthStart(Date.now()); render(); return; } // terug naar deze maand
   const nav = e.target.closest('[data-calnav]');
   if (nav) { if (!nav.disabled) { const d = new Date(vacMonth); vacMonth = new Date(d.getFullYear(), d.getMonth() + Number(nav.dataset.calnav), 1).getTime(); render(); } return; }
+  const to = e.target.closest('[data-timeopen]');
+  if (to) { vacTime = vacTime === to.dataset.timeopen ? null : to.dataset.timeopen; render(); return; } // tijd kiezen: draaiwiel in plaats van de kalender
+  if (e.target.closest('[data-timeclose]')) { wheelPick(); vacTime = null; render(); return; }
+  const wv = e.target.closest('[data-wv]');
+  if (wv) { const c = wv.parentElement; c.scrollTo({ top: [...c.children].indexOf(wv) * WH, behavior: 'smooth' }); return; } // tik op een tijd: naar het midden draaien
   const pk = e.target.closest('[data-calpick]');
   if (pk && !e.target.closest('input')) { vacPick = pk.dataset.calpick; if (vacPick === 'from' || vacUntil == null) vacMonth = monthStart(Math.max(Date.now(), vacFrom)); render(); return; }
   const day = e.target.closest('[data-calday]');
