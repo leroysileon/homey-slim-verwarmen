@@ -369,7 +369,7 @@
     #w .wcol::-webkit-scrollbar { display: none; }
     #w .wit { height: 34px; display: grid; place-items: center; scroll-snap-align: center; font-size: 21px; font-variant-numeric: tabular-nums; opacity: .5; cursor: pointer; }
     #w .wit.on { opacity: 1; font-weight: 500; }
-    #w .wsep { position: relative; align-self: center; font-size: 21px; font-weight: 500; }
+    #w .wsep { position: relative; align-self: flex-start; margin-top: 68px; height: 34px; display: grid; place-items: center; font-size: 21px; line-height: 1; font-weight: 500; transform: translateY(-2px); } /* op de balk, en op het midden van de cijfers (de : staat in het lettertype iets laag) */
     #w .cf .tsel select { -webkit-appearance: none; appearance: none; border: 0; margin: 0; padding: 4px 1px; background: transparent; color: inherit; font: inherit; font-size: 15px; cursor: pointer; text-align: center; color-scheme: light; } /* uur en minuut (per 5) als keuzelijst: ziet eruit als één tijd */
     #w .cf input { -webkit-appearance: none; appearance: none; position: relative; box-sizing: border-box; min-width: 0; flex: none; min-height: 32px; margin: 0; padding: 4px 6px; border: 0; border-radius: 8px;
       background: #f1f1f4; color: inherit; font-family: inherit; font-size: 15px; font-weight: 400; line-height: 1.2; color-scheme: light; cursor: pointer; } /* even groot als de dag */
@@ -666,6 +666,9 @@ let wheelTimer = null;
 document.addEventListener('scroll', (e) => {
   const c = e.target && e.target.closest && e.target.closest('[data-wcol]'); if (!c) return;
   wheelBusy = Date.now() + 500; clearTimeout(wheelTimer); wheelTimer = setTimeout(wheelPick, 110);
+  // Tikje bij elke tijd die het midden passeert, zoals de wekker van je telefoon.
+  const i = Math.round(c.scrollTop / WH); if (c._tick == null) c._tick = Number(c.dataset.sel);
+  if (i !== c._tick) { c._tick = i; stepTick(); }
 }, true);
 /** Kalender als eerste scherm, zoals Airbnb: tik vertrek, tik terugkomst, de periode ertussen kleurt mee. Een derde tik begint opnieuw. */
 function calView() {
@@ -1620,6 +1623,12 @@ function goPage(t) { if (IN_SETTINGS || t == null || t === page) return; flip(t 
 async function vacSecond(action) {
   if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
   const origin = vacOrigin; const before = data;
+  if (action === 'vacationEnd' && data && data.status && !data.status.vacation) { // Wissen: kalender leeg, maar blijf in de kalender
+    data = { ...data, status: { ...data.status, vacationPlan: null } };
+    vacFrom = Math.floor(Date.now() / 60000) * 60000; vacUntil = null; vacHasFrom = false; vacPick = 'from'; vacSaved = null; vacInit = null; vacTime = null; render();
+    try { data = await postAction({ action }); } catch (err) { console.error(err); data = before; }
+    render(); refreshSoon(); return;
+  }
   if (data && data.status) { // alvast tonen
     const st = { ...data.status };
     if (action === 'vacationEnd') { st.vacation = null; st.vacationPlan = null; if (st.mode === 'vacation') st.mode = 'schedule'; }
