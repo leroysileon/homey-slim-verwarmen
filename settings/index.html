@@ -888,6 +888,7 @@ function logCls(e) {
       if (/thermostaat/.test(w)) return { c: 'hand', s: 'thermo' };
       if (/flow/.test(w)) return { c: 'flow', s: 'flow' };
       if (/aanwezigheid/.test(w)) return { c: 'systeem', s: 'aanwez' };
+      if (/^manual\b/.test(m)) return { c: 'onbekend', s: '?' }; // handmatig zonder bekende oorzaak (vaak: na een herstart)
       return { c: 'systeem', s: 'app' };
     }
     default: return { r: true, s: LOG_LABEL[e.k] || e.k };

@@ -58,7 +58,8 @@ class SlimVerwarmenApp extends Homey.App {
     // Eigen functies naast die van Homey (this.log/this.error zelf niet overschrijven: die kunnen alleen-lezen zijn).
     this.note = (...args) => { this.log(...args); this.journal('info', line(args), { r: 1 }); }; // detail: alleen als 'details' aan staat
     this.fail = (...args) => { this.error(...args); this.journal('fout', line(args), { c: 'fout', s: 'fout' }); };
-    this.journal('start', `app ${this.homey.manifest.version} gestart (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`, { c: 'app', s: 'start' });
+    // De eerste stand na een herstart hoort bij deze startregel: dat is geen wijziging, alleen hoe het er nu voor staat.
+    this.startT = this.journal('start', `app ${this.homey.manifest.version} gestart (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`, { c: 'app', s: 'start' });
     this.api = await HomeyAPI.createAppAPI({ homey: this.homey });
     try {
       await this.api.devices.connect();
@@ -356,14 +357,14 @@ class SlimVerwarmenApp extends Homey.App {
         .filter(([t, v]) => Number.isFinite(t) && v != null && t >= start && t < end && t <= now); // niets van na 'nu'
     };
     const read = async (uri, id) => {
-      // homey-api verwacht het volledige log-id ('homey:device:<id>:measure_temperature'); de korte vorm als reserve.
-      for (const args of [{ id: `${uri}:${id}`, resolution }, { uri, id, resolution }]) {
-        try {
-          const rows = toRows(await this.api.insights.getLogEntries(args));
-          if (rows.length) return rows;
-        } catch (err) { errors.push(`${args.id}: ${err.message || err}`); }
+      // homey-api 3.x verwacht het volledige log-id ('homey:device:<id>:measure_temperature') en leidt de uri daar zelf uit af.
+      // Een lege uitkomst is geen fout: net na middernacht heeft 'vandaag' nog geen 5-minutenwaarden.
+      try {
+        return toRows(await this.api.insights.getLogEntries({ id: `${uri}:${id}`, resolution }));
+      } catch (err) {
+        errors.push(`${id}: ${err.message || err}`);
+        return [];
       }
-      return [];
     };
     const dev = this.config.thermostatId ? `homey:device:${this.config.thermostatId}` : null;
     const cfg = this.config;
@@ -541,14 +542,19 @@ class SlimVerwarmenApp extends Homey.App {
 
   async onControllerEvent(event, data) {
     if (event === 'status') {
-      const sig = `${data.mode}|${data.target}`;
+      const target = data.thermostatTarget;
+      const sig = `${data.mode}|${target}`;
       if (sig !== this.lastSig) { // standwissel of nieuw doel: één regel, geen regel per minuut
         const prev = this.lastStand; const cz = this.cause && Date.now() - this.cause.t < 15000 ? this.cause : null;
         const what = data.modeLabel || MODE_NL[data.mode] || data.mode;
-        const doel = prev && prev.target !== data.target ? ` · doel ${deg(prev.target)}→${deg(data.target)}` : ` · doel ${deg(data.target)}`;
-        // Met oorzaak (jij, een flow, aanwezigheid): eronder als gevolg. Zonder: een slimme schakeling van de app zelf.
-        this.journal('stand', `${what}${doel} · binnen ${deg(data.indoor)}`, cz ? { c: cz.c, s: cz.s, p: cz.t } : { c: 'systeem', s: 'app' });
-        this.lastSig = sig; this.lastStand = { mode: data.mode, target: data.target };
+        const doel = prev && prev.target !== target ? ` · doel ${deg(prev.target)}→${deg(target)}` : ` · doel ${deg(target)}`;
+        // Eerste stand na een herstart: onder de startregel. Met oorzaak (jij, een flow, aanwezigheid): eronder als gevolg.
+        // Zonder: een slimme schakeling van de app zelf.
+        const x = !prev && this.startT ? { c: 'app', s: 'start', p: this.startT } : cz ? { c: cz.c, s: cz.s, p: cz.t }
+          : data.mode === 'manual' ? { c: 'onbekend', s: '?' } // handmatig is nooit het systeem; bron onbekend
+            : { c: 'systeem', s: 'app' };
+        this.journal('stand', `${!prev ? 'stand nu: ' : ''}${what}${doel} · binnen ${deg(data.indoor)}`, x);
+        this.lastSig = sig; this.lastStand = { mode: data.mode, target };
       }
       // Live naar een geopende instellingenpagina sturen.
       Promise.resolve(this.homey.api.realtime('status', data)).catch(() => {}); // mislukken mag, nooit de app laten stoppen
@@ -590,6 +596,11 @@ class SlimVerwarmenApp extends Homey.App {
     }
     // Handmatig verstellen: één melding nadat het een minuut stil is (vijf keer op + = één melding met de eindstand).
     if (event === 'manual_change') {
+      // Zonder bekende oorzaak (bijv. ontdekt bij het uitlezen van de thermostaat): de bron die de app zelf vaststelde.
+      if (!(this.cause && Date.now() - this.cause.t < 15000)) {
+        const src = { thermostat: 'thermo', flow: 'flow', instellingen: 'instel' }[data.via] || 'widget';
+        this.cause = { c: src === 'flow' ? 'flow' : 'hand', s: src, t: this.journal('apparaat', `${src === 'thermo' ? 'knop, tado-app of ander apparaat' : 'gewijzigd'}: ${deg(data.temp)}`, { c: src === 'flow' ? 'flow' : 'hand', s: src }) };
+      }
       this.lastManual = data;
       if (this.manualTimer) this.homey.clearTimeout(this.manualTimer);
       this.manualTimer = this.homey.setTimeout(() => this.notifyManual().catch(this.fail), 60000);
