@@ -10,6 +10,37 @@ const { usageOf } = require('./lib/usage');
 const TICK_MS = 60 * 1000;
 const JOURNAL_MAX = 800; // regels in het logboek (instellingen > Logboek)
 
+/**
+ * Logboekregel: { t, k (soort), m (tekst), c (categorie), s (bron), p (tijd van de oorzaak), r (ruw: alleen bij [ruw]) }.
+ * Categorieën: hand (telefoon of thermostaat), systeem (de app zelf), flow, fout, app (start).
+ */
+const deg = (v) => (Number.isFinite(Number(v)) ? `${String(Math.round(Number(v) * 10) / 10).replace('.', ',')}°` : '?');
+const durText = (d) => (d == null ? '' : d === 'next' ? 'tot volgend blok' : d === 'manual' ? 'tot je hervat' : `${d} min`);
+const MODE_NL = { schedule: 'schema', preheat: 'voorverwarmen', manual: 'handmatig', away: 'afwezig', paused: 'gepauzeerd', vacation: 'vakantie', window: 'raam open', deviceWindow: 'raam open (thermostaat)', deviceOff: 'thermostaat uit', restore: 'raam dicht', limit: 'maximum', setup: 'nog niet gestart', nodevice: 'geen thermostaat' };
+/** Wat iemand in de widget of de instellingen deed, in gewone woorden. */
+function actionText(action, b) {
+  switch (action) {
+    case 'setTemp': return `zet ${deg(b.temp)}${b.duration != null ? `, ${durText(b.duration)}` : ''}`;
+    case 'setDuration': return `duur: ${durText(b.duration)}`;
+    case 'resume': return 'schema hervatten';
+    case 'pause': return 'pauze aan';
+    case 'enable': return 'pauze uit';
+    case 'start': return 'app gestart (eerste keer)';
+    case 'away': return 'afwezig aan';
+    case 'home': return 'afwezig uit';
+    case 'vacation': return `vakantie ${b.from ? `van ${new Date(Number(b.from)).toISOString().slice(0, 16)} ` : ''}tot ${b.until ? new Date(Number(b.until)).toISOString().slice(0, 16) : '?'} (UTC)`;
+    case 'vacationEnd': return 'vakantie stoppen of wissen';
+    case 'vacationPlanOn': return 'geplande vakantie aan';
+    case 'vacationPlanOff': return 'geplande vakantie uit';
+    case 'windowOff': return 'raam open: verwarming lager';
+    case 'windowIgnore': return 'raam open: negeren';
+    case 'windowEnd': return 'raam weer dicht';
+    case 'resetLearning': return 'opwarmtijd opnieuw leren';
+    case 'deleteSample': return 'meting verwijderd';
+    default: return `${action || '?'}${Object.keys(b).length ? ` ${JSON.stringify(b)}` : ''}`;
+  }
+}
+
 /** Eén logregel van losse argumenten, zoals console.log ze zou tonen. */
 function line(args) {
   return args.map((a) => {
@@ -25,9 +56,9 @@ class SlimVerwarmenApp extends Homey.App {
   async onInit() {
     // Logboek: alles wat de app logt, doet en meldt, met tijdstip. Te lezen in de instellingen (Logboek).
     // Eigen functies naast die van Homey (this.log/this.error zelf niet overschrijven: die kunnen alleen-lezen zijn).
-    this.note = (...args) => { this.log(...args); this.journal('info', line(args)); };
-    this.fail = (...args) => { this.error(...args); this.journal('fout', line(args)); };
-    this.journal('start', `app ${this.homey.manifest.version} start (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`);
+    this.note = (...args) => { this.log(...args); this.journal('info', line(args), { r: 1 }); }; // details: alleen bij [ruw]
+    this.fail = (...args) => { this.error(...args); this.journal('fout', line(args), { c: 'fout', s: 'fout' }); };
+    this.journal('start', `app ${this.homey.manifest.version} gestart (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`, { c: 'app', s: 'start' });
     this.api = await HomeyAPI.createAppAPI({ homey: this.homey });
     try {
       await this.api.devices.connect();
@@ -71,7 +102,7 @@ class SlimVerwarmenApp extends Homey.App {
     await this.checkPresence().catch(this.fail);
 
     this.homey.settings.on('set', (key) => {
-      if (key !== 'journal' && key !== 'weatherlog' && key !== 'modelog' && key !== 'changelog' && key !== 'state' && key !== 'learner') this.journal('opslag', `instelling '${key}' opgeslagen`);
+      if (key !== 'journal' && key !== 'weatherlog' && key !== 'modelog' && key !== 'changelog' && key !== 'state' && key !== 'learner') this.journal('opslag', `${key === 'schedule' ? 'schema' : key === 'config' ? 'instellingen' : key} opgeslagen`, { c: 'hand', s: 'instel' });
       if (key === 'config') {
         const on = this.config.autoPresence === true;
         if (on && !this.autoPresenceOn) this.checkPresence(true).catch(this.fail); // net aangezet: meteen volgen
@@ -105,8 +136,8 @@ class SlimVerwarmenApp extends Homey.App {
     if (this.config.autoPresence !== true) return;
     if (apply) { await this.controller.setAway(!p.anyHome); return; }
     if (change) {
-      this.cause = { by: 'aanwezigheid', what: change === 'home' ? 'iemand thuis' : 'iedereen weg', t: Date.now() };
-      this.note(`Aanwezigheid: ${change === 'home' ? 'iemand thuis' : 'iedereen weg'}`);
+      this.log(`Aanwezigheid: ${change === 'home' ? 'iemand thuis' : 'iedereen weg'}`);
+      this.cause = { c: 'systeem', s: 'aanwez', t: this.journal('info', change === 'home' ? 'iemand thuis' : 'iedereen weg', { c: 'systeem', s: 'aanwez' }) };
       await this.controller.setAway(change === 'away');
     }
   }
@@ -239,8 +270,8 @@ class SlimVerwarmenApp extends Homey.App {
     try {
       this.targetListener = device.makeCapabilityInstance('target_temperature', (v) => {
         const own = this.controller.state.lastWritten && Math.abs(this.controller.state.lastWritten.temp - v) < 0.05 && Date.now() - this.controller.state.lastWritten.at < 120000;
-        if (!own) this.cause = { by: 'thermostaat', what: `doel ${v}° (knop of tado-app)`, t: Date.now() };
-        this.journal('apparaat', `thermostaat meldt doel ${v}°${own ? '  (door deze app)' : '  <- knop, tado-app of ander apparaat'}`);
+        if (own) this.journal('apparaat', `thermostaat bevestigt ${deg(v)}`, { r: 1 });
+        else this.cause = { c: 'hand', s: 'thermo', t: this.journal('apparaat', `knop, tado-app of ander apparaat: ${deg(v)}`, { c: 'hand', s: 'thermo' }) };
         // Wacht even: de controller negeert z'n eigen wijzigingen, maar draaien
         // aan de knop geeft vaak meerdere tussenstanden.
         if (this.debounce) this.homey.clearTimeout(this.debounce);
@@ -360,8 +391,8 @@ class SlimVerwarmenApp extends Homey.App {
     // Na 0,3 s antwoorden met de nieuwe stand (snelle thermostaten zijn dan al klaar); de rest gaat op de achtergrond.
     const QUICK = ['vacation', 'vacationEnd', 'vacationPlanOn', 'vacationPlanOff', 'away', 'home', 'pause', 'enable'];
     const { via, action, ...rest } = body;
-    this.cause = { by: via || 'app (onbekend)', what: action || '?', t: Date.now() };
-    this.journal('actie', `${action || '?'}${Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : ''}  <- ${via || 'onbekend'}`);
+    const src = via === 'instellingen' ? 'instel' : 'widget';
+    this.cause = { c: 'hand', s: src, t: this.journal('actie', actionText(action, rest), { c: 'hand', s: src }) };
     const job = this.doAction(body);
     if (!QUICK.includes(body.action)) return job;
     const done = await Promise.race([job.then(() => true), new Promise((r) => setTimeout(() => r(false), 300))]);
@@ -400,7 +431,7 @@ class SlimVerwarmenApp extends Homey.App {
   registerFlowCards() {
     const c = this.controller;
     const flow = this.homey.flow;
-    const act = (id) => ({ registerRunListener: (fn) => flow.getActionCard(id).registerRunListener((args, state) => { this.cause = { by: 'flow', what: id, t: Date.now() }; this.journal('flow', `${id} ${line([args])}`); return fn(args, state); }) });
+    const act = (id) => ({ registerRunListener: (fn) => flow.getActionCard(id).registerRunListener((args, state) => { this.cause = { c: 'flow', s: 'flow', t: this.journal('flow', `${id} ${line([args])}`, { c: 'flow', s: 'flow' }) }; return fn(args, state); }) });
 
     act('set_presence').registerRunListener(({ mode }) => c.setAway(mode === 'away', true));
     act('resume_schedule').registerRunListener(() => c.clearOverride());
@@ -432,13 +463,16 @@ class SlimVerwarmenApp extends Homey.App {
 
   // ---------- Logboek ----------
 
-  journal(kind, msg) {
-    try { this.journalAdd(kind, msg); } catch (err) { /* logboek mag de app nooit laten stoppen */ }
+  /** Regel toevoegen; geeft het tijdstip terug (om een gevolg aan zijn oorzaak te koppelen). */
+  journal(kind, msg, extra) {
+    try { return this.journalAdd(kind, msg, extra); } catch (err) { return Date.now(); } // logboek mag de app nooit laten stoppen
   }
 
-  journalAdd(kind, msg) {
+  journalAdd(kind, msg, extra = {}) {
     if (!this.journalLog) { const j = this.homey.settings.get('journal'); this.journalLog = Array.isArray(j) ? j : []; }
-    const e = { t: Date.now(), k: kind, m: String(msg).slice(0, 600) };
+    let t = Date.now(); const last = this.journalLog[this.journalLog.length - 1];
+    if (last && t <= last.t) t = last.t + 1; // uniek tijdstip: daarmee wijst een gevolg naar zijn oorzaak
+    const e = { t, k: kind, m: String(msg).slice(0, 600), ...extra };
     this.journalLog.push(e);
     if (this.journalLog.length > JOURNAL_MAX) this.journalLog.splice(0, this.journalLog.length - JOURNAL_MAX);
     // realtime() geeft een belofte terug die kan mislukken (bijv. tijdens het opstarten): altijd opvangen, anders stopt de hele app.
@@ -449,6 +483,7 @@ class SlimVerwarmenApp extends Homey.App {
         try { this.homey.settings.set('journal', this.journalLog); } catch (err) { /* volgende keer */ }
       }, 5000);
     }
+    return t;
   }
 
   getJournal() {
@@ -463,22 +498,28 @@ class SlimVerwarmenApp extends Homey.App {
   journalHistory(entries) {
     const c = this.controller; if (!c) return [];
     const first = entries.length ? entries[0].t : Date.now();
-    const VIA = { thermostat: 'knop, tado-app of ander apparaat', app: 'widget of instellingen', widget: 'widget', instellingen: 'instellingen', flow: 'flow' };
-    const KIND = { thermostat: 'apparaat', flow: 'flow' }; // anders: actie (widget/instellingen)
+    const SRC = { thermostat: 'thermo', flow: 'flow', instellingen: 'instel' }; // anders: widget (of instellingen)
     const out = [];
     // h: 1 = teruggehaald uit wat de app bewaarde (van vóór het logboek, minder details)
-    for (const x of c.changeLog || []) if (x.t < first) out.push({ t: x.t, k: KIND[x.via] || 'actie', h: 1, m: `handmatig ${x.temp}°  <- ${VIA[x.via] || x.via || 'onbekend'}` });
+    for (const x of c.changeLog || []) {
+      if (x.t >= first) continue;
+      const s = SRC[x.via] || 'widget';
+      out.push({ t: x.t, k: s === 'flow' ? 'flow' : s === 'thermo' ? 'apparaat' : 'actie', c: s === 'flow' ? 'flow' : 'hand', s, h: 1, m: `${s === 'thermo' ? 'knop, tado-app of ander apparaat: ' : 'zet '}${deg(x.temp)}` });
+    }
     const ml = c.modeLog || [];
     for (let i = 0; i < ml.length; i += 1) {
       const x = ml[i]; if (x.t >= first) continue;
-      out.push({ t: x.t, k: 'stand', h: 1, m: `${i ? `${ml[i - 1].m} -> ` : ''}${x.m}` });
+      // Handmatig staat al hierboven (met bron); pauze/afwezig/vakantie kunnen zowel van jou als van het systeem zijn.
+      if (x.m === 'manual') continue;
+      const known = ['schedule', 'preheat', 'window', 'restore', 'limit', 'deviceWindow'].includes(x.m);
+      out.push({ t: x.t, k: 'stand', h: 1, c: known ? 'systeem' : 'onbekend', s: known ? 'app' : '?', m: `${MODE_NL[x.m] || x.m}${i ? ` (was ${MODE_NL[ml[i - 1].m] || ml[i - 1].m})` : ''}` });
     }
     return out.sort((x, y) => x.t - y.t);
   }
 
   clearJournal() {
     this.journalLog = []; this.homey.settings.set('journal', []);
-    this.journal('start', 'logboek gewist');
+    this.journal('start', 'logboek gewist', { c: 'hand', s: 'instel' });
     return this.getJournal();
   }
 
@@ -502,9 +543,12 @@ class SlimVerwarmenApp extends Homey.App {
     if (event === 'status') {
       const sig = `${data.mode}|${data.target}`;
       if (sig !== this.lastSig) { // standwissel of nieuw doel: één regel, geen regel per minuut
-        const cz = this.cause && Date.now() - this.cause.t < 15000 ? `${this.cause.by}: ${this.cause.what}` : 'app zelf (schema/regels)';
-        this.journal('stand', `${this.lastSig ? this.lastSig.replace('|', ' ') + '° -> ' : ''}${data.mode} ${data.target}°  binnen ${data.indoor}°  (${data.modeLabel || ''})  <- ${cz}`);
-        this.lastSig = sig;
+        const prev = this.lastStand; const cz = this.cause && Date.now() - this.cause.t < 15000 ? this.cause : null;
+        const what = data.modeLabel || MODE_NL[data.mode] || data.mode;
+        const doel = prev && prev.target !== data.target ? ` · doel ${deg(prev.target)}→${deg(data.target)}` : ` · doel ${deg(data.target)}`;
+        // Met oorzaak (jij, een flow, aanwezigheid): eronder als gevolg. Zonder: een slimme schakeling van de app zelf.
+        this.journal('stand', `${what}${doel} · binnen ${deg(data.indoor)}`, cz ? { c: cz.c, s: cz.s, p: cz.t } : { c: 'systeem', s: 'app' });
+        this.lastSig = sig; this.lastStand = { mode: data.mode, target: data.target };
       }
       // Live naar een geopende instellingenpagina sturen.
       Promise.resolve(this.homey.api.realtime('status', data)).catch(() => {}); // mislukken mag, nooit de app laten stoppen
@@ -512,7 +556,12 @@ class SlimVerwarmenApp extends Homey.App {
       for (const device of driver.getDevices()) await device.showStatus(data).catch(this.fail);
       return;
     }
-    this.journal('gebeurt', `${event} ${data == null ? '' : line([data])}`);
+    const ev = {
+      window_open: () => [`raam open? binnen zakte van ${deg(data.from)} naar ${deg(data.to)}`, { c: 'systeem', s: 'app' }],
+      window_closed: () => [`raam weer dicht (${Math.round((data.until - data.since) / 60000)} min)${data.device ? ', gemeld door de thermostaat' : ''}`, { c: 'systeem', s: data.device ? 'thermo' : 'app' }],
+      learned: () => [`opwarmtijd geleerd: ${data.rate}°/uur, start na ${data.deadTime} min`, { c: 'systeem', s: 'app' }],
+    }[event];
+    if (ev) { const [m, x] = ev(); this.journal('gebeurt', m, x); } else this.journal('gebeurt', `${event} ${data == null ? '' : line([data])}`, { r: 1 });
     // Boven het maximum teruggezet: melding in de Homey-tijdlijn, zodat je ziet dat er is ingegrepen.
     if (event === 'setpoint_changed' && data.reason === 'limit') {
       const f = (v) => `${String(v).replace('.', ',')}°`;

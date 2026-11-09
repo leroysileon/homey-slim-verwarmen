@@ -554,9 +554,14 @@
     #sv .ll .lt { color: #8a9587; white-space: pre; } #sv .ll .lt i { font-style: normal; color: #4f584d; }
     #sv .ll .lm { white-space: pre-wrap; word-break: break-word; }
     #sv .ll .lk { text-transform: uppercase; }
-    #sv .k-fout .lk, #sv .k-fout .lm { color: #ff6b6b; } #sv .k-actie .lk { color: #ffd166; } #sv .k-stand .lk { color: #4fd1e8; }
-    #sv .k-flow .lk { color: #e38cff; } #sv .k-apparaat .lk { color: #7aa8ff; } #sv .k-gebeurt .lk { color: #57e389; }
-    #sv .k-opslag .lk, #sv .k-opslag .lm { color: #8a9587; } #sv .k-start .lk, #sv .k-start .lm { color: #ffffff; font-weight: 700; }
+    /* Kleur = categorie: handmatig geel, systeem cyaan, flow paars, fout rood. Het label zegt de precieze bron. */
+    #sv .c-hand .lk { color: #ffd166; } #sv .c-systeem .lk { color: #4fd1e8; } #sv .c-flow .lk { color: #e38cff; }
+    #sv .c-fout .lk, #sv .c-fout .lm { color: #ff6b6b; } #sv .c-app .lk, #sv .c-app .lm { color: #ffffff; font-weight: 700; }
+    #sv .c-onbekend .lk { color: #8a9587; }
+    #sv .ll.r .lk, #sv .ll.r .lm, #sv .ll.r .lt { color: #5d665b; } /* ruw: details, alleen met [ruw] */
+    #sv .ll.sub .lt { visibility: hidden; } #sv .ll.sub .lk { color: #5d665b; text-align: right; } /* gevolg, onder de oorzaak */
+    #sv .ll.sub .lm { color: #aab5a7; }
+    #sv .logv .tgl.on { color: #0b0d0c; background: #c9d4c6; }
     #sv .ll.new { animation: lnew 1.2s ease-out; } @keyframes lnew { from { background: #22301f; } to { background: transparent; } }
     #sv .logempty { color: #6f7a6d; padding: 12px 0; }
     #sv .ll.old { opacity: .55; } /* teruggehaald van vóór het logboek */
@@ -731,8 +736,8 @@
       <div class="logrow1"><button id="logBack" aria-label="Terug">&lt; terug</button><b>slimverwarmen.log</b><span class="loglive" id="logLive">○ live</span></div>
       <div class="logmeta" id="logMeta"></div>
       <div class="logrow2" id="logFlt">
-        <button class="flt on" data-k="">alles</button><button class="flt" data-k="fout">fout</button><button class="flt" data-k="actie">actie</button><button class="flt" data-k="stand">stand</button><button class="flt" data-k="flow">flow</button><button class="flt" data-k="apparaat">thermo</button><button class="flt" data-k="info">info</button>
-        <span style="flex:1"></span><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
+        <button class="flt on" data-k="">alles</button><button class="flt" data-k="hand">handmatig</button><button class="flt" data-k="systeem">systeem</button><button class="flt" data-k="flow">flow</button><button class="flt" data-k="fout">fout</button>
+        <span style="flex:1"></span><button class="tgl" id="logRaw" aria-pressed="false">[ruw]</button><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
       </div>
     </div>
     <div class="logbody" id="logBody" aria-live="off"></div>
@@ -854,23 +859,62 @@ const lesc = (x) => String(x).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&l
 // Typen: nieuwe regels verschijnen letter voor letter, als in een terminal. Verversen onderbreekt het typen niet.
 const LOG_TYPE_MAX = 40; // zoveel regels typen we uit bij het openen; de rest staat er meteen
 const logReduce = matchMedia('(prefers-reduced-motion: reduce)');
-let logTyping = false; let logDirty = false; let logShownLast = 0;
+let logTyping = false; let logDirty = false; let logShownLast = 0; let logRaw = false;
+/**
+ * Categorie (c), bron (s), ruw (r) en oorzaak (p) van een regel. Nieuwe regels hebben ze al; oudere (van vóór deze
+ * indeling) leiden we af uit soort en tekst.
+ */
+function logCls(e) {
+  if (e.c || e.r) return { c: e.c || '', s: e.s || LOG_LABEL[e.k] || e.k, r: !!e.r, p: e.p };
+  const m = e.m || '';
+  switch (e.k) {
+    case 'actie': return { c: 'hand', s: /instellingen/.test(m) ? 'instel' : 'widget' };
+    case 'flow': return { c: 'flow', s: 'flow' };
+    case 'fout': return { c: 'fout', s: 'fout' };
+    case 'start': return { c: 'app', s: 'start' };
+    case 'opslag': return { c: 'hand', s: 'instel' };
+    case 'apparaat': return /door deze app/.test(m) ? { r: true, s: 'thermo' } : { c: 'hand', s: 'thermo' };
+    case 'stand': {
+      const w = m.split('<- ')[1] || '';
+      if (/widget|instellingen/.test(w)) return { c: 'hand', s: /instellingen/.test(w) ? 'instel' : 'widget' };
+      if (/thermostaat/.test(w)) return { c: 'hand', s: 'thermo' };
+      if (/flow/.test(w)) return { c: 'flow', s: 'flow' };
+      if (/aanwezigheid/.test(w)) return { c: 'systeem', s: 'aanwez' };
+      return { c: 'systeem', s: 'app' };
+    }
+    default: return { r: true, s: LOG_LABEL[e.k] || e.k };
+  }
+}
+/** Zichtbare regels, nieuwste eerst; een gevolg (p) staat direct onder zijn oorzaak. */
+function logRows() {
+  const vis = (logData.entries || []).map((e) => ({ e, x: logCls(e) })).filter((o) => (logRaw || !o.x.r) && (!logKind || o.x.c === logKind));
+  const byT = new Set(vis.map((o) => o.e.t)); const kids = new Map(); const tops = [];
+  for (const o of vis) {
+    if (o.x.p && byT.has(o.x.p)) { if (!kids.has(o.x.p)) kids.set(o.x.p, []); kids.get(o.x.p).push(o); } else tops.push(o);
+  }
+  tops.sort((a, b) => b.e.t - a.e.t);
+  const rows = [];
+  for (const o of tops) { rows.push(o); for (const k of (kids.get(o.e.t) || []).sort((a, b) => a.e.t - b.e.t)) rows.push({ ...k, sub: true }); }
+  return rows;
+}
 function renderLog(animateFrom) {
   if (!logData) return;
   if (logTyping) { logDirty = true; return; } // eerst uittypen, daarna bijwerken
   let tz = logData.tz || 'Europe/Amsterdam'; let f; try { f = logFmt(tz); } catch (e) { tz = 'Europe/Amsterdam'; f = logFmt(tz); }
-  const all = logData.entries || []; const rows = (logKind ? all.filter((e) => e.k === logKind) : all).slice().reverse();
+  const all = logData.entries || []; const rows = logRows();
   const first = all[0];
   $('logMeta').textContent = `v${logData.version || '?'} · tz ${tz} · ${all.length} regels${first ? ` sinds ${f.ymd(first.t)} ${f.clock(first.t)}` : ''}`;
   let html = ''; let lastDay = ''; let typed = 0; let cut = false;
-  for (const e of rows) {
-    if (e.h && !cut && rows.some((x) => !x.h)) { html += '<div class="logcut">-- begin logboek. Hieronder: teruggehaald uit wat de app bewaarde, met minder details --</div>'; cut = true; lastDay = ''; }
-    const d = f.ymd(e.t);
+  for (const o of rows) {
+    const { e, x } = o;
+    if (!o.sub && e.h && !cut && rows.some((y) => !y.e.h)) { html += '<div class="logcut">-- begin logboek. Hieronder: teruggehaald uit wat de app bewaarde, met minder details --</div>'; cut = true; lastDay = ''; }
     const type = animateFrom != null && e.t > animateFrom && typed < LOG_TYPE_MAX && !logReduce.matches; if (type) typed += 1;
-    if (d !== lastDay) { html += `<div class="logday${type ? ' wait' : ''}">-- ${lesc(f.day(e.t))} ${'-'.repeat(20)}</div>`; lastDay = d; }
-    html += `<div class="ll k-${lesc(e.k)}${e.h ? ' old' : ''}${type ? ' wait' : ''}" title="${f.clock(e.t)}.${f.ms(e.t)}"><span class="lt">${f.clock(e.t)}</span><span class="lk">${lesc(LOG_LABEL[e.k] || e.k)}</span><span class="lm">${lesc(e.m)}</span></div>`;
+    const d = f.ymd(e.t);
+    if (!o.sub && d !== lastDay) { html += `<div class="logday${type ? ' wait' : ''}">-- ${lesc(f.day(e.t))} ${'-'.repeat(20)}</div>`; lastDay = d; }
+    const cls = `ll c-${lesc(x.c || 'x')}${x.r ? ' r' : ''}${o.sub ? ' sub' : ''}${e.h ? ' old' : ''}${type ? ' wait' : ''}`;
+    html += `<div class="${cls}" title="${f.clock(e.t)}.${f.ms(e.t)}"><span class="lt">${f.clock(e.t)}</span><span class="lk">${o.sub ? '└' : lesc(x.s)}</span><span class="lm">${lesc(e.m)}</span></div>`;
   }
-  $('logBody').innerHTML = html || '<div class="logempty">(leeg)</div>';
+  $('logBody').innerHTML = html || '<div class="logempty">(niets in deze selectie)</div>';
   logShownLast = all.length ? all[all.length - 1].t : 0;
   if (typed) typeLog();
 }
@@ -882,7 +926,7 @@ function typeLog() {
   const cur = document.createElement('span'); cur.className = 'cur'; cur.textContent = '_';
   let r = 0; let k = 0; let n = 0;
   const step = () => {
-    if ($('logv').hidden) { jobs.forEach((j) => { j.row.classList.remove('wait'); j.spans.forEach((x) => { x.sp.innerHTML = x.full; }); }); cur.remove(); logTyping = false; return; }
+    if ($('logv').hidden || document.hidden) { jobs.forEach((j) => { j.row.classList.remove('wait'); j.spans.forEach((x) => { x.sp.innerHTML = x.full; }); }); cur.remove(); logTyping = false; return; }
     let budget = rows.length > 12 ? 26 : 12; // tekens per beeldje; veel regels: nog sneller
     while (budget > 0 && r < jobs.length) {
       const job = jobs[r]; job.row.classList.remove('wait'); const pv = job.row.previousElementSibling; if (pv && pv.classList.contains('wait')) pv.classList.remove('wait'); const x = job.spans[k];
@@ -890,10 +934,10 @@ function typeLog() {
       if (n >= x.text.length) { x.sp.innerHTML = x.full; k += 1; n = 0; if (k >= job.spans.length) { k = 0; r += 1; } }
       else { x.sp.textContent = x.text.slice(0, n); x.sp.appendChild(cur); }
     }
-    if (r < jobs.length) requestAnimationFrame(step);
+    if (r < jobs.length) setTimeout(step, 16); // geen requestAnimationFrame: die staat stil als de pagina even niet zichtbaar is
     else { cur.remove(); logTyping = false; if (logDirty) { logDirty = false; renderLog(logShownLast); } }
   };
-  requestAnimationFrame(step);
+  setTimeout(step, 16);
 }
 async function loadLog(animate) {
   const d = await call('api', 'GET', '/log', null).catch((err) => ({ error: err && err.message }));
@@ -908,11 +952,13 @@ function openLog() { $('logv').hidden = false; document.documentElement.style.ov
 function closeLog() { $('logv').hidden = true; document.documentElement.style.overflow = ''; clearInterval(logTimer); }
 function logText() {
   const tz = (logData && logData.tz) || 'Europe/Amsterdam'; const f = logFmt(tz);
-  return ((logData && logData.entries) || []).map((e) => `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${(LOG_LABEL[e.k] || e.k).toUpperCase().padEnd(6)} ${e.m}${e.h ? '  (teruggehaald)' : ''}`).join('\n');
+  const CAT = { hand: 'handmatig', systeem: 'systeem', flow: 'flow', fout: 'fout', app: 'app', onbekend: '?' };
+  return ((logData && logData.entries) || []).map((e) => { const x = logCls(e); return `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${(x.r ? 'detail' : CAT[x.c] || x.c || '-').padEnd(9)} ${String(x.s).padEnd(6)} ${e.m}${e.h ? '  (teruggehaald)' : ''}`; }).join('\n');
 }
 function wireLog() {
   $('logOpen').addEventListener('click', openLog);
   $('logBack').addEventListener('click', closeLog);
+  $('logRaw').addEventListener('click', () => { logRaw = !logRaw; $('logRaw').classList.toggle('on', logRaw); $('logRaw').setAttribute('aria-pressed', String(logRaw)); renderLog(); });
   $('logFlt').addEventListener('click', (e) => {
     const b = e.target.closest('.flt'); if (!b) return;
     logKind = b.dataset.k; document.querySelectorAll('#logFlt .flt').forEach((x) => x.classList.toggle('on', x === b)); renderLog(0); // filter: opnieuw uittypen

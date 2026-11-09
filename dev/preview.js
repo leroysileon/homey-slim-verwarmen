@@ -51,19 +51,35 @@ const status = () => ({
 });
 // Nep-logboek: een ochtend zoals de echte app hem schrijft, plus wat je in de preview doet.
 const journal = (() => {
-  const t0 = Date.now() - 5 * 3600000; const at = (min, k, m) => ({ t: t0 + min * 60000 + Math.floor(Math.random() * 59000), k, m });
+  // Een avond als die van 9 nov: schema, zelf 20°, pauze aan en uit, plus wat oudere (teruggehaalde) regels.
+  const t0 = Date.now() - 3 * 3600000; const T = (min) => t0 + min * 60000;
+  const E = (min, k, m, x = {}) => ({ t: T(min), k, m, ...x });
   return [
-    { ...at(-1500, 'stand', 'schedule -> manual'), h: 1 }, { ...at(-1499, 'apparaat', 'handmatig 20°  <- knop, tado-app of ander apparaat'), h: 1 }, { ...at(-1380, 'stand', 'manual -> schedule'), h: 1 },
-    { ...at(-240, 'stand', 'schedule -> paused'), h: 1 }, { ...at(-200, 'stand', 'paused -> schedule'), h: 1 },
-    at(0, 'start', 'app 1.4.1 start (homey 12.4.0, tz Europe/Amsterdam)'), at(0, 'info', 'Slim verwarmen gestart'),
-    at(1, 'stand', 'schedule 15°  binnen 16.9°  (Volgens schema)'), at(42, 'stand', 'schedule 15° -> preheat 17°  binnen 16.4°  (Voorverwarmen)'),
-    at(42, 'info', 'Thermostaat -> 17°'), at(42, 'gebeurt', 'setpoint_changed {"temp":17,"reason":"preheat","from":15}'),
-    at(43, 'apparaat', 'thermostaat meldt doel 17°'), at(95, 'stand', 'preheat 17° -> schedule 17°  binnen 17.1°  (Volgens schema)'),
-    at(130, 'apparaat', 'thermostaat meldt doel 19.5°'), at(132, 'info', 'Handmatig ingesteld op 19.5° tot 2026-11-09T22:30:00.000Z'),
-    at(132, 'gebeurt', 'manual_change {"temp":19.5,"via":"thermostat"}'), at(132, 'stand', 'schedule 17° -> manual 19.5°  binnen 17.3°  (Handmatig)'),
-    at(180, 'flow', 'set_window {"state":"open"}'), at(181, 'fout', 'Thermostaat aanzetten: Error: Timeout after 10000ms | at Timeout._onTimeout (/app/node_modules/homey-api/lib/HomeyAPI.js:211:17)'),
-    at(240, 'actie', 'pause'), at(240, 'stand', 'manual 19.5° -> paused 19.5°  binnen 18.2°  (Gepauzeerd)'),
-  ].sort((x, y) => x.t - y.t);
+    E(-1500, 'apparaat', 'knop, tado-app of ander apparaat: 20°', { c: 'hand', s: 'thermo', h: 1 }),
+    E(-1380, 'stand', 'schema (was handmatig)', { c: 'systeem', s: 'app', h: 1 }),
+    E(-240, 'stand', 'gepauzeerd (was schema)', { c: 'onbekend', s: '?', h: 1 }),
+    E(0, 'start', 'app 1.4.1 gestart (homey 12.4.0, tz Europe/Amsterdam)', { c: 'app', s: 'start' }),
+    E(0.1, 'info', 'Slim verwarmen gestart', { r: 1 }),
+    E(1, 'stand', 'Volgens schema · doel 18° · binnen 18,4°', { c: 'systeem', s: 'app' }),
+    E(30, 'info', 'Thermostaat -> 15°', { r: 1 }),
+    E(30.01, 'stand', 'Volgens schema · doel 18°→15° · binnen 18,3°', { c: 'systeem', s: 'app' }),
+    E(30.5, 'apparaat', 'thermostaat bevestigt 15°', { r: 1 }),
+    E(57, 'actie', 'zet 20°, 60 min', { c: 'hand', s: 'widget' }),
+    E(57.01, 'info', 'Thermostaat -> 20°', { r: 1 }),
+    E(57.02, 'stand', 'Handmatig tot 23:57 · doel 15°→20° · binnen 18,2°', { c: 'hand', s: 'widget', p: T(57) }),
+    E(73.9, 'actie', 'pauze aan', { c: 'hand', s: 'widget' }),
+    E(73.91, 'stand', 'Gepauzeerd · doel 20° · binnen 18,6°', { c: 'hand', s: 'widget', p: T(73.9) }),
+    E(74.4, 'actie', 'pauze uit', { c: 'hand', s: 'widget' }),
+    E(74.41, 'stand', 'Handmatig tot 23:57 · doel 20° · binnen 18,6°', { c: 'hand', s: 'widget', p: T(74.4) }),
+    E(90, 'gebeurt', 'raam open? binnen zakte van 18,8° naar 17,9°', { c: 'systeem', s: 'app' }),
+    E(101, 'flow', 'set_window {"state":"open"}', { c: 'flow', s: 'flow' }),
+    E(101.01, 'stand', 'Raam open · doel 20°→5° · binnen 17,8°', { c: 'flow', s: 'flow', p: T(101) }),
+    E(112, 'fout', 'Thermostaat aanzetten: Error: Timeout after 10000ms', { c: 'fout', s: 'fout' }),
+    E(130, 'apparaat', 'knop, tado-app of ander apparaat: 21°', { c: 'hand', s: 'thermo' }),
+    E(130.02, 'stand', 'Handmatig tot 23:57 · doel 20°→21° · binnen 18,9°', { c: 'hand', s: 'thermo', p: T(130) }),
+    E(150, 'info', 'iedereen weg', { c: 'systeem', s: 'aanwez' }),
+    E(150.01, 'stand', 'Afwezig · doel 21°→16° · binnen 19,1°', { c: 'systeem', s: 'aanwez', p: T(150) }),
+  ];
 })();
 const devices = [
   { id: 'thermostaat', name: 'Thermostaat', zone: 'Woonkamer', thermostat: true, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
@@ -118,7 +134,9 @@ http.createServer((req, res) => {
     }
     if (url === '/__widget/action') {
       const b = JSON.parse(data || '{}');
-      { const { via, action, ...rest } = b; journal.push({ t: Date.now(), k: 'actie', m: `${action}${Object.keys(rest).length ? ' ' + JSON.stringify(rest) : ''}  <- ${via || 'onbekend'}` }); }
+      { const { via, action, ...rest } = b; const t = Date.now(); const src = via === 'instellingen' ? 'instel' : 'widget';
+        journal.push({ t, k: 'actie', m: `${action}${Object.keys(rest).length ? ' ' + JSON.stringify(rest) : ''}`, c: 'hand', s: src });
+        setTimeout(() => journal.push({ t: Date.now(), k: 'stand', m: `${mode} · binnen 17,6°`, c: 'hand', s: src, p: t }), 50); }
       if (b.action === 'setTemp') {
         if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
         mode = 'manual'; manualTemp = b.temp; confirmedAt = Date.now() + 6000;
@@ -148,7 +166,7 @@ http.createServer((req, res) => {
     }
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/log') {
-      if (req.method === 'DELETE') { journal.length = 0; journal.push({ t: Date.now(), k: 'start', m: 'logboek gewist' }); }
+      if (req.method === 'DELETE') { journal.length = 0; journal.push({ t: Date.now(), k: 'start', m: 'logboek gewist', c: 'hand', s: 'instel' }); }
       return send(200, { tz: 'Europe/Amsterdam', version: '1.4.1', now: Date.now(), entries: journal });
     }
     if (url === '/__api/action') {
