@@ -547,7 +547,7 @@
     #sv .loglive.on { color: #57e389; }
     #sv .logbody { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 6px 8px calc(24px + env(safe-area-inset-bottom)); }
     #sv .logday { color: #6f7a6d; margin: 10px 0 4px; white-space: pre; }
-    #sv .ll { display: grid; grid-template-columns: auto 8ch minmax(0, 1fr); column-gap: 1ch; }
+    #sv .ll { display: grid; grid-template-columns: auto 6ch minmax(0, 1fr); column-gap: 1ch; }
     #sv .ll .lt { color: #8a9587; white-space: pre; } #sv .ll .lt i { font-style: normal; color: #4f584d; }
     #sv .ll .lm { white-space: pre-wrap; word-break: break-word; }
     #sv .ll .lk { text-transform: uppercase; }
@@ -556,7 +556,8 @@
     #sv .k-opslag .lk, #sv .k-opslag .lm { color: #8a9587; } #sv .k-start .lk, #sv .k-start .lm { color: #ffffff; font-weight: 700; }
     #sv .ll.new { animation: lnew 1.2s ease-out; } @keyframes lnew { from { background: #22301f; } to { background: transparent; } }
     #sv .logempty { color: #6f7a6d; padding: 12px 0; }
-    #sv .k-historie .lk, #sv .k-historie .lm, #sv .k-historie .lt { color: #6f7a6d; }
+    #sv .ll.old { opacity: .55; } /* teruggehaald van vóór het logboek */
+    #sv .logcut { color: #6f7a6d; margin: 12px 0 2px; white-space: pre-wrap; }
     #sv .ll.wait, #sv .logday.wait { visibility: hidden; } /* nog niet getypt */
     #sv .ll .cur { display: inline-block; width: 1ch; background: #c9d4c6; color: transparent; animation: lblink .9s steps(1) infinite; }
     @keyframes lblink { 50% { background: transparent; } }
@@ -727,7 +728,7 @@
       <div class="logrow1"><button id="logBack" aria-label="Terug">&lt; terug</button><b>slimverwarmen.log</b><span class="loglive" id="logLive">○ live</span></div>
       <div class="logmeta" id="logMeta"></div>
       <div class="logrow2" id="logFlt">
-        <button class="flt on" data-k="">alles</button><button class="flt" data-k="fout">fout</button><button class="flt" data-k="actie">actie</button><button class="flt" data-k="stand">stand</button><button class="flt" data-k="flow">flow</button><button class="flt" data-k="apparaat">apparaat</button><button class="flt" data-k="info">info</button><button class="flt" data-k="historie">historie</button>
+        <button class="flt on" data-k="">alles</button><button class="flt" data-k="fout">fout</button><button class="flt" data-k="actie">actie</button><button class="flt" data-k="stand">stand</button><button class="flt" data-k="flow">flow</button><button class="flt" data-k="apparaat">thermo</button><button class="flt" data-k="info">info</button>
         <span style="flex:1"></span><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
       </div>
     </div>
@@ -845,6 +846,7 @@ function logFmt(tz) {
   const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
   return { day: (t) => day.format(t), clock: (t) => clock.format(t), ymd: (t) => ymd.format(t), ms: (t) => String(t % 1000).padStart(3, '0') };
 }
+const LOG_LABEL = { apparaat: 'thermo', gebeurt: 'event' }; // kort, zodat het bericht meer ruimte heeft
 const lesc = (x) => String(x).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 // Typen: nieuwe regels verschijnen letter voor letter, als in een terminal. Verversen onderbreekt het typen niet.
 const LOG_TYPE_MAX = 40; // zoveel regels typen we uit bij het openen; de rest staat er meteen
@@ -857,12 +859,13 @@ function renderLog(animateFrom) {
   const all = logData.entries || []; const rows = (logKind ? all.filter((e) => e.k === logKind) : all).slice().reverse();
   const first = all[0];
   $('logMeta').textContent = `v${logData.version || '?'} · tz ${tz} · ${all.length} regels${first ? ` sinds ${f.ymd(first.t)} ${f.clock(first.t)}` : ''}`;
-  let html = ''; let lastDay = ''; let typed = 0;
+  let html = ''; let lastDay = ''; let typed = 0; let cut = false;
   for (const e of rows) {
+    if (e.h && !cut && rows.some((x) => !x.h)) { html += '<div class="logcut">-- begin logboek. Hieronder: teruggehaald uit wat de app bewaarde, met minder details --</div>'; cut = true; lastDay = ''; }
     const d = f.ymd(e.t);
     const type = animateFrom != null && e.t > animateFrom && typed < LOG_TYPE_MAX && !logReduce.matches; if (type) typed += 1;
     if (d !== lastDay) { html += `<div class="logday${type ? ' wait' : ''}">-- ${lesc(f.day(e.t))} ${'-'.repeat(20)}</div>`; lastDay = d; }
-    html += `<div class="ll k-${lesc(e.k)}${type ? ' wait' : ''}"><span class="lt">${f.clock(e.t)}<i>.${f.ms(e.t)}</i></span><span class="lk">${lesc(e.k)}</span><span class="lm">${lesc(e.m)}</span></div>`;
+    html += `<div class="ll k-${lesc(e.k)}${e.h ? ' old' : ''}${type ? ' wait' : ''}" title="${f.clock(e.t)}.${f.ms(e.t)}"><span class="lt">${f.clock(e.t)}</span><span class="lk">${lesc(LOG_LABEL[e.k] || e.k)}</span><span class="lm">${lesc(e.m)}</span></div>`;
   }
   $('logBody').innerHTML = html || '<div class="logempty">(leeg)</div>';
   logShownLast = all.length ? all[all.length - 1].t : 0;
@@ -902,7 +905,7 @@ function openLog() { $('logv').hidden = false; document.documentElement.style.ov
 function closeLog() { $('logv').hidden = true; document.documentElement.style.overflow = ''; clearInterval(logTimer); }
 function logText() {
   const tz = (logData && logData.tz) || 'Europe/Amsterdam'; const f = logFmt(tz);
-  return ((logData && logData.entries) || []).map((e) => `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${e.k.toUpperCase().padEnd(8)} ${e.m}`).join('\n');
+  return ((logData && logData.entries) || []).map((e) => `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${(LOG_LABEL[e.k] || e.k).toUpperCase().padEnd(6)} ${e.m}${e.h ? '  (teruggehaald)' : ''}`).join('\n');
 }
 function wireLog() {
   $('logOpen').addEventListener('click', openLog);

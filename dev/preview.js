@@ -53,8 +53,8 @@ const status = () => ({
 const journal = (() => {
   const t0 = Date.now() - 5 * 3600000; const at = (min, k, m) => ({ t: t0 + min * 60000 + Math.floor(Math.random() * 59000), k, m });
   return [
-    at(-1500, 'historie', 'stand schedule -> manual'), at(-1499, 'historie', 'handmatig 20°  <- thermostaat (knop, tado-app of ander apparaat)'), at(-1380, 'historie', 'stand manual -> schedule'),
-    at(-240, 'historie', 'stand schedule -> paused'), at(-200, 'historie', 'stand paused -> schedule'),
+    { ...at(-1500, 'stand', 'schedule -> manual'), h: 1 }, { ...at(-1499, 'apparaat', 'handmatig 20°  <- knop, tado-app of ander apparaat'), h: 1 }, { ...at(-1380, 'stand', 'manual -> schedule'), h: 1 },
+    { ...at(-240, 'stand', 'schedule -> paused'), h: 1 }, { ...at(-200, 'stand', 'paused -> schedule'), h: 1 },
     at(0, 'start', 'app 1.4.1 start (homey 12.4.0, tz Europe/Amsterdam)'), at(0, 'info', 'Slim verwarmen gestart'),
     at(1, 'stand', 'schedule 15°  binnen 16.9°  (Volgens schema)'), at(42, 'stand', 'schedule 15° -> preheat 17°  binnen 16.4°  (Voorverwarmen)'),
     at(42, 'info', 'Thermostaat -> 17°'), at(42, 'gebeurt', 'setpoint_changed {"temp":17,"reason":"preheat","from":15}'),

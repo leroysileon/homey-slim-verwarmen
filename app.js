@@ -463,13 +463,15 @@ class SlimVerwarmenApp extends Homey.App {
   journalHistory(entries) {
     const c = this.controller; if (!c) return [];
     const first = entries.length ? entries[0].t : Date.now();
-    const VIA = { thermostat: 'thermostaat (knop, tado-app of ander apparaat)', app: 'widget of instellingen', widget: 'widget', instellingen: 'instellingen', flow: 'flow' };
+    const VIA = { thermostat: 'knop, tado-app of ander apparaat', app: 'widget of instellingen', widget: 'widget', instellingen: 'instellingen', flow: 'flow' };
+    const KIND = { thermostat: 'apparaat', flow: 'flow' }; // anders: actie (widget/instellingen)
     const out = [];
-    for (const x of c.changeLog || []) if (x.t < first) out.push({ t: x.t, k: 'historie', m: `handmatig ${x.temp}°  <- ${VIA[x.via] || x.via || 'onbekend'}` });
+    // h: 1 = teruggehaald uit wat de app bewaarde (van vóór het logboek, minder details)
+    for (const x of c.changeLog || []) if (x.t < first) out.push({ t: x.t, k: KIND[x.via] || 'actie', h: 1, m: `handmatig ${x.temp}°  <- ${VIA[x.via] || x.via || 'onbekend'}` });
     const ml = c.modeLog || [];
     for (let i = 0; i < ml.length; i += 1) {
       const x = ml[i]; if (x.t >= first) continue;
-      out.push({ t: x.t, k: 'historie', m: `stand ${i ? `${ml[i - 1].m} -> ` : ''}${x.m}` });
+      out.push({ t: x.t, k: 'stand', h: 1, m: `${i ? `${ml[i - 1].m} -> ` : ''}${x.m}` });
     }
     return out.sort((x, y) => x.t - y.t);
   }
