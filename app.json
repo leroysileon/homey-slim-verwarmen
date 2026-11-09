@@ -47,6 +47,14 @@
     "getHistory": {
       "method": "GET",
       "path": "/history"
+    },
+    "getLog": {
+      "method": "GET",
+      "path": "/log"
+    },
+    "deleteLog": {
+      "method": "DELETE",
+      "path": "/log"
     }
   },
   "flow": {

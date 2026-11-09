@@ -49,6 +49,20 @@ const status = () => ({
   learned: { samples: samples.length, rate: 1.35, deadTime: 14, heatingNow: false, ignored: samples.some((x) => x.rate > 2.5) ? 1 : 0, late: 12, factor: 1.15, recent: samples.slice(-5).map((x) => (x.rate > 2.5 ? { ...x, ignored: true } : x)) },
   error: null,
 });
+// Nep-logboek: een ochtend zoals de echte app hem schrijft, plus wat je in de preview doet.
+const journal = (() => {
+  const t0 = Date.now() - 5 * 3600000; const at = (min, k, m) => ({ t: t0 + min * 60000 + Math.floor(Math.random() * 59000), k, m });
+  return [
+    at(0, 'start', 'app 1.4.1 start (homey 12.4.0, tz Europe/Amsterdam)'), at(0, 'info', 'Slim verwarmen gestart'),
+    at(1, 'stand', 'schedule 15°  binnen 16.9°  (Volgens schema)'), at(42, 'stand', 'schedule 15° -> preheat 17°  binnen 16.4°  (Voorverwarmen)'),
+    at(42, 'info', 'Thermostaat -> 17°'), at(42, 'gebeurt', 'setpoint_changed {"temp":17,"reason":"preheat","from":15}'),
+    at(43, 'apparaat', 'thermostaat meldt doel 17°'), at(95, 'stand', 'preheat 17° -> schedule 17°  binnen 17.1°  (Volgens schema)'),
+    at(130, 'apparaat', 'thermostaat meldt doel 19.5°'), at(132, 'info', 'Handmatig ingesteld op 19.5° tot 2026-11-09T22:30:00.000Z'),
+    at(132, 'gebeurt', 'manual_change {"temp":19.5,"via":"thermostat"}'), at(132, 'stand', 'schedule 17° -> manual 19.5°  binnen 17.3°  (Handmatig)'),
+    at(180, 'flow', 'set_window {"state":"open"}'), at(181, 'fout', 'Thermostaat aanzetten: Error: Timeout after 10000ms | at Timeout._onTimeout (/app/node_modules/homey-api/lib/HomeyAPI.js:211:17)'),
+    at(240, 'actie', 'pause'), at(240, 'stand', 'manual 19.5° -> paused 19.5°  binnen 18.2°  (Gepauzeerd)'),
+  ].sort((x, y) => x.t - y.t);
+})();
 const devices = [
   { id: 'thermostaat', name: 'Thermostaat', zone: 'Woonkamer', thermostat: true, tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
   { id: 'tado', name: 'Tado X', zone: 'Woonkamer', thermostat: true, ownWindow: 'tado', tempCaps: [{ id: 'measure_temperature', title: 'Temperatuur' }] },
@@ -102,6 +116,7 @@ http.createServer((req, res) => {
     }
     if (url === '/__widget/action') {
       const b = JSON.parse(data || '{}');
+      journal.push({ t: Date.now(), k: 'actie', m: `${b.action}${Object.keys(b).length > 1 ? ' ' + JSON.stringify({ ...b, action: undefined }) : ''}` });
       if (b.action === 'setTemp') {
         if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
         mode = 'manual'; manualTemp = b.temp; confirmedAt = Date.now() + 6000;
@@ -130,6 +145,10 @@ http.createServer((req, res) => {
       return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, weather, humidity, modes, usage });
     }
     if (url === '/__api/devices') return send(200, devices);
+    if (url === '/__api/log') {
+      if (req.method === 'DELETE') { journal.length = 0; journal.push({ t: Date.now(), k: 'start', m: 'logboek gewist' }); }
+      return send(200, { tz: 'Europe/Amsterdam', version: '1.4.1', now: Date.now(), entries: journal });
+    }
     if (url === '/__api/action') {
       const { action, duration, temp } = JSON.parse(data || '{}');
       if (action === 'setTemp') {

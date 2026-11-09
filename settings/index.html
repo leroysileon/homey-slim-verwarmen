@@ -530,6 +530,32 @@
       background: color-mix(in srgb, var(--warm) 16%, var(--card)); color: var(--text); font-size: 14px; line-height: 1.4; font-weight: 400; }
     #sv .ownwarn[hidden] { display: none; }
     #sv .ownwarn span { flex: 1; }
+    /* Logboek: bewust een kale terminal, altijd donker, alles in monospace. */
+    #sv .logopen { display: block; margin: 28px auto 0; padding: 10px 14px; font: 500 13px/1.2 ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace; color: var(--muted); }
+    #sv .logv { position: fixed; inset: 0; z-index: 110; display: flex; flex-direction: column; background: #0b0d0c; color: #c9d4c6;
+      font: 400 11.5px/1.45 ui-monospace, "SF Mono", Menlo, "Roboto Mono", "Courier New", monospace; -webkit-font-smoothing: auto; }
+    #sv .logv[hidden] { display: none; }
+    #sv .logv button { font: inherit; font-weight: 400; color: #c9d4c6; background: transparent; box-shadow: none; min-height: 0; padding: 6px 8px; border-radius: 0; }
+    #sv .logv button:active { transform: none; background: #1d221f; }
+    #sv .loghd { flex: none; padding: calc(8px + env(safe-area-inset-top)) 8px 6px; border-bottom: 1px dashed #2c332e; display: flex; flex-direction: column; gap: 4px; }
+    #sv .logrow1, #sv .logrow2 { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+    #sv .logrow1 b { font-weight: 700; color: #e6efe2; margin-right: auto; padding: 6px 4px; }
+    #sv .logmeta { color: #6f7a6d; padding: 0 4px; }
+    #sv .logv .flt { color: #6f7a6d; }
+    #sv .logv .flt.on { color: #0b0d0c; background: #c9d4c6; }
+    #sv .loglive { color: #6f7a6d; padding: 6px 4px; }
+    #sv .loglive.on { color: #57e389; }
+    #sv .logbody { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 6px 8px calc(24px + env(safe-area-inset-bottom)); }
+    #sv .logday { color: #6f7a6d; margin: 10px 0 4px; white-space: pre; }
+    #sv .ll { display: grid; grid-template-columns: auto 8ch minmax(0, 1fr); column-gap: 1ch; }
+    #sv .ll .lt { color: #8a9587; white-space: pre; } #sv .ll .lt i { font-style: normal; color: #4f584d; }
+    #sv .ll .lm { white-space: pre-wrap; word-break: break-word; }
+    #sv .ll .lk { text-transform: uppercase; }
+    #sv .k-fout .lk, #sv .k-fout .lm { color: #ff6b6b; } #sv .k-actie .lk { color: #ffd166; } #sv .k-stand .lk { color: #4fd1e8; }
+    #sv .k-flow .lk { color: #e38cff; } #sv .k-apparaat .lk { color: #7aa8ff; } #sv .k-gebeurt .lk { color: #57e389; }
+    #sv .k-opslag .lk, #sv .k-opslag .lm { color: #8a9587; } #sv .k-start .lk, #sv .k-start .lm { color: #ffffff; font-weight: 700; }
+    #sv .ll.new { animation: lnew 1.2s ease-out; } @keyframes lnew { from { background: #22301f; } to { background: transparent; } }
+    #sv .logempty { color: #6f7a6d; padding: 12px 0; }
   </style>
 </head>
 <body>
@@ -690,7 +716,19 @@
     <div class="actions" id="setupBack"><button class="solid" id="saveConfig">Terug naar de stappen</button></div>
   </div>
 
+  <button class="logopen" id="logOpen">&gt; logboek_</button>
   </div><!-- /main -->
+  <div class="logv" id="logv" hidden role="dialog" aria-label="Logboek">
+    <div class="loghd">
+      <div class="logrow1"><button id="logBack" aria-label="Terug">&lt; terug</button><b>slimverwarmen.log</b><span class="loglive" id="logLive">○ live</span></div>
+      <div class="logmeta" id="logMeta"></div>
+      <div class="logrow2" id="logFlt">
+        <button class="flt on" data-k="">alles</button><button class="flt" data-k="fout">fout</button><button class="flt" data-k="actie">actie</button><button class="flt" data-k="stand">stand</button><button class="flt" data-k="flow">flow</button><button class="flt" data-k="apparaat">apparaat</button><button class="flt" data-k="info">info</button>
+        <span style="flex:1"></span><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
+      </div>
+    </div>
+    <div class="logbody" id="logBody" aria-live="off"></div>
+  </div>
   <!-- Verloop groot: schermvullend; rechtop gehouden telefoon → een kwartslag gedraaid, zodat de grafiek over de lengte loopt -->
   <div class="hfs" id="hFs" hidden>
     <div class="hfsbox">
@@ -792,6 +830,66 @@ function bigTemp(v) {
   if (v == null || Number.isNaN(Number(v))) return '<span class="temp"><span class="i">–</span></span>';
   const [i, d] = Number(v).toFixed(1).split('.');
   return `<span class="temp"><span class="i">${i}</span><span class="r"><span class="deg">°</span><span class="d"><span class="pt">.</span>${d}</span></span></span>`;
+}
+
+// ---------- Logboek ----------
+// Nieuwste bovenaan, per dag een scheidingsregel, tijd tot op de milliseconde in de tijdzone van de Homey.
+let logData = null; let logKind = ''; let logTimer = null; let logSeen = 0;
+function logFmt(tz) {
+  const day = new Intl.DateTimeFormat('nl-NL', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const clock = new Intl.DateTimeFormat('nl-NL', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+  return { day: (t) => day.format(t), clock: (t) => clock.format(t), ymd: (t) => ymd.format(t), ms: (t) => String(t % 1000).padStart(3, '0') };
+}
+const lesc = (x) => String(x).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function renderLog() {
+  if (!logData) return;
+  let tz = logData.tz || 'Europe/Amsterdam'; let f; try { f = logFmt(tz); } catch (e) { tz = 'Europe/Amsterdam'; f = logFmt(tz); }
+  const all = logData.entries || []; const rows = (logKind ? all.filter((e) => e.k === logKind) : all).slice().reverse();
+  const first = all[0];
+  $('logMeta').textContent = `v${logData.version || '?'} · tz ${tz} · ${all.length} regels${first ? ` sinds ${f.ymd(first.t)} ${f.clock(first.t)}` : ''}`;
+  let html = ''; let lastDay = '';
+  for (const e of rows) {
+    const d = f.ymd(e.t);
+    if (d !== lastDay) { html += `<div class="logday">-- ${lesc(f.day(e.t))} ${'-'.repeat(20)}</div>`; lastDay = d; }
+    html += `<div class="ll k-${lesc(e.k)}${e.t > logSeen && logSeen ? ' new' : ''}"><span class="lt">${f.clock(e.t)}<i>.${f.ms(e.t)}</i></span><span class="lk">${lesc(e.k)}</span><span class="lm">${lesc(e.m)}</span></div>`;
+  }
+  $('logBody').innerHTML = html || '<div class="logempty">(leeg)</div>';
+  logSeen = all.length ? all[all.length - 1].t : logSeen;
+}
+async function loadLog() {
+  const d = await call('api', 'GET', '/log', null).catch((err) => ({ error: err && err.message }));
+  if (d && d.entries) { logData = d; $('logLive').className = 'loglive on'; $('logLive').textContent = '● live'; renderLog(); }
+  else { $('logLive').className = 'loglive'; $('logLive').textContent = '○ offline'; if (!logData) $('logBody').innerHTML = `<div class="logempty k-fout">kon logboek niet ophalen: ${lesc((d && d.error) || 'geen antwoord')}</div>`; }
+}
+function openLog() { $('logv').hidden = false; document.documentElement.style.overflow = 'hidden'; logSeen = 0; loadLog(); clearInterval(logTimer); logTimer = setInterval(() => { if (!document.hidden) loadLog(); }, 5000); }
+function closeLog() { $('logv').hidden = true; document.documentElement.style.overflow = ''; clearInterval(logTimer); }
+function logText() {
+  const tz = (logData && logData.tz) || 'Europe/Amsterdam'; const f = logFmt(tz);
+  return ((logData && logData.entries) || []).map((e) => `${f.ymd(e.t)} ${f.clock(e.t)}.${f.ms(e.t)}  ${e.k.toUpperCase().padEnd(8)} ${e.m}`).join('\n');
+}
+function wireLog() {
+  $('logOpen').addEventListener('click', openLog);
+  $('logBack').addEventListener('click', closeLog);
+  $('logFlt').addEventListener('click', (e) => {
+    const b = e.target.closest('.flt'); if (!b) return;
+    logKind = b.dataset.k; document.querySelectorAll('#logFlt .flt').forEach((x) => x.classList.toggle('on', x === b)); renderLog();
+  });
+  $('logCopy').addEventListener('click', async () => {
+    const txt = logText(); let ok = false;
+    try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;top:-1000px'; document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; } ta.remove();
+    }
+    $('logCopy').textContent = ok ? '[gekopieerd]' : '[mislukt]'; setTimeout(() => { $('logCopy').textContent = '[kopieer]'; }, 1500);
+  });
+  $('logClear').addEventListener('click', () => {
+    H.confirm('Logboek wissen?', 'warning', async (err, yes) => {
+      if (err || !yes) return;
+      const d = await call('api', 'DELETE', '/log', null).catch(() => null); if (d && d.entries) { logData = d; renderLog(); }
+    });
+  });
+  if (typeof H.on === 'function') H.on('journal', (e) => { if (!logData || $('logv').hidden || !e) return; logData.entries.push(e); renderLog(); });
 }
 
 function toast(msg) {
@@ -1985,7 +2083,7 @@ async function onHomeyReady(Homey) {
   Homey.ready();
   loadStatus();
   devices = await call('api', 'GET', '/devices', null).catch(() => []);
-  renderConfig(); renderSetup(); bootTile();
+  renderConfig(); renderSetup(); bootTile(); wireLog();
   // Live: de app stuurt na elke wijziging de nieuwe stand. Ophalen elke 15 s blijft als vangnet.
   if (typeof Homey.on === 'function') Homey.on('status', (st) => { lastVia = 'live'; renderStatus(st); schedulePoll(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });
