@@ -880,3 +880,26 @@ test('quickStatus: nieuwe stand meteen zichtbaar, ook als de thermostaat nog nie
   assert.equal(s.mode, 'vacation');
   assert.equal(s.targetConfirmed, false);
 });
+
+test('pauzeren en hervatten laat een lopende handmatige stand staan', async () => {
+  const { c, sim } = setup({ now: at('22:57'), target: 15, indoor: 19 });
+  await c.tick();
+  await c.setManual(20, 60, 'widget'); // tot 23:57
+  assert.equal(sim.target, 20);
+  sim.now = at('23:13'); await c.setEnabled(false); // pauze
+  assert.equal(c.status.mode, 'paused');
+  sim.now = at('23:14'); await c.setEnabled(true); // hervat
+  assert.equal(c.status.mode, 'manual');
+  assert.equal(sim.target, 20);
+  sim.now = at('23:58'); await c.tick(); // eindtijd voorbij: terug naar het schema
+  assert.notEqual(c.status.mode, 'manual');
+});
+
+test('hervatten na de eindtijd van de handmatige stand: gewoon het schema', async () => {
+  const { c, sim } = setup({ now: at('22:57'), target: 15, indoor: 19 });
+  await c.tick();
+  await c.setManual(20, 60, 'widget');
+  await c.setEnabled(false);
+  sim.now = at('23:59'); await c.setEnabled(true);
+  assert.equal(c.state.override, null);
+});

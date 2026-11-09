@@ -53,6 +53,8 @@ const status = () => ({
 const journal = (() => {
   const t0 = Date.now() - 5 * 3600000; const at = (min, k, m) => ({ t: t0 + min * 60000 + Math.floor(Math.random() * 59000), k, m });
   return [
+    at(-1500, 'historie', 'stand schedule -> manual'), at(-1499, 'historie', 'handmatig 20°  <- thermostaat (knop, tado-app of ander apparaat)'), at(-1380, 'historie', 'stand manual -> schedule'),
+    at(-240, 'historie', 'stand schedule -> paused'), at(-200, 'historie', 'stand paused -> schedule'),
     at(0, 'start', 'app 1.4.1 start (homey 12.4.0, tz Europe/Amsterdam)'), at(0, 'info', 'Slim verwarmen gestart'),
     at(1, 'stand', 'schedule 15°  binnen 16.9°  (Volgens schema)'), at(42, 'stand', 'schedule 15° -> preheat 17°  binnen 16.4°  (Voorverwarmen)'),
     at(42, 'info', 'Thermostaat -> 17°'), at(42, 'gebeurt', 'setpoint_changed {"temp":17,"reason":"preheat","from":15}'),
@@ -116,7 +118,7 @@ http.createServer((req, res) => {
     }
     if (url === '/__widget/action') {
       const b = JSON.parse(data || '{}');
-      journal.push({ t: Date.now(), k: 'actie', m: `${b.action}${Object.keys(b).length > 1 ? ' ' + JSON.stringify({ ...b, action: undefined }) : ''}` });
+      { const { via, action, ...rest } = b; journal.push({ t: Date.now(), k: 'actie', m: `${action}${Object.keys(rest).length ? ' ' + JSON.stringify(rest) : ''}  <- ${via || 'onbekend'}` }); }
       if (b.action === 'setTemp') {
         if (mode !== 'manual' || b.duration != null) { manualDur = b.duration != null ? b.duration : (store.config.overrideDefault || 'next'); manualUntil = untilOf(manualDur); }
         mode = 'manual'; manualTemp = b.temp; confirmedAt = Date.now() + 6000;

@@ -947,7 +947,7 @@ async function commitDur(d) {
   chosenDur = d; touched = true; openDur();
   if (pending != null) { sendTemp(); return; } // temperatuur en duur in één keer
   if (!(data.status.mode === 'manual' && data.status.override)) return;
-  try { data = await H.api('POST', '/action', { action: 'setDuration', duration: d }); } catch (err) { console.error(err); }
+  try { data = await act({ action: 'setDuration', duration: d }); } catch (err) { console.error(err); }
   chosenDur = null; touched = false; render(); refreshSoon();
 }
 
@@ -1527,7 +1527,7 @@ async function sendTemp() {
   clearTimeout(sendTimer); sendTimer = null;
   const temp = pending; const duration = chosenDur;
   try {
-    data = await H.api('POST', '/action', duration != null ? { action: 'setTemp', temp, duration } : { action: 'setTemp', temp });
+    data = await act(duration != null ? { action: 'setTemp', temp, duration } : { action: 'setTemp', temp });
   } catch (err) { console.error(err); }
   pending = null; chosenDur = null; touched = false; render(); refreshSoon();
 }
@@ -1602,8 +1602,10 @@ document.addEventListener('click', async (e) => {
 
 // Vakantie: terugkomstdag kiezen (snelle keuze of datum), dan meteen aan.
 /** Actie naar de Homey, maar nooit eindeloos wachten: na 20 s geven we het op (widget gaat weer van slot). */
+/** Actie naar de app, met waar hij vandaan komt (voor het logboek: widget of instellingen). */
+function act(body) { return H.api('POST', '/action', { ...body, via: IN_SETTINGS ? 'instellingen' : 'widget' }); }
 function postAction(body) {
-  const call = Promise.race([H.api('POST', '/action', body), new Promise((_, rej) => setTimeout(() => rej(new Error('Geen antwoord van de Homey')), 20000))]);
+  const call = Promise.race([act(body), new Promise((_, rej) => setTimeout(() => rej(new Error('Geen antwoord van de Homey')), 20000))]);
   // Minstens 1 s laden: anders flitst het rondje alleen even, en voelt het niet alsof er iets gebeurd is.
   return Promise.all([call, new Promise((r) => setTimeout(r, 1000))]).then(([res]) => res);
 }
