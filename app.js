@@ -14,7 +14,7 @@ const JOURNAL_MAX = 800; // regels in het logboek (instellingen > Logboek)
  * Logboekregel: { t, k (soort), m (tekst), c (categorie), s (bron), p (tijd van de oorzaak), r (ruw: alleen bij [ruw]) }.
  * Categorieën: hand (telefoon of thermostaat), systeem (de app zelf), flow, fout, app (start).
  */
-const deg = (v) => (Number.isFinite(Number(v)) ? `${String(Math.round(Number(v) * 10) / 10).replace('.', ',')}°` : '?');
+const deg = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? `${String(Math.round(Number(v) * 10) / 10).replace('.', ',')}°` : '?');
 const durText = (d) => (d == null ? '' : d === 'next' ? 'tot volgend blok' : d === 'manual' ? 'tot je hervat' : `${d} min`);
 const MODE_NL = { schedule: 'schema', preheat: 'voorverwarmen', manual: 'handmatig', away: 'afwezig', paused: 'gepauzeerd', vacation: 'vakantie', window: 'raam open', deviceWindow: 'raam open (thermostaat)', deviceOff: 'thermostaat uit', restore: 'raam dicht', limit: 'maximum', setup: 'nog niet gestart', nodevice: 'geen thermostaat' };
 /** Wat iemand in de widget of de instellingen deed, in gewone woorden. */
