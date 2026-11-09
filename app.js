@@ -432,7 +432,8 @@ class SlimVerwarmenApp extends Homey.App {
     const e = { t: Date.now(), k: kind, m: String(msg).slice(0, 600) };
     this.journalLog.push(e);
     if (this.journalLog.length > JOURNAL_MAX) this.journalLog.splice(0, this.journalLog.length - JOURNAL_MAX);
-    try { this.homey.api.realtime('journal', e); } catch (err) { /* geen pagina open */ }
+    // realtime() geeft een belofte terug die kan mislukken (bijv. tijdens het opstarten): altijd opvangen, anders stopt de hele app.
+    try { Promise.resolve(this.homey.api.realtime('journal', e)).catch(() => {}); } catch (err) { /* geen pagina open */ }
     if (!this.journalTimer) {
       this.journalTimer = this.homey.setTimeout(() => {
         this.journalTimer = null;
@@ -475,7 +476,7 @@ class SlimVerwarmenApp extends Homey.App {
         this.lastSig = sig;
       }
       // Live naar een geopende instellingenpagina sturen.
-      this.homey.api.realtime('status', data);
+      Promise.resolve(this.homey.api.realtime('status', data)).catch(() => {}); // mislukken mag, nooit de app laten stoppen
       const driver = this.homey.drivers.getDriver('thermostat');
       for (const device of driver.getDevices()) await device.showStatus(data).catch(this.error);
       return;
