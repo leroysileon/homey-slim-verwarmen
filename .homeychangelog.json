@@ -24,7 +24,7 @@
     "en": "Plan a holiday with a calendar: tap departure and return, adjust the times, switch a plan off or on without losing your dates, or clear it. The widget tiles now work like Homey device tiles with an on/off button. Works better with a tado X that reports 'off', and fits small screens."
   },
   "1.4.1": {
-    "nl": "Vakantie plannen met een kalender: tik vertrek en terugkomst, kies tijden in stappen van 5 minuten, zet een planning uit of aan zonder je datums kwijt te raken, of wis hem. De tegels in de widget werken nu als Homey-apparaattegels met een aan/uit-knop. Werkt beter met een tado X die 'uit' meldt, en past netjes op kleine schermen.",
-    "en": "Plan a holiday with a calendar: tap departure and return, pick times in 5-minute steps, switch a plan off or on without losing your dates, or clear it. The widget tiles now work like Homey device tiles with an on/off button. Works better with a tado X that reports 'off', and fits small screens."
+    "nl": "Vakantie plannen met een kalender: tik vertrek en terugkomst, kies tijden met een draaiwiel in stappen van 5 minuten, zet een planning uit of aan zonder je datums kwijt te raken, of wis hem. De tegels in de widget werken nu als Homey-apparaattegels met een aan/uit-knop. Werkt beter met een tado X die 'uit' meldt, en past netjes op kleine schermen.",
+    "en": "Plan a holiday with a calendar: tap departure and return, pick times on a scroll wheel in 5-minute steps, switch a plan off or on without losing your dates, or clear it. The widget tiles now work like Homey device tiles with an on/off button. Works better with a tado X that reports 'off', and fits small screens."
   }
 }
