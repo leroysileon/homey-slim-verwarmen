@@ -668,8 +668,11 @@ document.addEventListener('scroll', (e) => {
   wheelBusy = Date.now() + 500; clearTimeout(wheelTimer); wheelTimer = setTimeout(wheelPick, 110);
   // Tikje bij elke tijd die het midden passeert, zoals de wekker van je telefoon.
   const i = Math.round(c.scrollTop / WH); if (c._tick == null) c._tick = Number(c.dataset.sel);
-  if (i !== c._tick) { c._tick = i; stepTick(); }
+  if (i !== c._tick) { tickQueue = Math.min(12, tickQueue + Math.abs(i - c._tick)); c._tick = i; if (!tickPump) pumpTicks(); }
 }, true);
+// Snel draaien: één tikje per tijd die voorbij komt, ook als er meerdere in één beeldje passeren (kort na elkaar, als een ratel).
+let tickQueue = 0; let tickPump = null;
+function pumpTicks() { if (tickQueue <= 0) { tickPump = null; return; } tickQueue -= 1; stepTick(); tickPump = setTimeout(pumpTicks, 25); }
 /** Kalender als eerste scherm, zoals Airbnb: tik vertrek, tik terugkomst, de periode ertussen kleurt mee. Een derde tik begint opnieuw. */
 function calView() {
   const st = (data && data.status) || {}; const active = !!st.vacation;
