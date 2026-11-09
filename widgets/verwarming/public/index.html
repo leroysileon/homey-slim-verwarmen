@@ -621,6 +621,8 @@ const startsNow = () => vacFrom <= Date.now() + 60000;
 const goLabel = (editing) => (editing ? 'Opslaan' : startsNow() ? 'Vakantie starten' : 'Vakantie plannen');
 const vacOk = () => vacUntil != null && vacUntil >= Math.max(Date.now(), vacFrom) + 30 * 60000; // minstens een half uur weg
 /** Datum en tijd als twee losse velden van de telefoon (zoals tado). */
+const FIVE = 5 * 60000; // vakantietijden in stappen van 5 minuten
+const snap5 = (ms) => Math.round(ms / FIVE) * FIVE;
 const dayOf = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
 const monthStart = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
 const atNine = (day) => { const d = new Date(day); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0).getTime(); };
@@ -659,7 +661,7 @@ function calView() {
   const label = new Date(y, mo, 1).toLocaleDateString('nl-NL', { month: away ? 'short' : 'long', year: 'numeric' }).replace('.', '');
   const nxt = ICON_ACT.back.replace('<svg ', '<svg style="transform:scaleX(-1)" ');
   // Onderin: vertrek en terugkomst naast elkaar, elk met dag en tijd. Wat je nu kiest is gekleurd.
-  const tin = (k, ms, what) => `<input type="time" data-vacin="${k}" data-part="t" value="${isoLocal(ms).slice(11)}" aria-label="Tijd dat je ${what}">`;
+  const tin = (k, ms, what) => `<input type="time" step="300" data-vacin="${k}" data-part="t" value="${isoLocal(ms).slice(11)}" aria-label="Tijd dat je ${what}">`;
   // Welke dag de volgende tik kiest staat gekleurd; tik op vertrek of terugkomst om te kiezen welke je wijzigt.
   const nextK = !vacHasFrom ? 'from' : vacUntil == null ? 'until' : vacPick;
   const cell = (k, label, day, time) => `<div class="cf${nextK === k ? ' next' : ''}" role="button" tabindex="0" data-calpick="${k}" aria-label="${label} wijzigen">${day}${time}</div>`; // geen kopjes: de volgorde (vertrek → terug) zegt het al
@@ -1622,7 +1624,7 @@ document.addEventListener('click', (e) => {
       vacUntil = u <= Math.max(vacFrom, nowMin) ? addDays(Math.max(vacFrom, nowMin), 1) : u;
       vacPick = st.vacation ? 'until' : 'from'; // lopend: volgende tik verzet weer de terugkomst; anders begint hij een nieuwe periode
     } else {
-      vacFrom = Math.max(atNine(t), nowMin); // vertrek standaard om 09:00; vandaag en al later: vanaf nu
+      vacFrom = Math.max(atNine(t), Math.ceil(nowMin / FIVE) * FIVE); // vertrek standaard om 09:00; vandaag en al later: het volgende veelvoud van 5 minuten
       vacHasFrom = true; vacUntil = null; vacPick = 'until';
     }
     if (H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
@@ -1656,15 +1658,16 @@ function onVacDate(e) {
   const inp = e.target.closest && e.target.closest('[data-vacin]'); if (!inp || locked) return;
   const box = inp.closest('.vac');
   if (inp.dataset.vacin === 'from') {
-    const t = readDT(box, 'from'); const len = vacUntil != null && vacUntil > vacFrom ? vacUntil - vacFrom : 7 * 86400000;
+    const t = snap5(readDT(box, 'from')); const len = vacUntil != null && vacUntil > vacFrom ? vacUntil - vacFrom : 7 * 86400000;
     vacFrom = t == null ? Date.now() : t;
     if (vacUntil == null || vacUntil <= vacFrom) vacUntil = vacFrom + len; // terugkomst schuift mee: even lang weg, en altijd na vertrek
   } else {
-    const t = readDT(box, 'until');
+    const t = snap5(readDT(box, 'until'));
     // Terugkomst vóór (of op) het vertrek kan niet: dan de dag na vertrek, op dezelfde tijd.
     vacUntil = t != null && t <= vacFrom ? addDays(vacFrom, 1) : t;
   }
-  setUntilInputs(box);
+  if (e.type === 'change' || inp.dataset.vacin === 'from') setUntilInputs(box); // terugtijd pas na kiezen afronden in het veld
+  if (e.type === 'change' && inp.dataset.vacin === 'from') inp.value = isoLocal(vacFrom).slice(11); // afgerond op 5 minuten terugzetten (pas na kiezen, niet tijdens typen)
   const go = box.querySelector('[data-vacgo]'); const st = (data && data.status) || {};
   if (go && vacBusy == null) { go.disabled = !vacOk(); go.textContent = goLabel(!!(st.vacation || st.vacationPlan)); }
   const sb = box.querySelector('[data-vacsec]'); if (sb && vacSaved && (vacFrom !== vacSaved.from || vacUntil !== vacSaved.until)) sb.remove(); // tijd gewijzigd: concept, dus geen aan/uit meer
