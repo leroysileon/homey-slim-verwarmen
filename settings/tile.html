@@ -359,6 +359,8 @@
     #w .carr { opacity: .4; font-size: 15px; }
         @media (max-width: 340px) { #w .cf input { padding: 4px 5px; } #w .cf b, #w .cf input { font-size: 14px; } } /* smal: iets kleiner, weekdag blijft */
     @media (max-width: 330px) { #w .cf .wd { display: none; } } /* alleen op de allersmalste schermen zonder weekdag */ /* smal: '28 nov' zonder weekdag, zodat dag en tijd allebei op 16px passen */
+    #w .cf .tsel { display: inline-flex; align-items: center; flex: none; min-height: 32px; padding: 0 6px; border-radius: 8px; background: #f1f1f4; font-size: 15px; font-weight: 400; font-variant-numeric: tabular-nums; }
+    #w .cf .tsel select { -webkit-appearance: none; appearance: none; border: 0; margin: 0; padding: 4px 1px; background: transparent; color: inherit; font: inherit; font-size: 15px; cursor: pointer; text-align: center; color-scheme: light; } /* uur en minuut (per 5) als keuzelijst: ziet eruit als één tijd */
     #w .cf input { -webkit-appearance: none; appearance: none; position: relative; box-sizing: border-box; min-width: 0; flex: none; min-height: 32px; margin: 0; padding: 4px 6px; border: 0; border-radius: 8px;
       background: #f1f1f4; color: inherit; font-family: inherit; font-size: 15px; font-weight: 400; line-height: 1.2; color-scheme: light; cursor: pointer; } /* even groot als de dag */
     #w .cf input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; margin: 0; padding: 0; opacity: 0; background: none; cursor: pointer; }
@@ -376,7 +378,7 @@
     #w.locked { pointer-events: none; }
     #w.locked .vopts > *:not(.wait), #w.locked .vdate:not(.wait), #w.locked .p2 .xo:not(.wait), #w.locked .acts button:not(.busy) { opacity: .45; transition: opacity .2s; }
     @media (prefers-color-scheme: dark) { #w .vopts > *, #w .vdate { background: #2f3039; }
-      #w .cf input { background: #2f3039; color-scheme: dark; } #w .cf.next b { color: #7fe3e6; }
+      #w .cf input, #w .cf .tsel { background: #2f3039; color-scheme: dark; } #w .cf .tsel select { color-scheme: dark; } #w .cf.next b { color: #7fe3e6; }
       #w .calg .mid::before, #w .calg .a.rng::before, #w .calg .b.rng::before { background: rgba(127,227,230,.18); } #w .calg .a span, #w .calg .b span { background: #7fe3e6; color: #08292b; } }
     /* Instellingen: de keuze staat als eigen 'slide' op een neutrale kaart, net als de derde kaart op het dashboard. */
     #w.vacpick .p0 { background-color: #ffffff; background-image: none; color: #17171a; }
@@ -622,7 +624,6 @@ const goLabel = (editing) => (editing ? 'Opslaan' : startsNow() ? 'Vakantie star
 const vacOk = () => vacUntil != null && vacUntil >= Math.max(Date.now(), vacFrom) + 30 * 60000; // minstens een half uur weg
 /** Datum en tijd als twee losse velden van de telefoon (zoals tado). */
 const FIVE = 5 * 60000; // vakantietijden in stappen van 5 minuten
-const snap5 = (ms) => Math.round(ms / FIVE) * FIVE;
 const dayOf = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
 const monthStart = (ms) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
 const atNine = (day) => { const d = new Date(day); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0).getTime(); };
@@ -661,7 +662,12 @@ function calView() {
   const label = new Date(y, mo, 1).toLocaleDateString('nl-NL', { month: away ? 'short' : 'long', year: 'numeric' }).replace('.', '');
   const nxt = ICON_ACT.back.replace('<svg ', '<svg style="transform:scaleX(-1)" ');
   // Onderin: vertrek en terugkomst naast elkaar, elk met dag en tijd. Wat je nu kiest is gekleurd.
-  const tin = (k, ms, what) => `<input type="time" step="300" data-vacin="${k}" data-part="t" value="${isoLocal(ms).slice(11)}" aria-label="Tijd dat je ${what}">`;
+  // Tijd als twee keuzelijsten (uur en minuut per 5): de telefoon toont dan alleen tijden om de 5 minuten (een tijdveld kan dat niet afdwingen).
+  const tin = (k, ms, what) => {
+    const d = new Date(ms); let h = d.getHours(); let m = Math.round(d.getMinutes() / 5) * 5; if (m === 60) { m = 55; }
+    const opt = (v, sel) => `<option value="${v}"${v === sel ? ' selected' : ''}>${pad2(v)}</option>`;
+    return `<span class="tsel"><select data-vacin="${k}" data-part="h" aria-label="Uur dat je ${what}">${Array.from({ length: 24 }, (_, v) => opt(v, h)).join('')}</select>:<select data-vacin="${k}" data-part="m" aria-label="Minuten">${Array.from({ length: 12 }, (_, v) => opt(v * 5, m)).join('')}</select></span>`;
+  };
   // Welke dag de volgende tik kiest staat gekleurd; tik op vertrek of terugkomst om te kiezen welke je wijzigt.
   const nextK = !vacHasFrom ? 'from' : vacUntil == null ? 'until' : vacPick;
   const cell = (k, label, day, time) => `<div class="cf${nextK === k ? ' next' : ''}" role="button" tabindex="0" data-calpick="${k}" aria-label="${label} wijzigen">${day}${time}</div>`; // geen kopjes: de volgorde (vertrek → terug) zegt het al
@@ -1643,31 +1649,30 @@ document.addEventListener('click', (e) => {
 });
 // Datumkiezers: alleen het concept bijwerken, pas de knop zet de vakantie aan (dus niets gebeurt per ongeluk).
 function readDT(box, k) {
-  // Dag komt uit de kalender, tijd uit het tijdveld.
-  const t = box.querySelector(`[data-vacin="${k}"][data-part="t"]`);
+  // Dag komt uit de kalender, tijd uit de uur- en minutenlijst.
+  const hs = box.querySelector(`[data-vacin="${k}"][data-part="h"]`); const ms = box.querySelector(`[data-vacin="${k}"][data-part="m"]`);
   const base = new Date(k === 'from' ? vacFrom : (vacUntil != null ? vacUntil : vacFrom));
-  const [h, mi] = ((t && t.value) || '00:00').split(':').map(Number);
-  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, mi).getTime();
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), Number(hs ? hs.value : 9), Number(ms ? ms.value : 0)).getTime();
 }
 // Bijwerken zonder de keuze opnieuw te tekenen: dan blijft de datumkiezer van de telefoon gewoon open.
 function setUntilInputs(box) {
-  const t = box.querySelector('[data-vacin="until"][data-part="t"]');
-  if (t && vacUntil != null) t.value = isoLocal(vacUntil).slice(11);
+  if (vacUntil == null) return;
+  const d = new Date(vacUntil); const hs = box.querySelector('[data-vacin="until"][data-part="h"]'); const ms = box.querySelector('[data-vacin="until"][data-part="m"]');
+  if (hs) hs.value = String(d.getHours()); if (ms) ms.value = String(Math.min(55, Math.round(d.getMinutes() / 5) * 5));
 }
 function onVacDate(e) {
   const inp = e.target.closest && e.target.closest('[data-vacin]'); if (!inp || locked) return;
   const box = inp.closest('.vac');
   if (inp.dataset.vacin === 'from') {
-    const t = snap5(readDT(box, 'from')); const len = vacUntil != null && vacUntil > vacFrom ? vacUntil - vacFrom : 7 * 86400000;
+    const t = readDT(box, 'from'); const len = vacUntil != null && vacUntil > vacFrom ? vacUntil - vacFrom : 7 * 86400000;
     vacFrom = t == null ? Date.now() : t;
     if (vacUntil == null || vacUntil <= vacFrom) vacUntil = vacFrom + len; // terugkomst schuift mee: even lang weg, en altijd na vertrek
   } else {
-    const t = snap5(readDT(box, 'until'));
+    const t = readDT(box, 'until');
     // Terugkomst vóór (of op) het vertrek kan niet: dan de dag na vertrek, op dezelfde tijd.
     vacUntil = t != null && t <= vacFrom ? addDays(vacFrom, 1) : t;
   }
-  if (e.type === 'change' || inp.dataset.vacin === 'from') setUntilInputs(box); // terugtijd pas na kiezen afronden in het veld
-  if (e.type === 'change' && inp.dataset.vacin === 'from') inp.value = isoLocal(vacFrom).slice(11); // afgerond op 5 minuten terugzetten (pas na kiezen, niet tijdens typen)
+  setUntilInputs(box);
   const go = box.querySelector('[data-vacgo]'); const st = (data && data.status) || {};
   if (go && vacBusy == null) { go.disabled = !vacOk(); go.textContent = goLabel(!!(st.vacation || st.vacationPlan)); }
   const sb = box.querySelector('[data-vacsec]'); if (sb && vacSaved && (vacFrom !== vacSaved.from || vacUntil !== vacSaved.until)) sb.remove(); // tijd gewijzigd: concept, dus geen aan/uit meer
