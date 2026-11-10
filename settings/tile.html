@@ -1390,6 +1390,15 @@ const FX = (() => {
     function compose() {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
       ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(tex, 0, 0);
+      if (breath) { // adem: wolkje beslag in de kaartkleur, zacht aan de rand; vervaagt samen met de krabbel
+        const now = performance.now(), a = Math.min(1, (now - breath.t0) / 450) * (breath.fadeAt && now > breath.fadeAt ? Math.max(0, 1 - (now - breath.fadeAt) / 9000) : 1);
+        if (a <= 0) breath = null; else {
+          ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.translate(breath.x, breath.y); ctx.scale(1, breath.ry / breath.rx);
+          const T = (typeof builtTint === 'string' && builtTint) || '255,255,255', gr = ctx.createRadialGradient(0, 0, 0, 0, 0, breath.rx);
+          gr.addColorStop(0, `rgba(${T},${.5 * a})`); gr.addColorStop(.6, `rgba(${T},${.38 * a})`); gr.addColorStop(1, `rgba(${T},0)`);
+          ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, breath.rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        }
+      }
       ctx.globalCompositeOperation = 'destination-in'; ctx.drawImage(mask, 0, 0);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over';
       for (const p of residue) bead(ctx, p.x, p.y, p.r);
@@ -1398,6 +1407,159 @@ const FX = (() => {
     function planRefog() { // na een druppel slaat het glas langzaam weer dicht
       const next = { at: performance.now() + 2500, left: 90, ms: 200 }; next.k = 1 - Math.pow(.03, 1 / next.left);
       if (!refog) refog = next; else refog.left = Math.max(refog.left, next.left);
+    }
+    /* ── Krabbels: alsof iemand met een vinger iets op het beslagen raam schreef (smiley, hihi, lol, hartje). ──
+       Zelden: één keer kort nadat het glas beslaat, daarna hooguit om de paar minuten. Op een vrije plek, nooit door tekst.
+       Getekend als een vinger die het beslag wegveegt, daarna slaat het glas er langzaam weer overheen. */
+    const GLYPHS = (() => {
+      const arc = (cx, cy, rx, ry, a0, a1, n = 18) => Array.from({ length: n + 1 }, (_, i) => { const a = a0 + (a1 - a0) * i / n; return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]; });
+      const bez = (p0, p1, p2, p3, n = 14) => Array.from({ length: n + 1 }, (_, i) => { const t = i / n, u = 1 - t; return [0, 1].map((k) => u*u*u*p0[k] + 3*u*u*t*p1[k] + 3*u*t*t*p2[k] + t*t*t*p3[k]); });
+      const h = (x) => [[[x, 0], [x + .02, 1]], [[x + .01, .62], ...bez([x + .01, .62], [x + .1, .38], [x + .36, .4], [x + .36, 1], 10).slice(1)]];
+      const i_ = (x) => [[[x, .5], [x + .01, 1]], [[x, .26], [x + .02, .29]]];
+      const l = (x) => [[[x + .05, 0], ...bez([x + .05, 0], [x - .02, .5], [x - .04, .9], [x + .14, 1], 10).slice(1)]];
+      const cursive = (word) => { // aaneengeschreven: één doorlopende haal met lusjes, puntjes op de i pas aan het eind
+        const L = {
+          h: { w: .44, s: (o) => [...bez([o, .9], [o + .1, .62], [o + .24, .08], [o + .14, .04]), ...bez([o + .14, .04], [o + .03, 0], [o + .03, .6], [o + .05, 1]).slice(1), ...bez([o + .05, 1], [o + .1, .58], [o + .32, .44], [o + .33, .74]).slice(1), ...bez([o + .33, .74], [o + .33, .92], [o + .36, 1], [o + .44, .93]).slice(1)] },
+          i: { w: .22, s: (o) => [...bez([o, .93], [o + .06, .84], [o + .09, .62], [o + .11, .5]), ...bez([o + .11, .5], [o + .09, .76], [o + .08, 1], [o + .22, .92]).slice(1)], dot: (o) => [[o + .12, .3], [o + .14, .31]] },
+          l: { w: .3, s: (o) => [...bez([o, .93], [o + .14, .7], [o + .27, .1], [o + .17, .04]), ...bez([o + .17, .04], [o + .06, 0], [o + .05, .62], [o + .1, .98]).slice(1), ...bez([o + .1, .98], [o + .14, 1.02], [o + .24, .96], [o + .3, .88]).slice(1)] },
+          o: { w: .4, s: (o) => [...bez([o, .88], [o + .05, .62], [o + .12, .5], [o + .22, .5]), ...bez([o + .22, .5], [o + .36, .5], [o + .36, .97], [o + .2, .98]).slice(1), ...bez([o + .2, .98], [o + .05, 1], [o + .05, .58], [o + .22, .52]).slice(1), ...bez([o + .22, .52], [o + .3, .5], [o + .35, .56], [o + .4, .6]).slice(1)] },
+        };
+        let x = 0; const main = [], dots = [];
+        for (const ch of word) {
+          const t = L[ch], k = .92 + Math.random() * .16, dy = (Math.random() - .5) * .08; // elke letter net anders van grootte en hoogte
+          const pts = t.s(0).map(([u, v]) => [x + u * k, 1 - (1 - v) * k + dy]);
+          if (main.length) pts.shift(); // aan de vorige letter vast
+          main.push(...pts);
+          if (t.dot) dots.push(t.dot(0).map(([u, v]) => [x + u * k + (Math.random() - .5) * .04, 1 - (1 - v) * k + dy]));
+          x += t.w * k;
+        }
+        return { w: x, s: [main, ...dots] };
+      };
+      return {
+        smiley: { w: 1, s: [arc(.5, .5, .5, .48, -Math.PI / 2, Math.PI * 1.55, 30), [[.33, .34], [.34, .4]], [[.65, .34], [.66, .4]], arc(.5, .52, .25, .22, .2, Math.PI - .2, 14)] },
+        hart:   { w: 1, s: [[...bez([.5, .32], [.5, -.05], [-.05, -.02], [.08, .45]), ...bez([.08, .45], [.18, .7], [.42, .82], [.5, 1]).slice(1), ...bez([.5, 1], [.58, .82], [.82, .7], [.92, .45]).slice(1), ...bez([.92, .45], [1.05, -.02], [.5, -.05], [.5, .32]).slice(1)]] },
+        hihi:   () => cursive('hihi'),
+        lol:    () => cursive('lol'),
+        hoi:    () => cursive('hoi'),
+        knipoog: { w: 1, s: [arc(.5, .5, .5, .48, -Math.PI / 2, Math.PI * 1.55, 30), [[.33, .34], [.34, .4]], [[.58, .38], [.72, .37]], arc(.5, .5, .26, .24, .25, Math.PI - .35, 14)] },
+      };
+    })();
+    let bag = [], lastGlyph = '', tiltSide = Math.random() < .5 ? 1 : -1; let breath = null; // adem op het glas: extra beslag waarin de krabbel geschreven wordt
+    function nextGlyph() { // als een zakje: elke vorm één keer in willekeurige volgorde, nooit twee keer dezelfde achter elkaar
+      if (!bag.length) { bag = Object.keys(GLYPHS).sort(() => Math.random() - .5); if (bag[0] === lastGlyph) bag.push(bag.shift()); }
+      return (lastGlyph = bag.shift());
+    }
+    let doodle = null, doodleT = 0, lastDoodle = 0, doodleBusy = false; // busy: zolang de vinger nog tekent
+    // Bezet: alleen het grote getal en de knoppen. Over kleinere tekst heen mag (de krabbel ligt erachter).
+    const AVOID_BOX = '.temp, .ctrl, .resume';
+    function freeSpot(w, h) {
+      const pr = card.getBoundingClientRect(), pad = 4;
+      const blocks = [...[...card.querySelectorAll(AVOID_BOX)].map((el) => { const r = el.getBoundingClientRect(); return { x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; })]
+        .map((b) => ({ x: b.x - pad, y: b.y - pad, w: b.w + pad * 2, h: b.h + pad * 2 }));
+      const hit = (a) => blocks.some((b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y);
+      const spots = [];
+      for (let y = 12; y + h <= H - 12; y += 6) for (let x = 14; x + w <= W - 14; x += 6) if (!hit({ x, y, w, h })) spots.push({ x, y });
+      return spots.length ? spots[Math.floor(Math.random() * spots.length)] : null;
+    }
+    function startDoodle(name, at) {
+      if (density <= 0 || doodle || doodleBusy || !card) return false;
+      const gg = GLYPHS[name || nextGlyph()], g = typeof gg === 'function' ? gg() : gg;
+      let size = 58, spot = null; // groot genoeg om te lezen; mag deels achter kleine tekst vallen
+      if (at) { // getikt: de krabbel komt waar je tikte (binnen de kaart gehouden); de geplande automatische vervalt
+        clearTimeout(doodleT);
+        size = Math.min(58, (W - 20) / g.w - 8, H - 28);
+        const w = g.w * size + 8, h = size + 8;
+        spot = { x: Math.max(6, Math.min(W - w - 6, at.x - w / 2)), y: Math.max(6, Math.min(H - h - 6, at.y - h / 2)) };
+      } else {
+        for (; size >= 40 && !spot; size -= 4) spot = freeSpot(g.w * size + 8, size + 8);
+        if (!spot) return false; size += 4;
+      }
+      tiltSide = -tiltSide; // om en om naar links en rechts; soms bijna recht, soms flink scheef (tot ~15°)
+      const slant = -.12 + Math.random() * .08, rot = Math.random() < .3 ? (Math.random() - .5) * .08 : tiltSide * (.08 + Math.random() * .18), jit = () => (Math.random() - .5) * .8;
+      const strokes = g.s.map((st) => st.map(([u, v]) => {
+        const x = u * size + slant * (size - v * size), y = v * size;
+        return [spot.x + 4 + x * Math.cos(rot) - y * Math.sin(rot) + jit(), spot.y + 4 + x * Math.sin(rot) + y * Math.cos(rot) + jit()];
+      }));
+      doodleBusy = true;
+      const prepped = prepStrokes(strokes), total = prepped.reduce((n, st) => n + st.len, 0); // lange woorden iets vlotter: elk ~3–4,5 s
+      doodle = { strokes: prepped, size, R: Math.min(4, 2.3 * size / 30), speed: Math.max(.052 * size / 34, total / (2600 + Math.random() * 900)), tempo: .8 + Math.random() * .4, clock: 0, si: 0, pi: 0, pos: 0, last: null, lowest: null, pause: 520 }; // eerst even ademen op het glas
+      const bw = g.w * size + 8, bh = size + 8;
+      breath = { x: spot.x + bw / 2, y: spot.y + bh / 2, rx: bw / 2 + 22, ry: bh / 2 + 18, t0: performance.now(), fadeAt: 0 };
+      lastDoodle = performance.now(); schedule(); return true;
+    }
+    /* Vingertop: hard in het midden, zacht aan de rand. Iets smaller dan vegen. */
+    function fingertip(x0, y0, x1, y1, R = 3.4) {
+      mctx.globalCompositeOperation = 'destination-out';
+      const dist = Math.hypot(x1 - x0, y1 - y0), steps = Math.max(1, Math.ceil(dist / Math.max(.8, R * .4)));
+      for (let i = 0; i <= steps; i++) {
+        const x = x0 + (x1 - x0) * i / steps, y = y0 + (y1 - y0) * i / steps;
+        const g = mctx.createRadialGradient(x, y, 0, x, y, R);
+        g.addColorStop(0, 'rgba(0,0,0,.95)'); g.addColorStop(.6, 'rgba(0,0,0,.8)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        mctx.fillStyle = g; mctx.fillRect(x - R, y - R, R * 2, R * 2);
+      }
+    }
+    /* Menselijk tempo en een echte vingerstreep:
+       - elke haal zet langzaam in, versnelt en remt af; in bochten langzamer; puntjes zijn een tikje;
+       - het tempo golft en de vinger aarzelt soms heel even midden in een haal; pauzes tussen halen wisselen;
+       - de lijn wiebelt licht, de druk (dikte) wisselt en loopt aan begin en eind dun uit. */
+    function prepStrokes(strokes) {
+      return strokes.map((st) => {
+        const cum = [0], turn = [1], ph = Math.random() * 6, ph2 = Math.random() * 6;
+        for (let i = 1; i < st.length; i++) cum.push(cum[i - 1] + Math.hypot(st[i][0] - st[i - 1][0], st[i][1] - st[i - 1][1]));
+        const pts = st.map((p, i) => { // licht wiebelen, haaks op de richting
+          const a = st[Math.min(i + 1, st.length - 1)], b = st[Math.max(i - 1, 0)], dx = a[0] - b[0], dy = a[1] - b[1], n = Math.hypot(dx, dy) || 1;
+          const w = Math.sin(cum[i] * .18 + ph) * .3 + Math.sin(cum[i] * .6 + ph2) * .1;
+          return [p[0] - dy / n * w, p[1] + dx / n * w];
+        });
+        for (let i = 1; i < pts.length - 1; i++) {
+          const a1 = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0]), a2 = Math.atan2(pts[i + 1][1] - pts[i][1], pts[i + 1][0] - pts[i][0]);
+          let da = Math.abs(a2 - a1); if (da > Math.PI) da = 2 * Math.PI - da;
+          turn.push(1 - Math.min(.6, da * .9));
+        }
+        turn.push(1);
+        return { pts, cum, len: cum[cum.length - 1], turn, ph };
+      });
+    }
+    function stepDoodle(dt) {
+      const d = doodle; let ms = dt * 16.67;
+      while (ms > 0 && d.si < d.strokes.length) {
+        if (d.pause > 0) { const p = Math.min(d.pause, ms); d.pause -= p; ms -= p; continue; }
+        const st = d.strokes[d.si];
+        if (d.pos >= st.len - .01) { // haal klaar: vinger optillen, even wachten, volgende haal
+          d.si++; d.pos = 0; d.pi = 0; d.last = null;
+          const nxt = d.strokes[d.si]; d.pause = nxt && nxt.len < d.size * .25 ? 120 + Math.random() * 160 : 180 + Math.random() * 380;
+          continue;
+        }
+        const t = st.len ? d.pos / st.len : 1;
+        const dab = st.len < d.size * .25; // puntje of oogje: één tikje
+        const bell = dab ? .8 : .3 + 1.3 * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, t))), .8);
+        d.clock += Math.min(ms, 4);
+        const wobble = 1 + .28 * Math.sin(d.clock * .009 + st.ph) + .12 * Math.sin(d.clock * .023 + st.ph * 2); // tempo golft
+        if (!dab && t > .15 && t < .85 && Math.random() < .0025) { d.pause = 50 + Math.random() * 110; continue; } // heel even aarzelen
+        const v = d.speed * d.tempo * bell * wobble * (dab ? 1 : st.turn[Math.min(d.pi + 1, st.turn.length - 1)]); // px per ms
+        const slice = Math.min(ms, 4); ms -= slice;
+        let ds = Math.max(.1, v * slice);
+        const taper = dab ? .85 : Math.min(1, .5 + t * 4, .5 + (1 - t) * 4); // dun uitlopen aan begin en eind
+        const R = d.R * taper * (.95 + .07 * Math.sin(d.pos * .1 + st.ph)); // druk wisselt licht
+        while (ds > 0 && d.pi < st.pts.length - 1) {
+          const a = d.last || st.pts[d.pi], b = st.pts[d.pi + 1], seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          if (seg <= ds) { fingertip(a[0], a[1], b[0], b[1], R); ds -= seg; d.pos += seg; d.pi++; d.last = null; if (!d.lowest || b[1] > d.lowest[1]) d.lowest = b; }
+          else { const k = ds / seg, m = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; fingertip(a[0], a[1], m[0], m[1], R); d.last = m; d.pos += ds; ds = 0; }
+        }
+        if (d.pi >= st.pts.length - 1) d.pos = st.len;
+      }
+      if (d.si >= d.strokes.length) { // klaar: soms loopt er een druppel uit de onderkant, daarna langzaam weer dicht
+        if (breath) breath.fadeAt = performance.now() + 3000; // adem vervaagt samen met de krabbel
+        if (d.lowest && Math.random() < .5 && drops.length < 2) drops.push({ x: d.lowest[0], y: d.lowest[1] + 2, r: 2.4, v: .4, moving: true, stick: 30 + Math.random() * 30, ph: Math.random() * 6 });
+        doodle = null; doodleBusy = false; // klaar met tekenen: je mag meteen weer tikken (de vorige vervaagt gewoon verder)
+        const next = { at: performance.now() + 3000, left: 60, ms: 150, doodle: true }; next.k = 1 - Math.pow(.03, 1 / next.left);
+        if (!refog || refog.ms > next.ms) refog = next; else refog.left = Math.max(refog.left, next.left);
+      }
+    }
+    function planDoodle(first) { // vanzelf: eerste kort na het beslaan, daarna 15-30 s nadat de vorige helemaal weg is
+      clearTimeout(doodleT);
+      if (density <= 0 || reduceQ.matches) return;
+      doodleT = setTimeout(() => { if (!startDoodle()) doodleT = setTimeout(() => planDoodle(false), 5000); }, first ? 4000 + Math.random() * 6000 : 15000 + Math.random() * 15000);
     }
     function newDrop() { return { x: 18 + Math.random() * (W - 36), y: H * (.05 + Math.random() * .35), r: 2 + Math.random() * 1.1, v: 0, moving: false, stick: 18 + Math.random() * 20, ph: Math.random() * 6 }; }
     function step(dtRaw) {
@@ -1421,21 +1583,22 @@ const FX = (() => {
     function tick(t) {
       rafId = 0; toId = 0;
       if (W_EL().classList.contains('stacking')) { toId = setTimeout(() => tick(performance.now()), 400); return; } // vegen: niets tekenen
-      if (drops.length && t - lastDraw < 30) { rafId = requestAnimationFrame(tick); return; } // druppel is traag: 30 fps genoeg
+      if (!doodle && drops.length && t - lastDraw < 30) { rafId = requestAnimationFrame(tick); return; } // druppel is traag: 30 fps genoeg
       lastDraw = t;
       const dt = lt ? (t - lt) / 16.67 : 1; lt = t;
       if (drops.length) step(dt);
-      if (refog && t >= refog.at) {
+      if (doodle) stepDoodle(dt);
+      if (refog && t >= refog.at && !doodle) {
         mctx.globalCompositeOperation = 'source-over'; mctx.fillStyle = `rgba(0,0,0,${refog.k})`; mctx.fillRect(0, 0, W, H);
-        if (--refog.left <= 0) { resetMask(); refog = null; }
+        if (--refog.left <= 0) { const wasDoodle = refog.doodle; resetMask(); refog = null; doodleBusy = false; if (wasDoodle) planDoodle(false); } // krabbel weg: volgende vanzelf over 15-30 s
       }
       compose(); schedule();
     }
     function schedule() {
       if (rafId || toId || document.hidden || density <= 0) { if (!rafId && !toId) lt = 0; return; }
-      const resting = drops.length && drops.every((d) => !d.moving && d.v < .05);
+      const resting = drops.length && !doodle && drops.every((d) => !d.moving && d.v < .05);
       if (resting) toId = setTimeout(() => tick(performance.now()), Math.min(refog ? refog.ms : 1e9, Math.max(16, Math.min(...drops.map((d) => d.stick)) * 16.67)));
-      else if (drops.length) rafId = requestAnimationFrame(tick);
+      else if (drops.length || doodle) rafId = requestAnimationFrame(tick);
       else if (refog) { lt = 0; toId = setTimeout(() => tick(performance.now()), refog.ms); }
       else lt = 0;
     }
@@ -1447,16 +1610,16 @@ const FX = (() => {
     }
     function set(d) {
       const was = density; density = d;
-      if (d <= 0) { cv.classList.remove('on'); drops = []; clearTimeout(spawnT); return; }
+      if (d <= 0) { cv.classList.remove('on'); drops = []; doodle = null; doodleBusy = false; breath = null; clearTimeout(spawnT); clearTimeout(doodleT); return; }
       if (!W) size(); if (!W) return;
       if (built < 0 || Math.abs(d - built) > .04 || tint() !== builtTint || boxKey(textBoxes()) !== builtBoxes) buildTex();
       if (was <= 0) { resetMask(); drops = []; refog = null; }
       compose(); cv.classList.add('on');
-      if (was <= 0) { planDrop(); if (!reduceQ.matches) setTimeout(() => { if (density > 0 && !drops.length) { drops.push(newDrop()); schedule(); } }, 2500); } // eerste druppel kort na het beslaan
+      if (was <= 0) { planDrop(); planDoodle(true); if (!reduceQ.matches) setTimeout(() => { if (density > 0 && !drops.length) { drops.push(newDrop()); schedule(); } }, 2500); } // eerste druppel kort na het beslaan
       schedule();
     }
     document.addEventListener('visibilitychange', schedule);
-    return { set, size, rebuild() { built = -1; if (density > 0) set(density); } };
+    return { set, size, rebuild() { built = -1; if (density > 0) set(density); }, tap(x, y) { return !reduceQ.matches && startDoodle(undefined, { x, y }); } };
   })();
 
   /* ── IJsbloemen: statische SVG die één keer vanuit de hoeken uitgroeit; wijkt uit rond tekst. ── */
@@ -1611,7 +1774,12 @@ const FX = (() => {
     Heat.set(false); Breath.set(false); Fog.set(0); Frost.set(0); lastS = null;
     const w = W_EL(); if (w) w.classList.remove('misted');
   }
-  return { update, off, layer: fxl };
+  /** Tik op het beslagen glas: daar een krabbel (opnieuw zodra de vorige getekend is). */
+  function tap(clientX, clientY) {
+    if (!card) return false; const r = card.getBoundingClientRect();
+    return Fog.tap(clientX - r.left, clientY - r.top);
+  }
+  return { update, off, tap, layer: fxl };
 })();
 
 /** Kaartinhoud vervangen zonder de effectlaag weg te halen (anders begint ijs en beslag steeds opnieuw). */
@@ -2145,6 +2313,12 @@ document.addEventListener('input', onVacDate);
 document.addEventListener('change', onVacDate);
 
 // Instellingen: 'Kies thermostaat' springt naar de keuzelijst op de pagina eromheen.
+// Tik op het beslagen glas (niet op een knop, balk of uitleg): vinger schrijft daar iets in de condens.
+document.addEventListener('click', (e) => {
+  if (suppressClick || locked || !e.target.closest('#w .p0')) return;
+  if (e.target.closest('button, a, input, select, label, [data-act], [data-swap], [data-waveinfo], [data-duropen], [data-durclose], [data-vacedit], .wpop, .barwrap, .zone .bar')) return;
+  if (FX.tap(e.clientX, e.clientY) && H && typeof H.hapticFeedback === 'function') H.hapticFeedback();
+});
 document.addEventListener('click', (e) => {
   if (!e.target.closest('[data-pickdev]')) return;
   try { const el = window.parent.document.getElementById('thermostat'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); } catch (err) { /* los geopend */ }
