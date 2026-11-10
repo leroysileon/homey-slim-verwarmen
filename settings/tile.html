@@ -1390,15 +1390,6 @@ const FX = (() => {
     function compose() {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
       ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(tex, 0, 0);
-      if (breath) { // adem: wolkje beslag in de kaartkleur, zacht aan de rand; vervaagt samen met de krabbel
-        const now = performance.now(), a = Math.min(1, (now - breath.t0) / 450) * (breath.fadeAt && now > breath.fadeAt ? Math.max(0, 1 - (now - breath.fadeAt) / 9000) : 1);
-        if (a <= 0) breath = null; else {
-          ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.translate(breath.x, breath.y); ctx.scale(1, breath.ry / breath.rx);
-          const T = (typeof builtTint === 'string' && builtTint) || '255,255,255', gr = ctx.createRadialGradient(0, 0, 0, 0, 0, breath.rx);
-          gr.addColorStop(0, `rgba(${T},${.5 * a})`); gr.addColorStop(.6, `rgba(${T},${.38 * a})`); gr.addColorStop(1, `rgba(${T},0)`);
-          ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, breath.rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        }
-      }
       ctx.globalCompositeOperation = 'destination-in'; ctx.drawImage(mask, 0, 0);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over';
       for (const p of residue) bead(ctx, p.x, p.y, p.r);
@@ -1444,7 +1435,7 @@ const FX = (() => {
         knipoog: { w: 1, s: [arc(.5, .5, .5, .48, -Math.PI / 2, Math.PI * 1.55, 30), [[.33, .34], [.34, .4]], [[.58, .38], [.72, .37]], arc(.5, .5, .26, .24, .25, Math.PI - .35, 14)] },
       };
     })();
-    let bag = [], lastGlyph = '', tiltSide = Math.random() < .5 ? 1 : -1; let breath = null; // adem op het glas: extra beslag waarin de krabbel geschreven wordt
+    let bag = [], lastGlyph = '', tiltSide = Math.random() < .5 ? 1 : -1;
     function nextGlyph() { // als een zakje: elke vorm één keer in willekeurige volgorde, nooit twee keer dezelfde achter elkaar
       if (!bag.length) { bag = Object.keys(GLYPHS).sort(() => Math.random() - .5); if (bag[0] === lastGlyph) bag.push(bag.shift()); }
       return (lastGlyph = bag.shift());
@@ -1482,9 +1473,7 @@ const FX = (() => {
       }));
       doodleBusy = true;
       const prepped = prepStrokes(strokes), total = prepped.reduce((n, st) => n + st.len, 0); // lange woorden iets vlotter: elk ~3–4,5 s
-      doodle = { strokes: prepped, size, R: Math.min(4, 2.3 * size / 30), speed: Math.max(.052 * size / 34, total / (2600 + Math.random() * 900)), tempo: .8 + Math.random() * .4, clock: 0, si: 0, pi: 0, pos: 0, last: null, lowest: null, pause: 520 }; // eerst even ademen op het glas
-      const bw = g.w * size + 8, bh = size + 8;
-      breath = { x: spot.x + bw / 2, y: spot.y + bh / 2, rx: bw / 2 + 22, ry: bh / 2 + 18, t0: performance.now(), fadeAt: 0 };
+      doodle = { strokes: prepped, size, R: Math.min(4, 2.3 * size / 30), speed: Math.max(.052 * size / 34, total / (2600 + Math.random() * 900)), tempo: .8 + Math.random() * .4, clock: 0, si: 0, pi: 0, pos: 0, last: null, lowest: null, pause: 40 };
       lastDoodle = performance.now(); schedule(); return true;
     }
     /* Vingertop: hard in het midden, zacht aan de rand. Iets smaller dan vegen. */
@@ -1549,7 +1538,6 @@ const FX = (() => {
         if (d.pi >= st.pts.length - 1) d.pos = st.len;
       }
       if (d.si >= d.strokes.length) { // klaar: soms loopt er een druppel uit de onderkant, daarna langzaam weer dicht
-        if (breath) breath.fadeAt = performance.now() + 3000; // adem vervaagt samen met de krabbel
         if (d.lowest && Math.random() < .5 && drops.length < 2) drops.push({ x: d.lowest[0], y: d.lowest[1] + 2, r: 2.4, v: .4, moving: true, stick: 30 + Math.random() * 30, ph: Math.random() * 6 });
         doodle = null; doodleBusy = false; // klaar met tekenen: je mag meteen weer tikken (de vorige vervaagt gewoon verder)
         const next = { at: performance.now() + 3000, left: 60, ms: 150, doodle: true }; next.k = 1 - Math.pow(.03, 1 / next.left);
@@ -1610,7 +1598,7 @@ const FX = (() => {
     }
     function set(d) {
       const was = density; density = d;
-      if (d <= 0) { cv.classList.remove('on'); drops = []; doodle = null; doodleBusy = false; breath = null; clearTimeout(spawnT); clearTimeout(doodleT); return; }
+      if (d <= 0) { cv.classList.remove('on'); drops = []; doodle = null; doodleBusy = false; clearTimeout(spawnT); clearTimeout(doodleT); return; }
       if (!W) size(); if (!W) return;
       if (built < 0 || Math.abs(d - built) > .04 || tint() !== builtTint || boxKey(textBoxes()) !== builtBoxes) buildTex();
       if (was <= 0) { resetMask(); drops = []; refog = null; }
