@@ -1592,7 +1592,7 @@ const FX = (() => {
     }
     function planDrop() {
       clearTimeout(spawnT);
-      // Druppels vanaf zichtbaar beslag (65% vocht); hoe vochtiger, hoe vaker (ongeveer elke 6 tot 20 s).
+      // Druppels vanaf zichtbaar beslag; hoe sterker beslagen, hoe vaker (ongeveer elke 6 tot 20 s).
       if (density < .15 || reduceQ.matches) return;
       spawnT = setTimeout(() => { if (!document.hidden && drops.length < 2 && density >= .15) { drops.push(newDrop()); schedule(); } planDrop(); }, 5000 + Math.random() * 9000 * (1.5 - density));
     }
@@ -1724,12 +1724,21 @@ const FX = (() => {
   const st = { fog: false, frost: false, cold: false };
   function rules(s) {
     const hum = s.humidity, out = s.outdoor, ind = s.indoor;
-    const glass = (slack) => out != null && ind != null && out <= ind - 15 && hum >= 55 - slack; // koud glas: sneller beslagen
+    // Condens alleen als het in het echt kan: het dauwpunt van de kamerlucht ligt boven de temperatuur van de
+    // binnenkant van het glas. Glas geschat als oud dubbel glas (U 2,8, Rsi 0,13): bij 19° binnen en 3° buiten
+    // ±13,4°, dus beslagen vanaf ±70% vocht. Zonder binnen- of buitentemperatuur alleen bij echt vochtige lucht.
+    let margin = null; // graden dauwpunt boven glastemperatuur
+    if (hum != null && hum > 0 && out != null && ind != null) {
+      const g = Math.log(hum / 100) + 17.62 * ind / (243.12 + ind), dew = 243.12 * g / (17.62 - g); // Magnus
+      const glassT = ind - 2.8 * .13 * Math.max(0, ind - out);
+      margin = dew - glassT;
+    }
     if (hum == null) st.fog = false;
-    else if (!st.fog && (hum >= 65 || glass(0))) st.fog = true;
-    else if (st.fog && hum < 62 && !glass(3)) st.fog = false;
+    else if (margin != null) { if (!st.fog && margin >= 0) st.fog = true; else if (st.fog && margin < -1) st.fog = false; }
+    else if (!st.fog && hum >= 75) st.fog = true;
+    else if (st.fog && hum < 72) st.fog = false;
     let fog = 0;
-    if (st.fog) { fog = Math.max(.1, (hum - 60) / 25); if (glass(3)) fog = Math.max(fog, .2) + .15; fog = clamp(fog, 0, 1); }
+    if (st.fog) fog = margin != null ? clamp(.2 + margin / 4, .15, 1) : clamp((hum - 65) / 20, .15, 1);
     // IJsbloemen pas bij echte vorst (vanaf -3°, uit boven -2°): bij dubbel glas zie je ze rond 0° in het echt nooit.
     if (out == null) st.frost = false; else if (!st.frost && out <= -3) st.frost = true; else if (st.frost && out > -2) st.frost = false;
     const frost = st.frost ? clamp((-2 - out) / 10, .15, 1) : 0; // -3°: een paar takjes, -12°: volle sterkte
