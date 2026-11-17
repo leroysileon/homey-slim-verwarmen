@@ -1061,6 +1061,30 @@ function heatLevel(target, indoor, heating, learned) {
  * Rustiger verloop. Homey bewaart per 5 minuten een gemiddelde: een wissel van 15° naar 20° wordt dan één keer 17,3°.
  * Die tussenwaarde wordt de stand die erna kwam. Daarna tellen standen en modi van hooguit 5 minuten mee bij de vorige.
  */
+/**
+ * Wanneer er verwarmd werd: [[van, tot], …] plus minuten. Elk meetpunt telt tot het volgende meetpunt
+ * (Inzichten geeft voor vandaag 5-minutenwaarden, voor oudere dagen maar één per uur). De doeltemperatuur is
+ * de laatste stand op of vóór het meetpunt. Een gat in de metingen telt hooguit één gewone tussenstap.
+ */
+function heatSpans(h) {
+  const ind = h.indoor; const tg = h.target; const out = []; let ms = 0;
+  if (!ind.length || !tg.length) return { spans: out, min: 0 };
+  const gaps = ind.slice(1).map((r, i) => r[0] - ind[i][0]).filter((d) => d > 0).sort((a, b) => a - b);
+  const gap = Math.max(300000, gaps.length ? gaps[Math.floor(gaps.length / 2)] : 300000);
+  const until = Math.min(h.now, h.end); let j = -1;
+  ind.forEach(([t, v], i) => {
+    while (j + 1 < tg.length && tg[j + 1][0] <= t + 1000) j++;
+    if (j < 0) return;
+    const sp = Math.round(tg[j][1] * 2) / 2;
+    if (!(sp > v + 0.2)) return;
+    const e = Math.min(t + gap, i + 1 < ind.length ? ind[i + 1][0] : t + gap, until);
+    if (e <= t) return;
+    ms += e - t;
+    const last = out[out.length - 1];
+    if (last && t - last[1] <= 150000) last[1] = e; else out.push([t, e]);
+  });
+  return { spans: out, min: Math.round(ms / 60000) };
+}
 function calmHistory(h) {
   if (!h || h.calm) return h;
   const half = (v) => Math.abs(v * 2 - Math.round(v * 2)) < 0.01;
@@ -1215,10 +1239,9 @@ function chartPage(p1, p0) {
     const y = (v) => Y0 + ((TMAX - v) / (TMAX - TMIN)) * (HH - Y0);
     for (let v = TMIN; v <= TMAX; v += 3) svg += `<line class="g" x1="${X0}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>${v > TMIN ? `<text class="l" x="2" y="${y(v) - 3}">${v}°</text>` : ''}`;
     const tgt = new Map(h.target.map(([t, v]) => [Math.round(t / step), Math.round(v * 2) / 2]));
-    let heatMin = 0;
     // Eén vlak per aaneengesloten verwarmde periode (losse vakjes overlappen en geven streepjes).
-    let run = null; const flush = () => { if (run) svg += `<rect class="heat" x="${x(run[0])}" y="${Y0}" width="${Math.max(0, x(run[1]) - x(run[0]))}" height="${HH - Y0}"/>`; run = null; };
-    h.indoor.forEach(([t, v]) => { const sp = tgt.get(Math.round(t / step)); if (sp != null && sp > v + 0.2) { heatMin += 5; const e = Math.min(t + step, h.now); if (run && t - run[1] <= step / 2) run[1] = e; else { flush(); run = [t, e]; } } });
+    const heat = heatSpans(h); const heatMin = heat.min;
+    const flush = () => heat.spans.forEach(([a, b]) => { svg += `<rect class="heat" x="${x(a)}" y="${Y0}" width="${Math.max(0, x(b) - x(a))}" height="${HH - Y0}"/>`; });
     // Raam open: lichtblauwe baan door de grafiek (rondje met icoon komt verderop, bovenop de lijnen).
     const wins = windowSpans(h);
     wins.forEach(([a, b]) => { svg += `<rect class="win" x="${x(a)}" y="${Y0}" width="${Math.max(2.5, x(b) - x(a))}" height="${HH - Y0}"/>`; });
