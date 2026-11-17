@@ -164,6 +164,11 @@ http.createServer((req, res) => {
       const weather = day === 1 ? [] : [[0, 'night'], [8, 'partly'], [11, 'rain'], [14, 'cloudy'], [17, 'night']].map(([hr, k]) => ({ t: start + hr * 3600000, k })); // gisteren: nog niet bijgehouden
       return send(200, { day, start, end, now: Date.now(), room: 'Woonkamer', indoor, target, outdoor, weather, humidity, modes, usage });
     }
+    if (url === '/__api/measurements') { // nepmetingen: laatste 2 dagen, elke 5 minuten
+      const rows = []; const t0 = Math.floor(Date.now() / 300000) * 300000;
+      for (let k = t0 - 2 * 86400000; k <= t0; k += 300000) rows.push([k, Math.round((18 + Math.sin(k / 7200000)) * 10) / 10, 18, 60, 4.5, 'schedule']);
+      return send(200, { tz: 'Europe/Amsterdam', cols: ['t', 'indoor', 'target', 'humidity', 'outdoor', 'mode'], days: [], rows });
+    }
     if (url === '/__api/devices') return send(200, devices);
     if (url === '/__api/log') {
       if (req.method === 'DELETE') { journal.length = 0; journal.push({ t: Date.now(), k: 'start', m: 'logboek gewist', c: 'hand', s: 'instel' }); }

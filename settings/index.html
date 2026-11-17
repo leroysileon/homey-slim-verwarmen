@@ -741,7 +741,7 @@
       <div class="logrow2" id="logFlt">
         <button class="flt on" data-k="hand" aria-pressed="true">handmatig</button><button class="flt on" data-k="systeem" aria-pressed="true">systeem</button><button class="flt on" data-k="flow" aria-pressed="true">flow</button><button class="flt on" data-k="fout" aria-pressed="true">fout</button>
         <button class="flt" id="logRaw" aria-pressed="false" title="Ook de losse details: bevestigingen van de thermostaat en interne meldingen">details</button>
-        <span style="flex:1"></span><button id="logCopy">[kopieer]</button><button id="logClear">[wis]</button>
+        <span style="flex:1"></span><button id="logCopy">[kopieer]</button><button id="logMeas" title="Metingen van de laatste 30 dagen (elke 5 minuten) als CSV kopiëren">[metingen]</button><button id="logClear">[wis]</button>
       </div>
     </div>
     <div class="logbody" id="logBody" aria-live="off"></div>
@@ -990,6 +990,20 @@ function wireLog() {
       try { ok = document.execCommand('copy'); } catch (e2) { ok = false; } ta.remove();
     }
     $('logCopy').textContent = ok ? '[gekopieerd]' : '[mislukt]'; setTimeout(() => { $('logCopy').textContent = '[kopieer]'; }, 1500);
+  });
+  // Eigen meetlog (laatste 30 dagen, elke 5 minuten) als CSV naar het klembord, om te analyseren.
+  $('logMeas').addEventListener('click', async () => {
+    const b = $('logMeas'); b.textContent = '[laden…]';
+    const d = await call('api', 'GET', '/measurements?days=30', null).catch(() => null);
+    if (!d || !d.rows) { b.textContent = '[mislukt]'; setTimeout(() => { b.textContent = '[metingen]'; }, 1500); return; }
+    const f = logFmt(d.tz || 'Europe/Amsterdam');
+    const csv = [['tijd', ...d.cols.slice(1)].join(','), ...d.rows.map((r) => [`${f.ymd(r[0])} ${f.clock(r[0])}`, ...r.slice(1).map((v) => (v == null ? '' : v))].join(','))].join('\n');
+    let ok = false;
+    try { await navigator.clipboard.writeText(csv); ok = true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = csv; ta.style.cssText = 'position:fixed;top:-1000px'; document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; } ta.remove();
+    }
+    b.textContent = ok ? `[${d.rows.length} gekopieerd]` : '[mislukt]'; setTimeout(() => { b.textContent = '[metingen]'; }, 2000);
   });
   $('logClear').addEventListener('click', () => {
     H.confirm('Logboek wissen?', 'warning', async (err, yes) => {

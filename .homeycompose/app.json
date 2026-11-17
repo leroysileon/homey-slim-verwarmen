@@ -47,6 +47,10 @@
       "method": "GET",
       "path": "/history"
     },
+    "getMeasurements": {
+      "method": "GET",
+      "path": "/measurements"
+    },
     "getLog": {
       "method": "GET",
       "path": "/log"

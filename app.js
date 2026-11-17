@@ -6,8 +6,10 @@ const { Controller, WINDOW_TEMP } = require('./lib/controller');
 const { weatherOf } = require('./lib/weather');
 const { presenceOf, PresenceWatcher } = require('./lib/presence');
 const { usageOf } = require('./lib/usage');
+const { Measurements, series, mergeSeries } = require('./lib/measurements');
 
 const TICK_MS = 60 * 1000;
+const MEASURE_FLUSH_MS = 30 * 60 * 1000; // meetlog eens per half uur wegschrijven
 const JOURNAL_MAX = 800; // regels in het logboek (instellingen > Logboek)
 
 /**
@@ -60,6 +62,9 @@ class SlimVerwarmenApp extends Homey.App {
     this.fail = (...args) => { this.error(...args); this.journal('fout', line(args), { c: 'fout', s: 'fout' }); };
     // De eerste stand na een herstart hoort bij deze startregel: dat is geen wijziging, alleen hoe het er nu voor staat.
     this.startT = this.journal('start', `app ${this.homey.manifest.version} gestart (homey ${this.homey.version || '?'}, tz ${this.homey.clock.getTimezone()})`, { c: 'app', s: 'start' });
+    // Eigen meetlog (elke 5 minuten, 2 jaar): voor het verloop en om later van te leren.
+    this.measurements = new Measurements({ dir: '/userdata/metingen', timeZone: () => this.homey.clock.getTimezone() });
+    this.homey.setInterval(() => this.measurements.flush().catch((err) => this.fail('Metingen opslaan:', err.message)), MEASURE_FLUSH_MS);
     this.api = await HomeyAPI.createAppAPI({ homey: this.homey });
     try {
       await this.api.devices.connect();
@@ -121,8 +126,19 @@ class SlimVerwarmenApp extends Homey.App {
     this.note('Slim verwarmen gestart');
   }
 
+  async onUninit() {
+    if (this.measurements) { this.measurements.close(); await this.measurements.flush().catch(() => {}); }
+  }
+
   get config() {
     return this.controller.config;
+  }
+
+  /** Metingen uit het eigen meetlog, voor analyse: de laatste `days` dagen (max. 2 jaar). */
+  async getMeasurements(days = 30) {
+    days = Math.max(1, Math.min(730, Math.round(Number(days)) || 30));
+    const now = Date.now();
+    return { tz: this.homey.clock.getTimezone(), cols: require('./lib/measurements').COLS, days: await this.measurements.list(), rows: await this.measurements.range(now - days * 86400000, now + 1) };
   }
 
   // ---------- Aanwezigheid ----------
@@ -368,13 +384,19 @@ class SlimVerwarmenApp extends Homey.App {
     };
     const dev = this.config.thermostatId ? `homey:device:${this.config.thermostatId}` : null;
     const cfg = this.config;
-    const [indoor, target, humidity, outdoor, meter] = await Promise.all([
+    const [inIndoor, inTarget, inHumidity, inOutdoor, meter, own] = await Promise.all([
       dev ? read(dev, 'measure_temperature') : [],
       dev ? read(dev, 'target_temperature') : [],
       dev ? read(dev, this.humidityCap || 'measure_humidity') : [],
       read('homey:manager:weather', 'temperature'),
       cfg.usage === true && cfg.meterId && cfg.meterCapability ? read(`homey:device:${cfg.meterId}`, cfg.meterCapability) : [],
+      this.measurements.range(start, Math.min(end, now + 1)).catch(() => []),
     ]);
+    // Eigen meetlog eerst (elke 5 minuten); Inzichten vult aan waar dat nog niets heeft (bijv. van vóór deze versie).
+    const indoor = mergeSeries(series(own, 'indoor'), inIndoor);
+    const target = mergeSeries(series(own, 'target'), inTarget);
+    const humidity = mergeSeries(series(own, 'humidity'), inHumidity);
+    const outdoor = mergeSeries(series(own, 'outdoor'), inOutdoor);
     // Verbruik van die dag (gas of stroom) en wat het kostte, als er een meter is gekozen.
     const usage = cfg.usage === true && cfg.meterId && cfg.meterCapability ? usageOf(meter, cfg.meterCapability, cfg.price) : null; // alleen als 'Verbruik en kosten' aan staat
     const log = this.controller.modeLog || [];
@@ -542,6 +564,9 @@ class SlimVerwarmenApp extends Homey.App {
 
   async onControllerEvent(event, data) {
     if (event === 'status') {
+      if (data.mode !== 'nodevice' || data.indoor != null) {
+        this.measurements.add(Date.now(), { indoor: data.indoor, target: data.thermostatTarget, humidity: data.humidity, outdoor: data.outdoor, mode: data.mode });
+      }
       const target = data.thermostatTarget;
       const sig = `${data.mode}|${target}`;
       if (sig !== this.lastSig) { // standwissel of nieuw doel: één regel, geen regel per minuut

@@ -10,6 +10,9 @@ module.exports = {
   async getHistory({ homey, query }) {
     return homey.app.getHistory(Number(query && query.day) || 0);
   },
+  async getMeasurements({ homey, query }) {
+    return homey.app.getMeasurements(query && query.days);
+  },
   async getLog({ homey }) {
     return homey.app.getJournal();
   },
